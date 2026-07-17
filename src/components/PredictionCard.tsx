@@ -1,4 +1,11 @@
-import { type BetSlipItem } from './BetSlip';
+export type BetSlipItem = {
+  id: number;
+  homeTeam: string;
+  awayTeam: string;
+  prediction: string;
+  odds: number;
+  league: string;
+};
 
 interface PredictionCardProps {
   id: number;
@@ -80,7 +87,7 @@ export default function PredictionCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAddToSlip && onAddToSlip({ id, homeTeam, awayTeam, prediction, odds: parseFloat(odds), league });
+                onAddToSlip?.({ id, homeTeam, awayTeam, prediction, odds: parseFloat(odds), league });
               }}
               className="w-full bg-bg-surface hover:bg-brand-green hover:text-white text-brand-green border border-brand-green/30 py-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1"
             >

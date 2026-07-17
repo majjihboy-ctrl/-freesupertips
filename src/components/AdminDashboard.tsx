@@ -20,6 +20,39 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const navigate = useNavigate();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
 
+  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e: string) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const isAdmin = !!user?.email && adminEmails.includes(user.email.toLowerCase());
+
+  useEffect(() => {
+    if (user === null) return; // still loading initial session
+    if (!isAdmin) navigate('/');
+  }, [user, isAdmin, navigate]);
+
+  if (!isAdmin) {
+    return (
+      <div className="pt-32 pb-16 text-center text-slate-400">
+        <p>Checking access…</p>
+      </div>
+    );
+  }
+
+  return <AdminDashboardContent predictions={predictions} setPredictions={setPredictions} user={user} navigate={navigate} />;
+}
+
+function AdminDashboardContent({
+  predictions,
+  setPredictions,
+  user,
+  navigate,
+}: {
+  predictions: Prediction[];
+  setPredictions: (p: Prediction[]) => void;
+  user: User | null;
+  navigate: (path: string) => void;
+}) {
   const [formData, setFormData] = useState({
     fixtureId: '',
     prediction: '',

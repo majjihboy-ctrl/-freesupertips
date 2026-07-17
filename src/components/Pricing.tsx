@@ -1,12 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useState } from 'react';
+import { usePremium } from '../hooks/usePremium';
 
 export default function Pricing() {
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { pollForPremium } = usePremium(currentUserId);
 
-  const handleUpgrade = async (amount: number, planName: string) => {
+  const handleUpgrade = async (amount: number, planName: string, planSlug: 'daily' | 'weekly' | 'monthly') => {
     setLoadingPlan(amount);
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -16,6 +19,7 @@ export default function Pricing() {
       setLoadingPlan(null);
       return;
     }
+    setCurrentUserId(user.id);
 
     const phone = prompt(`Enter your M-Pesa Phone Number for ${planName} (${amount} KES):`);
     if (!phone) { setLoadingPlan(null); return; }
@@ -30,13 +34,13 @@ export default function Pricing() {
       const res = await fetch('/api/mpesa/stkpush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, amount, userId: user.id }),
+        body: JSON.stringify({ phone, amount, userId: user.id, plan: planSlug }),
       });
 
       const data = await res.json();
       if (data.success) {
-        alert(`✅ Check your phone! Enter M-Pesa PIN to pay ${amount} KES.`);
-        setTimeout(() => window.location.reload(), 30000);
+        alert(`✅ Check your phone! Enter M-Pesa PIN to pay ${amount} KES. We'll unlock VIP automatically once it's confirmed.`);
+        pollForPremium(user.id);
       } else {
         alert("❌ Failed to initiate M-Pesa. Please try again.");
       }
@@ -68,7 +72,7 @@ export default function Pricing() {
             <li className="flex items-center gap-2 text-slate-500">❌ Weekly Analysis</li>
           </ul>
           <button
-            onClick={() => handleUpgrade(100, 'Daily VIP')}
+            onClick={() => handleUpgrade(100, 'Daily VIP', 'daily')}
             disabled={loadingPlan === 100}
             className="w-full py-3 rounded-lg border border-bg-surface-hover text-slate-300 font-bold hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
           >
@@ -91,7 +95,7 @@ export default function Pricing() {
             <li className="flex items-center gap-2">✅ Advanced Match Stats</li>
           </ul>
           <button
-            onClick={() => handleUpgrade(500, 'Weekly VIP')}
+            onClick={() => handleUpgrade(500, 'Weekly VIP', 'weekly')}
             disabled={loadingPlan === 500}
             className="w-full py-3 rounded-lg bg-brand-green hover:bg-brand-green-hover text-white font-bold transition-colors disabled:opacity-50"
           >
@@ -111,7 +115,7 @@ export default function Pricing() {
             <li className="flex items-center gap-2">✅ 1-on-1 Betting Advice</li>
           </ul>
           <button
-            onClick={() => handleUpgrade(1500, 'Monthly VIP')}
+            onClick={() => handleUpgrade(1500, 'Monthly VIP', 'monthly')}
             disabled={loadingPlan === 1500}
             className="w-full py-3 rounded-lg border border-bg-surface-hover text-slate-300 font-bold hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
           >

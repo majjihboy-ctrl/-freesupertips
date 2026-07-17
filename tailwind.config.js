@@ -7,8 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#F6017C',
-        'primary-hover': '#E5016C',
+        primary: '#22C55E',
+        'primary-hover': '#16A34A',
+        'bg-base': '#0B0F17',
+        'bg-surface': '#141B29',
+        'bg-surface-hover': '#1E2738',
+        'brand-green': '#22C55E',
+        'brand-green-hover': '#16A34A',
+        'brand-premium': '#F5B731',
+        'brand-danger': '#EF4444',
       },
     },
   },
