@@ -63,6 +63,7 @@ function App() {
         setPassword={auth.setPassword}
         authError={auth.authError}
         onSubmit={auth.handleLogin}
+        onResend={auth.resendConfirmation}
       />
     </div>
   );

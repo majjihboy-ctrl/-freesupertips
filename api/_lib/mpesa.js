@@ -13,15 +13,34 @@ export const PLAN_DURATIONS_DAYS = {
   monthly: 30,
 };
 
+// Canonical prices in KES. The client sends `amount` too, but it must never
+// be trusted on its own — without this check, a client could request
+// plan: 'monthly' with amount: 1 and get 30 days of premium for 1 KES.
+export const PLAN_PRICES_KES = {
+  daily: 100,
+  weekly: 500,
+  monthly: 1500,
+};
+
+// MPESA_ENV should be 'sandbox' while testing and 'production' once you have
+// real Daraja go-live credentials from Safaricom. Sandbox can only simulate
+// payments — it will never move real money, even though the STK prompt looks
+// identical on the phone.
+const MPESA_BASE_URL = process.env.MPESA_ENV === 'production'
+  ? 'https://api.safaricom.co.ke'
+  : 'https://sandbox.safaricom.co.ke';
+
 export async function getMpesaToken() {
   const auth = Buffer.from(`${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`).toString(
     'base64'
   );
-  const res = await axios.get('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials', {
+  const res = await axios.get(`${MPESA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials`, {
     headers: { Authorization: `Basic ${auth}` },
   });
   return res.data.access_token;
 }
+
+export { MPESA_BASE_URL };
 
 export function mpesaTimestamp() {
   return new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3); // YYYYMMDDHHmmss

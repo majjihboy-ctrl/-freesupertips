@@ -28,10 +28,25 @@ export function useAuth() {
       if (error) setAuthError(error.message);
       else setShowAuthModal(false);
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
       if (error) setAuthError(error.message);
-      else setAuthError('✅ Check your email for the confirmation link!');
+      else setAuthError('✅ Check your email for the confirmation link! (Check spam too — see note below if nothing arrives.)');
     }
+  };
+
+  const resendConfirmation = async () => {
+    setAuthError('');
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) setAuthError(error.message);
+    else setAuthError('✅ Confirmation email resent.');
   };
 
   const handleLogout = async () => {
@@ -40,6 +55,6 @@ export function useAuth() {
 
   return {
     user, showAuthModal, setShowAuthModal, authMode, setAuthMode,
-    email, setEmail, password, setPassword, authError, handleLogin, handleLogout
+    email, setEmail, password, setPassword, authError, handleLogin, handleLogout, resendConfirmation
   };
 }

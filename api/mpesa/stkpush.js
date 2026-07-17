@@ -1,17 +1,20 @@
-import { getMpesaToken, mpesaTimestamp, mpesaPassword, supabaseAdmin, PLAN_DURATIONS_DAYS } from '../_lib/mpesa.js';
+import { getMpesaToken, mpesaTimestamp, mpesaPassword, supabaseAdmin, PLAN_DURATIONS_DAYS, PLAN_PRICES_KES, MPESA_BASE_URL } from '../_lib/mpesa.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { phone, amount, userId, plan } = req.body || {};
+  const { phone, userId, plan } = req.body || {};
 
-  if (!phone || !amount || !userId) {
-    return res.status(400).json({ error: 'phone, amount, and userId are required' });
+  if (!phone || !userId) {
+    return res.status(400).json({ error: 'phone and userId are required' });
   }
 
   const normalizedPlan = plan && PLAN_DURATIONS_DAYS[plan] ? plan : 'weekly';
+  // The price is looked up server-side from the plan name — never trust a
+  // client-supplied amount, or someone could pay 1 KES for a monthly plan.
+  const amount = PLAN_PRICES_KES[normalizedPlan];
 
   try {
     const token = await getMpesaToken();
@@ -20,7 +23,7 @@ export default async function handler(req, res) {
 
     const axios = (await import('axios')).default;
     const response = await axios.post(
-      'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+      `${MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest`,
       {
         BusinessShortCode: process.env.MPESA_SHORTCODE,
         Password: password,

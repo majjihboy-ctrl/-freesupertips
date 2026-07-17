@@ -8,6 +8,7 @@
     "dev:frontend": "vite",
     "dev:backend": "node scripts/dev-api-server.js",
     "build": "tsc -b && vite build",
+    "scrape": "node hybrid-scraper.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },

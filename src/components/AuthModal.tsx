@@ -9,9 +9,10 @@ interface AuthModalProps {
   setPassword: (password: string) => void;
   authError: string;
   onSubmit: (e: React.FormEvent) => void;
+  onResend?: () => void;
 }
 
-export default function AuthModal({ isOpen, onClose, authMode, setAuthMode, email, setEmail, password, setPassword, authError, onSubmit }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, authMode, setAuthMode, email, setEmail, password, setPassword, authError, onSubmit, onResend }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -29,7 +30,16 @@ export default function AuthModal({ isOpen, onClose, authMode, setAuthMode, emai
           </button>
         </form>
 
-        {authError && <p className="text-center text-sm mt-4 text-brand-danger">{authError}</p>}
+        {authError && (
+          <div className="text-center text-sm mt-4">
+            <p className="text-brand-danger">{authError}</p>
+            {authMode === 'signup' && authError.includes('Check your email') && onResend && (
+              <button onClick={onResend} className="text-brand-green hover:underline font-bold mt-2">
+                Didn't get it? Resend email
+              </button>
+            )}
+          </div>
+        )}
 
         <p className="text-center text-sm text-slate-400 mt-6">
           {authMode === 'login' ? "Don't have an account? " : "Already have an account? "}

@@ -30,22 +30,34 @@ async function fetchWithRetry(url, headers, retries = 2) {
   return null;
 }
 
+function isoDateOffset(offsetDays) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+}
+
 async function runHybridScraper() {
   console.log(" Starting Smart Hybrid Scraper (API-Football + Bzzoiro)...");
-  const today = new Date().toISOString().split('T')[0];
   let apiRequestsUsed = 0;
 
+  // Yesterday: so finished matches settle and show in Recent Results.
+  // Today + tomorrow: so the Yesterday/Today/Tomorrow tabs all have data.
+  const datesToScrape = [isoDateOffset(-1), isoDateOffset(0), isoDateOffset(1)];
+
+  let totalFixtures = 0;
+  let enrichedCount = 0;
+  let basicCount = 0;
+
+  for (const today of datesToScrape) {
   try {
     // 1. Get ALL matches from API-Football (USES 1 REQUEST)
-    console.log("🌍 Fetching global fixtures from API-Football...");
+    console.log(`🌍 Fetching global fixtures from API-Football for ${today}...`);
     const fixturesData = await fetchWithRetry(`https://v3.football.api-sports.io/fixtures?date=${today}`, apiHeaders);
     apiRequestsUsed++;
 
     const fixtures = fixturesData?.response || [];
-    console.log(`📅 Found ${fixtures.length} total matches today.`);
-
-    let enrichedCount = 0;
-    let basicCount = 0;
+    console.log(`📅 Found ${fixtures.length} total matches on ${today}.`);
+    totalFixtures += fixtures.length;
 
     for (const match of fixtures) {
       const fixtureId = match.fixture.id;
@@ -106,6 +118,10 @@ async function runHybridScraper() {
         away_team_id: awayId,
         league_name: leagueName,
         kickoff_time: kickoffTime,
+        fixture_date: match.fixture.date, // full ISO timestamp, used for day filtering
+        status: match.fixture.status?.short || 'NS', // NS, 1H, HT, 2H, FT, PST, CANC...
+        home_score: match.goals?.home ?? null,
+        away_score: match.goals?.away ?? null,
         home_team_name: homeName,
         away_team_name: awayName,
         h2h_data: h2hData,
@@ -114,23 +130,23 @@ async function runHybridScraper() {
         prediction_data: predData,
         odds_data: oddsData,
         updated_at: new Date()
-      });
+      }, { onConflict: 'fixture_id' });
 
       console.log(`  ✅ Saved to Supabase! (API Requests Used: ${apiRequestsUsed}/100)`);
 
       // Polite delay
       await new Promise(resolve => setTimeout(resolve, 800));
     }
-
-    console.log(`\n🎉 HYBRID SCRAPER COMPLETE!`);
-    console.log(`📊 Total Matches Saved: ${fixtures.length}`);
-    console.log(`🏆 Richly Enriched (Top Leagues): ${enrichedCount}`);
-    console.log(`📝 Basic Info Only (Lower Leagues): ${basicCount}`);
-    console.log(`🔑 API-Football Requests Used: ${apiRequestsUsed}/100`);
-
   } catch (error) {
-    console.error("❌ Fatal Error:", error.response?.data || error.message);
+    console.error(`❌ Fatal Error while scraping ${today}:`, error.response?.data || error.message);
   }
+  } // end for-each date
+
+  console.log(`\n🎉 HYBRID SCRAPER COMPLETE!`);
+  console.log(`📊 Total Matches Saved: ${totalFixtures}`);
+  console.log(`🏆 Richly Enriched (Top Leagues): ${enrichedCount}`);
+  console.log(`📝 Basic Info Only (Lower Leagues): ${basicCount}`);
+  console.log(`🔑 API-Football Requests Used: ${apiRequestsUsed}/100`);
 }
 
 runHybridScraper();
