@@ -2,12 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+[data-theme="dark"] {
+  --color-bg-base: #0B0F17;
+  --color-bg-surface: #141B29;
+  --color-bg-surface-hover: #1E2738;
+  --color-brand-green: #22C55E;
+  --color-brand-green-hover: #16A34A;
+  --color-brand-premium: #F5B731;
+  --color-brand-danger: #EF4444;
+}
+
+[data-theme="light"] {
+  --color-bg-base: #F8FAFC;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-surface-hover: #F1F5F9;
+  --color-brand-green: #16A34A;
+  --color-brand-green-hover: #15803D;
+  --color-brand-premium: #D97706;
+  --color-brand-danger: #DC2626;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   scroll-behavior: smooth;
-  background-color: #ffffff;
-  color: #111827;
+  background-color: var(--color-bg-base);
+  color: var(--color-bg-base);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -17,3 +39,30 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/*
+ * Light-theme overrides for Tailwind's own built-in utility classes.
+ * Most of this app's dark-theme pass used literal classes like
+ * text-white / text-slate-400 / bg-slate-900 directly (not the custom
+ * CSS-variable-backed tokens above), so simply swapping the tokens isn't
+ * enough on its own to fully re-theme the app. Scoping overrides under
+ * [data-theme="light"] with a class selector gives them enough
+ * specificity to win over the plain utility without touching every
+ * component file individually.
+ */
+[data-theme="light"] .text-white { color: #0F172A; }
+[data-theme="light"] .text-slate-100 { color: #1E293B; }
+[data-theme="light"] .text-slate-200 { color: #334155; }
+[data-theme="light"] .text-slate-300 { color: #475569; }
+[data-theme="light"] .text-slate-400 { color: #64748B; }
+[data-theme="light"] .text-slate-500 { color: #64748B; }
+[data-theme="light"] .text-slate-600 { color: #94A3B8; }
+[data-theme="light"] .bg-black,
+[data-theme="light"] .bg-slate-900,
+[data-theme="light"] .bg-slate-950 { background-color: #F1F5F9; }
+[data-theme="light"] .bg-slate-800 { background-color: #E2E8F0; }
+[data-theme="light"] .bg-slate-700 { background-color: #CBD5E1; }
+[data-theme="light"] .bg-slate-500 { background-color: #94A3B8; }
+[data-theme="light"] .border-slate-800 { border-color: #E2E8F0; }
+[data-theme="light"] .border-slate-600 { border-color: #CBD5E1; }
+[data-theme="light"] .border-slate-500 { border-color: #94A3B8; }

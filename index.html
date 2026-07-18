@@ -5,6 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>freesupertips</title>
+    <script>
+      // Set the theme attribute before anything paints, so there's no
+      // flash of the wrong theme while React loads and useTheme() runs.
+      (function () {
+        try {
+          var stored = localStorage.getItem('fst-theme');
+          document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light' : 'dark');
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

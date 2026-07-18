@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Menu, X, User as UserIcon, LogOut, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
+import { useTheme } from '../hooks/useTheme';
+import ThemeToggle from './ThemeToggle';
 
 interface NavbarProps {
   user: User | null;
@@ -13,6 +15,7 @@ interface NavbarProps {
 export default function Navbar({ user, hasPremium, onLogout, onOpenAuth }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -44,6 +47,8 @@ export default function Navbar({ user, hasPremium, onLogout, onOpenAuth }: Navba
                 {link.label}
               </Link>
             ))}
+
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
 
             {user ? (
               <div className="flex items-center gap-3">
@@ -80,9 +85,12 @@ export default function Navbar({ user, hasPremium, onLogout, onOpenAuth }: Navba
             )}
           </div>
 
-          <button className="md:hidden p-2 text-slate-200" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <button className="p-2 text-slate-200" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
         {mobileMenuOpen && (
