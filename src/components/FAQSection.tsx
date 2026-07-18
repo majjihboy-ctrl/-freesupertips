@@ -14,22 +14,22 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-bg-base">
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl font-bold text-center text-gray-900 mb-12">Frequently Asked Questions</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12">Frequently Asked Questions</h2>
 
         <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <div key={index} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+            <div key={index} className="bg-bg-surface rounded-2xl border border-bg-surface-hover overflow-hidden shadow-sm">
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
+                className="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-bg-base transition-colors"
               >
-                <span className="font-bold text-gray-900 text-lg pr-4">{index + 1}. {faq.q}</span>
-                {openIndex === index ? <ChevronUp className="w-6 h-6 text-primary shrink-0" /> : <ChevronDown className="w-6 h-6 text-gray-400 shrink-0" />}
+                <span className="font-bold text-white text-lg pr-4">{index + 1}. {faq.q}</span>
+                {openIndex === index ? <ChevronUp className="w-6 h-6 text-brand-green shrink-0" /> : <ChevronDown className="w-6 h-6 text-slate-400 shrink-0" />}
               </button>
               {openIndex === index && (
-                <div className="px-8 pb-6 text-gray-600 text-lg leading-relaxed">
+                <div className="px-8 pb-6 text-slate-400 text-lg leading-relaxed">
                   {faq.a}
                 </div>
               )}

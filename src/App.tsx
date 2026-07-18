@@ -4,7 +4,6 @@ import Hero from './components/Hero';
 import DailyPredictions from './components/DailyPredictions';
 import TipCategoryGrid from './components/TipCategoryGrid';
 import RecentResults from './components/RecentResults';
-import BlogPreview from './components/BlogPreview';
 import SEOContent from './components/SEOContent';
 import FAQSection from './components/FAQSection';
 import Footer from './components/Footer';
@@ -13,6 +12,11 @@ import AdminDashboard from './components/AdminDashboard';
 import Pricing from './components/Pricing';
 import DayPage from './components/DayPage';
 import TipCategoryPage from './components/TipCategoryPage';
+import ResultsPage from './components/ResultsPage';
+import TermsPage from './pages/TermsPage';
+import DisclaimerPage from './pages/DisclaimerPage';
+import RefundPage from './pages/RefundPage';
+import ContactPage from './pages/ContactPage';
 import { useAuth } from './hooks/useAuth';
 import { usePremium } from './hooks/usePremium';
 
@@ -39,7 +43,6 @@ function App() {
               <DailyPredictions />
               <TipCategoryGrid />
               <RecentResults />
-              <BlogPreview />
               <SEOContent />
               <FAQSection />
             </>
@@ -48,6 +51,11 @@ function App() {
           <Route path="/admin" element={<AdminDashboard user={auth.user} />} />
           <Route path="/day/:day" element={<DayPage />} />
           <Route path="/tips/:category" element={<TipCategoryPage />} />
+          <Route path="/results" element={<ResultsPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/disclaimer" element={<DisclaimerPage />} />
+          <Route path="/refund" element={<RefundPage />} />
+          <Route path="/contact" element={<ContactPage />} />
         </Routes>
       </main>
       <Footer />
