@@ -47,6 +47,8 @@ async function runHybridScraper() {
   let totalFixtures = 0;
   let enrichedCount = 0;
   let basicCount = 0;
+  let savedCount = 0;
+  let failedCount = 0;
 
   for (const today of datesToScrape) {
   try {
@@ -112,7 +114,7 @@ async function runHybridScraper() {
       }
 
       // 4. Save to Supabase (Includes new columns for the frontend)
-      await supabase.from('match_stats').upsert({
+      const { error: upsertError } = await supabase.from('match_stats').upsert({
         fixture_id: fixtureId,
         home_team_id: homeId,
         away_team_id: awayId,
@@ -132,7 +134,13 @@ async function runHybridScraper() {
         updated_at: new Date()
       }, { onConflict: 'fixture_id' });
 
-      console.log(`  ✅ Saved to Supabase! (API Requests Used: ${apiRequestsUsed}/100)`);
+      if (upsertError) {
+        console.error(`  ❌ Supabase upsert FAILED for fixture ${fixtureId}:`, upsertError.message || upsertError);
+        failedCount++;
+      } else {
+        console.log(`  ✅ Saved to Supabase! (API Requests Used: ${apiRequestsUsed}/100)`);
+        savedCount++;
+      }
 
       // Polite delay
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -143,10 +151,21 @@ async function runHybridScraper() {
   } // end for-each date
 
   console.log(`\n🎉 HYBRID SCRAPER COMPLETE!`);
-  console.log(`📊 Total Matches Saved: ${totalFixtures}`);
+  console.log(`📊 Fixtures Found: ${totalFixtures}`);
+  console.log(`✅ Actually Saved to Supabase: ${savedCount}`);
+  console.log(`❌ Failed to Save: ${failedCount}`);
   console.log(`🏆 Richly Enriched (Top Leagues): ${enrichedCount}`);
   console.log(`📝 Basic Info Only (Lower Leagues): ${basicCount}`);
   console.log(`🔑 API-Football Requests Used: ${apiRequestsUsed}/100`);
+
+  // Fail the CI run loudly if fixtures were found but nothing actually
+  // saved — this is exactly the "workflow says success but the site has
+  // no data" scenario, and it should show up as a red X, not a silent
+  // green checkmark.
+  if (totalFixtures > 0 && savedCount === 0) {
+    console.error('\n⚠️  Every single Supabase write failed. Failing the job so this shows up as an error, not a false success.');
+    process.exitCode = 1;
+  }
 }
 
 runHybridScraper();
