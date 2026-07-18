@@ -24,6 +24,9 @@ async function fetchWithRetry(url, headers, retries = 2) {
       const res = await axios.get(url, { headers, timeout: 15000 });
       return res.data;
     } catch (error) {
+      const status = error.response?.status;
+      const body = error.response?.data;
+      console.error(`  ⚠️  Request failed (attempt ${i + 1}/${retries}) [${status || 'network error'}] ${url}:`, body ? JSON.stringify(body).slice(0, 300) : error.message);
       if (i < retries - 1) await new Promise(r => setTimeout(r, 1500));
     }
   }
@@ -56,6 +59,14 @@ async function runHybridScraper() {
     console.log(`🌍 Fetching global fixtures from API-Football for ${today}...`);
     const fixturesData = await fetchWithRetry(`https://v3.football.api-sports.io/fixtures?date=${today}`, apiHeaders);
     apiRequestsUsed++;
+
+    // API-Football returns HTTP 200 even for plan/quota restrictions —
+    // the actual problem shows up as text inside `errors`, not as a
+    // thrown exception. Surface it so an empty result isn't a silent
+    // "0 matches" when it's actually "your plan doesn't allow this".
+    if (fixturesData?.errors && Object.keys(fixturesData.errors).length > 0) {
+      console.error(`  ⚠️  API-Football returned an error for ${today}:`, JSON.stringify(fixturesData.errors));
+    }
 
     const fixtures = fixturesData?.response || [];
     console.log(`📅 Found ${fixtures.length} total matches on ${today}.`);
