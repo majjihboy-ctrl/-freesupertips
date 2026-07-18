@@ -10,7 +10,6 @@ import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import AdminDashboard from './components/AdminDashboard';
 import Pricing from './components/Pricing';
-import DayPage from './components/DayPage';
 import TipCategoryPage from './components/TipCategoryPage';
 import ResultsPage from './components/ResultsPage';
 import TermsPage from './pages/TermsPage';
@@ -50,7 +49,6 @@ function App() {
           } />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/admin" element={<AdminDashboard user={auth.user} />} />
-          <Route path="/day/:day" element={<DayPage />} />
           <Route path="/tips/:category" element={<TipCategoryPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/terms" element={<TermsPage />} />

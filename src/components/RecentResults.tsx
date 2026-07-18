@@ -27,21 +27,20 @@ export default function RecentResults() {
                 <th className="px-6 py-5 font-bold text-sm uppercase tracking-wider">Match</th>
                 <th className="px-6 py-5 text-center font-bold text-sm uppercase tracking-wider">Score</th>
                 <th className="px-6 py-5 text-center font-bold text-sm uppercase tracking-wider">Tip</th>
-                <th className="px-6 py-5 text-center font-bold text-sm uppercase tracking-wider">Odds</th>
                 <th className="px-6 py-5 text-center font-bold text-sm uppercase tracking-wider">Result</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-bg-surface-hover">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                     Loading results…
                   </td>
                 </tr>
               ) : results.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                     No settled results yet — the scraper needs to run after matches finish.
                   </td>
                 </tr>
@@ -61,7 +60,6 @@ export default function RecentResults() {
                         {result.prediction}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-center font-extrabold text-brand-green text-lg">{result.odds}</td>
                     <td className="px-6 py-5 text-center">
                       <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
                         result.outcome === 'WON' ? 'bg-brand-green/15 text-brand-green' :
@@ -79,7 +77,7 @@ export default function RecentResults() {
         </div>
 
         <div className="text-center mt-10">
-          <Link to="/day/yesterday" className="inline-flex items-center text-brand-green font-bold text-lg hover:underline">
+          <Link to="/results" className="inline-flex items-center text-brand-green font-bold text-lg hover:underline">
             View More Results →
           </Link>
         </div>

@@ -12,8 +12,6 @@ interface MatchRow {
   fixture_date: string;
   status: string;
   admin_prediction: string | null;
-  admin_odds: string | null;
-  admin_confidence: string | null;
   is_premium_override: boolean | null;
 }
 
@@ -21,13 +19,19 @@ interface AdminDashboardProps {
   user: User | null;
 }
 
+// Always an admin regardless of whether VITE_ADMIN_EMAILS is configured
+// correctly in the current environment — this account should never get
+// accidentally locked out by a missing/misconfigured env var.
+const PERMANENT_ADMIN_EMAILS = ['majjihboy@gmail.com'];
+
 export default function AdminDashboard({ user }: AdminDashboardProps) {
   const navigate = useNavigate();
 
-  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+  const envAdminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
     .split(',')
     .map((e: string) => e.trim().toLowerCase())
     .filter(Boolean);
+  const adminEmails = [...new Set([...PERMANENT_ADMIN_EMAILS, ...envAdminEmails])];
   const isAdmin = !!user?.email && adminEmails.includes(user.email.toLowerCase());
 
   useEffect(() => {
@@ -58,7 +62,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
     // Today + tomorrow's scraped matches — the ones an admin would actually be curating tips for.
     const { data, error } = await supabase
       .from('match_stats')
-      .select('fixture_id, home_team_name, away_team_name, league_name, kickoff_time, fixture_date, status, admin_prediction, admin_odds, admin_confidence, is_premium_override')
+      .select('fixture_id, home_team_name, away_team_name, league_name, kickoff_time, fixture_date, status, admin_prediction, is_premium_override')
       .order('fixture_date', { ascending: true })
       .limit(200);
 
@@ -99,13 +103,13 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
   };
 
   const clearRow = async (fixtureId: number) => {
-    if (!window.confirm('Clear the manual override for this match? It will fall back to the auto-generated tip.')) return;
+    if (!window.confirm('Remove the tip for this match? It will disappear from the live site until you enter a new one.')) return;
     const { error } = await supabase
       .from('match_stats')
-      .update({ admin_prediction: null, admin_odds: null, admin_confidence: null, is_premium_override: null })
+      .update({ admin_prediction: null, is_premium_override: null })
       .eq('fixture_id', fixtureId);
 
-    if (error) console.error('Failed to clear override', error);
+    if (error) console.error('Failed to clear tip', error);
     else fetchMatches();
   };
 
@@ -134,7 +138,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
 
         <div className="bg-bg-surface p-4 rounded-2xl border border-bg-surface-hover mb-6">
           <p className="text-xs text-slate-400 mb-3">
-            Editing a row here overrides the auto-generated prediction for that match on the live site. Leave fields blank to keep the scraper's own tip. Rows come from <code className="text-brand-green">match_stats</code> — the same table <code className="text-brand-green">hybrid-scraper.js</code> writes to.
+            Enter a tip here to publish it on the live site. Matches only appear on the homepage once you've entered a prediction for them — nothing is shown automatically. Rows come from <code className="text-brand-green">match_stats</code>, populated by <code className="text-brand-green">hybrid-scraper.js</code> (fixtures, kickoff times, and final scores only — not tips).
           </p>
           <input
             type="text"
@@ -172,36 +176,22 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
                         <span className="font-bold text-white">{m.home_team_name} vs {m.away_team_name}</span>
                         <span className="text-xs text-slate-500 ml-2">#{m.fixture_id} • {m.league_name} • {m.status}</span>
                       </div>
-                      {(m.admin_prediction || m.admin_odds || m.admin_confidence) && (
+                      {m.admin_prediction && (
                         <button onClick={() => clearRow(m.fixture_id)} className="text-xs text-slate-500 hover:text-brand-danger">
-                          Clear override
+                          Remove tip
                         </button>
                       )}
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <input
                         type="text"
-                        placeholder="Prediction (e.g. Home Win)"
+                        placeholder="Tip (e.g. Arsenal to Win, Over 2.5 Goals, BTTS)"
                         value={val('admin_prediction') || ''}
                         onChange={(e) => updateField(m.fixture_id, 'admin_prediction', e.target.value)}
-                        className="bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+                        className="flex-1 bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
                       />
-                      <input
-                        type="text"
-                        placeholder="Odds (e.g. 1.85)"
-                        value={val('admin_odds') || ''}
-                        onChange={(e) => updateField(m.fixture_id, 'admin_odds', e.target.value)}
-                        className="bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Confidence (e.g. 80%)"
-                        value={val('admin_confidence') || ''}
-                        onChange={(e) => updateField(m.fixture_id, 'admin_confidence', e.target.value)}
-                        className="bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
-                      />
-                      <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap">
                           <input
                             type="checkbox"
                             checked={!!(draft.is_premium_override ?? m.is_premium_override)}
@@ -213,7 +203,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
                         <button
                           onClick={() => saveRow(m.fixture_id)}
                           disabled={!hasChanges}
-                          className="ml-auto bg-brand-green hover:bg-brand-green-hover disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors"
+                          className="bg-brand-green hover:bg-brand-green-hover disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
                         >
                           Save
                         </button>

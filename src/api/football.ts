@@ -10,8 +10,6 @@ export interface Fixture {
   homeTeam: string;
   awayTeam: string;
   prediction: string;
-  odds: string;
-  confidence: string;
   isPremium: boolean;
   status: string;
   homeScore: number | null;
@@ -19,58 +17,11 @@ export interface Fixture {
   date: string;
 }
 
-export type Day = 'yesterday' | 'today' | 'tomorrow';
-
-function dayRange(day: Day): { start: string; end: string } {
-  const offset = day === 'yesterday' ? -1 : day === 'tomorrow' ? 1 : 0;
-  const start = new Date();
-  start.setUTCDate(start.getUTCDate() + offset);
-  start.setUTCHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return { start: start.toISOString(), end: end.toISOString() };
-}
-
-// Derives a display prediction from raw scraped data, unless the admin
-// has manually overridden it via the dashboard — admin edits always win.
+// Predictions are entered manually by the admin after the scraper
+// populates fixtures — there is no auto-derived odds/probability model
+// on the live site. A fixture only appears once an admin has actually
+// set a tip for it.
 function deriveFixture(stat: any): Fixture {
-  const pred = stat.prediction_data;
-  const odds = stat.odds_data;
-
-  let predictionText = 'Match Preview';
-  let confidence = '50%';
-  let isPremium = false;
-
-  if (pred) {
-    const conf = pred.model?.confidence || 0.5;
-    confidence = `${Math.round(conf * 100)}%`;
-
-    const rec = pred.recommendations || {};
-    if (rec.bet_favorite) {
-      predictionText = rec.favorite === 'H' ? `${stat.home_team_name} Win` :
-                       rec.favorite === 'A' ? `${stat.away_team_name} Win` : 'Draw';
-    } else if (rec.over_25) {
-      predictionText = 'Over 2.5 Goals';
-    } else if (rec.btts) {
-      predictionText = 'Both Teams to Score';
-    }
-
-    if (conf > 0.75) isPremium = true;
-  }
-
-  let displayOdds = '1.90';
-  if (odds && odds.odds && typeof odds.odds.home_win === 'number') {
-    displayOdds = odds.odds.home_win.toFixed(2);
-  }
-
-  // Admin overrides (set from /admin) take priority over the scraped/derived values.
-  if (stat.admin_prediction) predictionText = stat.admin_prediction;
-  if (stat.admin_odds) displayOdds = stat.admin_odds;
-  if (stat.admin_confidence) confidence = stat.admin_confidence;
-  if (stat.is_premium_override !== null && stat.is_premium_override !== undefined) {
-    isPremium = stat.is_premium_override;
-  }
-
   return {
     id: stat.fixture_id,
     homeTeamId: stat.home_team_id,
@@ -79,10 +30,8 @@ function deriveFixture(stat: any): Fixture {
     time: stat.kickoff_time || 'TBA',
     homeTeam: stat.home_team_name,
     awayTeam: stat.away_team_name,
-    prediction: predictionText,
-    odds: displayOdds,
-    confidence,
-    isPremium,
+    prediction: stat.admin_prediction,
+    isPremium: stat.is_premium_override ?? false,
     status: stat.status || 'NS',
     homeScore: stat.home_score ?? null,
     awayScore: stat.away_score ?? null,
@@ -92,15 +41,18 @@ function deriveFixture(stat: any): Fixture {
   };
 }
 
-export async function fetchFixturesForDay(day: Day = 'today'): Promise<Fixture[]> {
+// All upcoming fixtures an admin has manually entered a tip for, soonest
+// kickoff first. No day-window filtering — this always reflects whatever
+// is currently on the board.
+export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
   try {
-    const { start, end } = dayRange(day);
     const { data, error } = await supabase
       .from('match_stats')
       .select('*')
-      .gte('fixture_date', start)
-      .lt('fixture_date', end)
-      .order('fixture_date', { ascending: true });
+      .not('admin_prediction', 'is', null)
+      .neq('status', 'FT')
+      .order('fixture_date', { ascending: true })
+      .limit(100);
 
     if (error) {
       console.error('❌ Supabase fetch error:', error);
@@ -113,11 +65,6 @@ export async function fetchFixturesForDay(day: Day = 'today'): Promise<Fixture[]
     console.error('Fetch failed:', error);
     return [];
   }
-}
-
-// Kept for any callers still expecting "today's fixtures" by name.
-export async function fetchTodaysFixtures(): Promise<Fixture[]> {
-  return fetchFixturesForDay('today');
 }
 
 export interface ResultRow extends Fixture {
@@ -137,13 +84,9 @@ function settleOutcome(prediction: string, homeScore: number | null, awayScore: 
     return homeScore > 0 && awayScore > 0 ? 'WON' : 'LOST';
   }
   if (p.includes(' win')) {
-    const team = p.replace(' win', '');
-    if (homeScore === awayScore) return 'LOST';
     const homeWon = homeScore > awayScore;
-    // If the predicted team's name appears in the home slot vs away slot,
-    // this is resolved by the caller passing homeTeam/awayTeam context —
-    // kept simple here since predictionText already encodes the team name.
-    return team.length > 0 ? (homeWon ? 'WON' : 'LOST') : 'PENDING';
+    if (homeScore === awayScore) return 'LOST';
+    return homeWon ? 'WON' : 'LOST'; // predictionText already encodes which team
   }
   if (p === 'draw') return homeScore === awayScore ? 'WON' : 'LOST';
   return 'PENDING';
@@ -155,6 +98,7 @@ export async function fetchRecentResults(limit = 15): Promise<ResultRow[]> {
       .from('match_stats')
       .select('*')
       .eq('status', 'FT')
+      .not('admin_prediction', 'is', null)
       .order('fixture_date', { ascending: false })
       .limit(limit);
 

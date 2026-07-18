@@ -1,8 +1,6 @@
 import { MessageCircle, Send, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
 export default function Footer() {
   const whatsappUrl = import.meta.env.VITE_WHATSAPP_URL as string | undefined;
   const telegramUrl = import.meta.env.VITE_TELEGRAM_URL as string | undefined;
@@ -20,7 +18,7 @@ export default function Footer() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+        <div className="grid md:grid-cols-3 gap-12 mb-16">
           {/* Useful Links */}
           <div>
             <h4 className="font-bold text-xl mb-6 text-white">Useful Links</h4>
@@ -39,20 +37,6 @@ export default function Footer() {
               <li><Link to="/terms" className="text-slate-400 hover:text-brand-green transition-colors text-lg">Terms of Service</Link></li>
               <li><Link to="/refund" className="text-slate-400 hover:text-brand-green transition-colors text-lg">Refund Policy</Link></li>
               <li><Link to="/contact" className="text-slate-400 hover:text-brand-green transition-colors text-lg">Contact Us</Link></li>
-            </ul>
-          </div>
-
-          {/* Predictions by Day */}
-          <div>
-            <h4 className="font-bold text-xl mb-6 text-white">Predictions by Day</h4>
-            <ul className="space-y-4">
-              {days.map((day) => (
-                <li key={day}>
-                  <Link to={`/day/${day.toLowerCase()}`} className="text-slate-400 hover:text-brand-green transition-colors text-lg">
-                    {day} Predictions
-                  </Link>
-                </li>
-              ))}
             </ul>
           </div>
 

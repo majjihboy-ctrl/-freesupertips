@@ -55,7 +55,7 @@ export default function Pricing() {
     <div className="py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-white mb-4">Unlock VIP Predictions</h1>
-        <p className="text-slate-400 max-w-2xl mx-auto">Get access to our high-confidence, expertly analyzed premium tips and Auto-Accumulators.</p>
+        <p className="text-slate-400 max-w-2xl mx-auto">Get access to our expertly analyzed premium tips, hand-picked daily.</p>
       </div>
 
       <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
@@ -67,8 +67,8 @@ export default function Pricing() {
           <p className="text-4xl font-bold text-white mb-1">KES 100</p>
           <p className="text-sm text-slate-500 mb-6">Valid for 24 Hours</p>
           <ul className="space-y-3 mb-8 text-slate-300 text-sm flex-1">
-            <li className="flex items-center gap-2">✅ Today's VIP Accumulator</li>
-            <li className="flex items-center gap-2">✅ High Confidence Tips</li>
+            <li className="flex items-center gap-2">✅ All VIP Picks for the Day</li>
+            <li className="flex items-center gap-2">✅ Expert-Analyzed Picks</li>
             <li className="flex items-center gap-2 text-slate-500">❌ Weekly Analysis</li>
           </ul>
           <button
@@ -91,7 +91,7 @@ export default function Pricing() {
           <p className="text-sm text-slate-500 mb-6">Valid for 7 Days</p>
           <ul className="space-y-3 mb-8 text-slate-300 text-sm flex-1">
             <li className="flex items-center gap-2">✅ <strong className="text-brand-green">Everything in Daily</strong></li>
-            <li className="flex items-center gap-2">✅ Daily Auto-Accumulators</li>
+            <li className="flex items-center gap-2">✅ Hand-Picked VIP Tips</li>
             <li className="flex items-center gap-2">✅ Advanced Match Stats</li>
           </ul>
           <button
