@@ -17,6 +17,7 @@ import TermsPage from './pages/TermsPage';
 import DisclaimerPage from './pages/DisclaimerPage';
 import RefundPage from './pages/RefundPage';
 import ContactPage from './pages/ContactPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { useAuth } from './hooks/useAuth';
 import { usePremium } from './hooks/usePremium';
 
@@ -56,6 +57,7 @@ function App() {
           <Route path="/disclaimer" element={<DisclaimerPage />} />
           <Route path="/refund" element={<RefundPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Routes>
       </main>
       <Footer />
@@ -70,8 +72,10 @@ function App() {
         password={auth.password}
         setPassword={auth.setPassword}
         authError={auth.authError}
+        setAuthError={auth.setAuthError}
         onSubmit={auth.handleLogin}
         onResend={auth.resendConfirmation}
+        onForgotPassword={auth.requestPasswordReset}
       />
     </div>
   );

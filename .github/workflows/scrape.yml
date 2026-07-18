@@ -1,0 +1,31 @@
+name: Run hybrid scraper
+
+on:
+  schedule:
+    # Every 3 hours. Adjust to taste — more often catches odds/status
+    # changes sooner but uses more of your API quota; less often is
+    # cheaper but predictions/results go stale for longer between runs.
+    - cron: '0 */3 * * *'
+  workflow_dispatch: {} # lets you trigger it manually from the Actions tab
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run hybrid scraper
+        run: npm run scrape
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_API_FOOTBALL_KEY: ${{ secrets.VITE_API_FOOTBALL_KEY }}
+          VITE_BZZOIRO_API_KEY: ${{ secrets.VITE_BZZOIRO_API_KEY }}

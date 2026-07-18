@@ -49,12 +49,25 @@ export function useAuth() {
     else setAuthError('✅ Confirmation email resent.');
   };
 
+  const requestPasswordReset = async (resetEmail: string) => {
+    setAuthError('');
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      setAuthError(error.message);
+      return false;
+    }
+    setAuthError('✅ Check your email for a password reset link. (Check spam too if it takes a few minutes.)');
+    return true;
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
   return {
     user, showAuthModal, setShowAuthModal, authMode, setAuthMode,
-    email, setEmail, password, setPassword, authError, handleLogin, handleLogout, resendConfirmation
+    email, setEmail, password, setPassword, authError, setAuthError, handleLogin, handleLogout, resendConfirmation, requestPasswordReset
   };
 }
