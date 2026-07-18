@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { isAdminEmail } from '../lib/adminEmails';
 
 interface MatchRow {
   fixture_id: number;
@@ -22,17 +23,9 @@ interface AdminDashboardProps {
 // Always an admin regardless of whether VITE_ADMIN_EMAILS is configured
 // correctly in the current environment — this account should never get
 // accidentally locked out by a missing/misconfigured env var.
-const PERMANENT_ADMIN_EMAILS = ['majjihboy@gmail.com'];
-
 export default function AdminDashboard({ user }: AdminDashboardProps) {
   const navigate = useNavigate();
-
-  const envAdminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
-    .split(',')
-    .map((e: string) => e.trim().toLowerCase())
-    .filter(Boolean);
-  const adminEmails = [...new Set([...PERMANENT_ADMIN_EMAILS, ...envAdminEmails])];
-  const isAdmin = !!user?.email && adminEmails.includes(user.email.toLowerCase());
+  const isAdmin = isAdminEmail(user?.email);
 
   useEffect(() => {
     if (user === null) return; // still loading initial session
