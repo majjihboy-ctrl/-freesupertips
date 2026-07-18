@@ -2,10 +2,16 @@ name: Run hybrid scraper
 
 on:
   schedule:
-    # Every 3 hours. Adjust to taste — more often catches odds/status
-    # changes sooner but uses more of your API quota; less often is
-    # cheaper but predictions/results go stale for longer between runs.
-    - cron: '0 */3 * * *'
+    # Once a day at 00:01 East Africa Time (UTC+3) — the start of the
+    # day. GitHub Actions cron always runs in UTC, so 00:01 EAT is
+    # 21:01 UTC the PREVIOUS calendar day. If you're not actually in
+    # EAT, adjust the hour: subtract your UTC offset from 00:01 (e.g.
+    # UTC+0 -> '1 0 * * *', UTC+1 -> '1 23 * * *' the day before).
+    #
+    # Note: GitHub doesn't guarantee exact-minute timing for scheduled
+    # workflows — during periods of high load across GitHub it can run
+    # several minutes (rarely longer) after the scheduled time.
+    - cron: '1 21 * * *'
   workflow_dispatch: {} # lets you trigger it manually from the Actions tab
 
 jobs:
