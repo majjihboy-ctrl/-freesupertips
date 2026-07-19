@@ -167,7 +167,9 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <span className="font-bold text-white">{m.home_team_name} vs {m.away_team_name}</span>
-                        <span className="text-xs text-slate-500 ml-2">#{m.fixture_id} • {m.league_name} • {m.status}</span>
+                        <span className="text-xs text-slate-500 ml-2">
+                          #{m.fixture_id} • {m.league_name} • {m.status || '⚠️ no status (re-scrape needed)'}
+                        </span>
                       </div>
                       {m.admin_prediction && (
                         <button onClick={() => clearRow(m.fixture_id)} className="text-xs text-slate-500 hover:text-brand-danger">

@@ -50,7 +50,12 @@ export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
       .from('match_stats')
       .select('*')
       .not('admin_prediction', 'is', null)
-      .neq('status', 'FT')
+      // IMPORTANT: plain .neq('status', 'FT') would silently drop any
+      // row where status is NULL — in SQL, `NULL <> 'FT'` evaluates to
+      // NULL (not true), so PostgREST excludes it entirely rather than
+      // treating "no status yet" as "not finished". Explicitly include
+      // NULL alongside anything that isn't FT.
+      .or('status.is.null,status.neq.FT')
       .order('fixture_date', { ascending: true })
       .limit(100);
 
