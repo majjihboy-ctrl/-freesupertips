@@ -32,7 +32,7 @@ function deriveFixture(stat: any): Fixture {
     awayTeam: stat.away_team_name,
     prediction: stat.admin_prediction,
     isPremium: stat.is_premium_override ?? false,
-    status: stat.status || 'NS',
+    status: stat.status || 'notstarted',
     homeScore: stat.home_score ?? null,
     awayScore: stat.away_score ?? null,
     date: stat.fixture_date
@@ -50,12 +50,13 @@ export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
       .from('match_stats')
       .select('*')
       .not('admin_prediction', 'is', null)
-      // IMPORTANT: plain .neq('status', 'FT') would silently drop any
-      // row where status is NULL — in SQL, `NULL <> 'FT'` evaluates to
-      // NULL (not true), so PostgREST excludes it entirely rather than
-      // treating "no status yet" as "not finished". Explicitly include
-      // NULL alongside anything that isn't FT.
-      .or('status.is.null,status.neq.FT')
+      // Bzzoiro's status enum is 'finished' / 'notstarted' / 'cancelled' /
+      // '1st_half' / etc — NOT API-Football's 'FT'/'NS'. A plain
+      // .neq('status', 'finished') would ALSO silently drop any row
+      // where status is NULL (NULL <> 'finished' evaluates to NULL, not
+      // true, in SQL). Explicitly include NULL alongside anything that
+      // isn't finished or cancelled.
+      .or('status.is.null,status.not.in.(finished,cancelled)')
       .order('fixture_date', { ascending: true })
       .limit(100);
 
@@ -78,7 +79,13 @@ export interface ResultRow extends Fixture {
 
 // Very rough settlement check for common tip phrasings. Anything not
 // recognized is marked PENDING rather than guessed at.
-function settleOutcome(prediction: string, homeScore: number | null, awayScore: number | null): 'WON' | 'LOST' | 'PUSH' | 'PENDING' {
+function settleOutcome(
+  prediction: string,
+  homeTeam: string,
+  awayTeam: string,
+  homeScore: number | null,
+  awayScore: number | null
+): 'WON' | 'LOST' | 'PUSH' | 'PENDING' {
   if (homeScore === null || awayScore === null) return 'PENDING';
   const p = prediction.toLowerCase();
   const totalGoals = homeScore + awayScore;
@@ -89,9 +96,15 @@ function settleOutcome(prediction: string, homeScore: number | null, awayScore: 
     return homeScore > 0 && awayScore > 0 ? 'WON' : 'LOST';
   }
   if (p.includes(' win')) {
+    if (homeScore === awayScore) return 'LOST'; // a "win" tip never pushes on a draw
     const homeWon = homeScore > awayScore;
-    if (homeScore === awayScore) return 'LOST';
-    return homeWon ? 'WON' : 'LOST'; // predictionText already encodes which team
+    // Which side did the admin actually pick? Check which team's name
+    // appears in the prediction text — don't just assume "home" won.
+    const pickedHome = p.includes(homeTeam.toLowerCase());
+    const pickedAway = p.includes(awayTeam.toLowerCase());
+    if (pickedHome && !pickedAway) return homeWon ? 'WON' : 'LOST';
+    if (pickedAway && !pickedHome) return homeWon ? 'LOST' : 'WON';
+    return 'PENDING'; // couldn't tell which team the tip was for
   }
   if (p === 'draw') return homeScore === awayScore ? 'WON' : 'LOST';
   return 'PENDING';
@@ -102,7 +115,7 @@ export async function fetchRecentResults(limit = 15): Promise<ResultRow[]> {
     const { data, error } = await supabase
       .from('match_stats')
       .select('*')
-      .eq('status', 'FT')
+      .eq('status', 'finished')
       .not('admin_prediction', 'is', null)
       .order('fixture_date', { ascending: false })
       .limit(limit);
@@ -117,7 +130,7 @@ export async function fetchRecentResults(limit = 15): Promise<ResultRow[]> {
       const fixture = deriveFixture(stat);
       return {
         ...fixture,
-        outcome: settleOutcome(fixture.prediction, fixture.homeScore, fixture.awayScore),
+        outcome: settleOutcome(fixture.prediction, fixture.homeTeam, fixture.awayTeam, fixture.homeScore, fixture.awayScore),
       };
     });
   } catch (error) {

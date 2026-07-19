@@ -139,7 +139,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
       league_name: newMatch.league.trim() || 'Other',
       kickoff_time: kickoffDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
       fixture_date: kickoffDate.toISOString(),
-      status: 'NS',
+      status: 'notstarted',
     });
 
     setAdding(false);
