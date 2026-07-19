@@ -56,7 +56,7 @@ export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
       // where status is NULL (NULL <> 'finished' evaluates to NULL, not
       // true, in SQL). Explicitly include NULL alongside anything that
       // isn't finished or cancelled.
-      .or('status.is.null,status.not.in.(finished,cancelled)')
+      .or('status.is.null,status.not.in.(finished,cancelled,canceled)')
       .order('fixture_date', { ascending: true })
       .limit(100);
 
