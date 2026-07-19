@@ -33,5 +33,4 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VITE_API_FOOTBALL_KEY: ${{ secrets.VITE_API_FOOTBALL_KEY }}
           VITE_BZZOIRO_API_KEY: ${{ secrets.VITE_BZZOIRO_API_KEY }}

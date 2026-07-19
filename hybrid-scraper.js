@@ -1,22 +1,31 @@
 // hybrid-scraper.js
+//
+// Bzzoiro-only scraper. Previously this pulled the global fixture list
+// from API-Football (limited to 100 requests/day on the free tier, and
+// prone to "missing application key" plan restrictions) and used
+// Bzzoiro only as a supplementary enrichment source for a handful of
+// top leagues. Now Bzzoiro is the sole source: it already provides
+// fixtures, predictions, odds, confidence, form, and head-to-head data
+// directly, with no artificial per-day request ceiling.
+//
+// Bzzoiro's own match coverage is narrower than a full global sweep —
+// that's expected and fine, since admins can manually add any match
+// Bzzoiro doesn't have via the "Add Match" form in /admin. This script
+// only ever populates matches Bzzoiro actually knows about; it never
+// touches manually-added rows (those have negative fixture_id values,
+// which Bzzoiro's real event IDs will never collide with).
 import 'dotenv/config';
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const API_KEY = process.env.VITE_API_FOOTBALL_KEY;
 const BZZOIRO_TOKEN = process.env.VITE_BZZOIRO_API_KEY;
-
-const apiHeaders = { 'x-apisports-key': API_KEY };
 const bzzoiroHeaders = {
   'Authorization': `Token ${BZZOIRO_TOKEN}`,
   'Accept': 'application/json',
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 };
-
-// 🎯 Only deeply scrape these leagues to stay under the 100 API-Football limit
-const TOP_LEAGUES = [39, 140, 78, 135, 61, 2]; // Premier, La Liga, Bundesliga, Serie A, Ligue 1, UCL
 
 async function fetchWithRetry(url, headers, retries = 2) {
   for (let i = 0; i < retries; i++) {
@@ -39,102 +48,90 @@ function isoDateOffset(offsetDays) {
   return d.toISOString().split('T')[0];
 }
 
-async function runHybridScraper() {
-  console.log(" Starting Smart Hybrid Scraper (API-Football + Bzzoiro)...");
-  let apiRequestsUsed = 0;
+// Best-effort field extraction: Bzzoiro's exact response shape per
+// endpoint isn't formally documented here, so this checks a few
+// plausible field name variants rather than assuming one. Logged
+// clearly if nothing matches, so a wrong guess is visible in the run
+// output instead of silently producing empty data.
+function pick(obj, ...keys) {
+  for (const k of keys) {
+    if (obj && obj[k] !== undefined && obj[k] !== null) return obj[k];
+  }
+  return null;
+}
 
-  // Yesterday: so finished matches settle and show in Recent Results.
-  // Today + tomorrow: so the Yesterday/Today/Tomorrow tabs all have data.
+async function runBzzoiroScraper() {
+  console.log('🎯 Starting Bzzoiro-only scraper...');
+
+  if (!BZZOIRO_TOKEN) {
+    console.error('❌ VITE_BZZOIRO_API_KEY is not set. Cannot continue.');
+    process.exitCode = 1;
+    return;
+  }
+
   const datesToScrape = [isoDateOffset(-1), isoDateOffset(0), isoDateOffset(1)];
 
-  let totalFixtures = 0;
-  let enrichedCount = 0;
-  let basicCount = 0;
+  let totalFound = 0;
   let savedCount = 0;
   let failedCount = 0;
+  let enrichedCount = 0;
 
-  for (const today of datesToScrape) {
-  try {
-    // 1. Get ALL matches from API-Football (USES 1 REQUEST)
-    console.log(`🌍 Fetching global fixtures from API-Football for ${today}...`);
-    const fixturesData = await fetchWithRetry(`https://v3.football.api-sports.io/fixtures?date=${today}`, apiHeaders);
-    apiRequestsUsed++;
+  for (const dateStr of datesToScrape) {
+    console.log(`\n📅 Fetching Bzzoiro events for ${dateStr}...`);
 
-    // API-Football returns HTTP 200 even for plan/quota restrictions —
-    // the actual problem shows up as text inside `errors`, not as a
-    // thrown exception. Surface it so an empty result isn't a silent
-    // "0 matches" when it's actually "your plan doesn't allow this".
-    if (fixturesData?.errors && Object.keys(fixturesData.errors).length > 0) {
-      console.error(`  ⚠️  API-Football returned an error for ${today}:`, JSON.stringify(fixturesData.errors));
-    }
+    const eventsData = await fetchWithRetry(
+      `https://sports.bzzoiro.com/api/v2/events/?date_from=${dateStr}&date_to=${dateStr}`,
+      bzzoiroHeaders
+    );
 
-    const fixtures = fixturesData?.response || [];
-    console.log(`📅 Found ${fixtures.length} total matches on ${today}.`);
-    totalFixtures += fixtures.length;
+    const events = eventsData?.results || eventsData?.response || [];
+    console.log(`  Found ${events.length} events on ${dateStr}.`);
+    totalFound += events.length;
 
-    for (const match of fixtures) {
-      const fixtureId = match.fixture.id;
-      const leagueId = match.league.id;
-      const leagueName = match.league.name;
-      const homeName = match.teams.home.name;
-      const awayName = match.teams.away.name;
-      const homeId = match.teams.home.id;
-      const awayId = match.teams.away.id;
+    for (const event of events) {
+      const bzzId = pick(event, 'id', 'event_id');
+      const homeName = pick(event, 'home_team', 'home_team_name');
+      const awayName = pick(event, 'away_team', 'away_team_name');
+      const leagueName = pick(event, 'league_name', 'competition_name', 'league') || 'Unknown League';
+      const kickoffIso = pick(event, 'kickoff', 'start_time', 'date', 'datetime');
+      const statusRaw = pick(event, 'status', 'status_short') || 'NS';
+      const homeScore = pick(event, 'home_score', 'score_home');
+      const awayScore = pick(event, 'away_score', 'score_away');
 
-      // Format the time nicely (e.g., "19:00")
-      const kickoffTime = new Date(match.fixture.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
-      const isTopLeague = TOP_LEAGUES.includes(leagueId);
-
-      console.log(`\n🔍 Processing: ${homeName} vs ${awayName} (${isTopLeague ? 'TOP LEAGUE' : 'Basic'})`);
-
-      let h2hData = [], homeForm = [], awayForm = [], predData = null, oddsData = null;
-
-      if (isTopLeague && apiRequestsUsed < 90) {
-        // 2. Fetch H2H & Form from API-Football (USES 3 REQUESTS)
-        const h2h = await fetchWithRetry(`https://v3.football.api-sports.io/fixtures/headtohead?h2h=${homeId}-${awayId}&last=5`, apiHeaders);
-        apiRequestsUsed++;
-        h2hData = h2h?.response?.map(m => ({
-          date: m.fixture.date, home: m.teams.home.name, away: m.teams.away.name, score: `${m.goals.home}-${m.goals.away}`
-        })) || [];
-
-        const homeF = await fetchWithRetry(`https://v3.football.api-sports.io/fixtures?team=${homeId}&last=5`, apiHeaders);
-        apiRequestsUsed++;
-        homeForm = homeF?.response || [];
-
-        const awayF = await fetchWithRetry(`https://v3.football.api-sports.io/fixtures?team=${awayId}&last=5`, apiHeaders);
-        apiRequestsUsed++;
-        awayForm = awayF?.response || [];
-
-        // 3. Try to enrich with Bzzoiro ML Predictions (UNLIMITED REQUESTS)
-        const bzzEvents = await fetchWithRetry(
-          `https://sports.bzzoiro.com/api/v2/events/?team_name=${encodeURIComponent(homeName)}&date_from=${today}&date_to=${today}`,
-          bzzoiroHeaders
-        );
-
-        const bzzMatch = bzzEvents?.results?.find(e => e.away_team.toLowerCase().includes(awayName.toLowerCase()));
-
-        if (bzzMatch) {
-          predData = await fetchWithRetry(`https://sports.bzzoiro.com/api/v2/events/${bzzMatch.id}/prediction/`, bzzoiroHeaders);
-          oddsData = await fetchWithRetry(`https://sports.bzzoiro.com/api/v2/events/${bzzMatch.id}/odds/`, bzzoiroHeaders);
-          console.log(`  ✨ Enriched with Bzzoiro ML Data!`);
-        }
-        enrichedCount++;
-      } else {
-        basicCount++;
+      if (!bzzId || !homeName || !awayName) {
+        console.error(`  ⚠️  Skipping event with missing core fields:`, JSON.stringify(event).slice(0, 200));
+        failedCount++;
+        continue;
       }
 
-      // 4. Save to Supabase (Includes new columns for the frontend)
+      console.log(`\n🔍 ${homeName} vs ${awayName} (${leagueName})`);
+
+      const [predData, oddsData, h2hRes, homeFormRes, awayFormRes] = await Promise.all([
+        fetchWithRetry(`https://sports.bzzoiro.com/api/v2/events/${bzzId}/prediction/`, bzzoiroHeaders),
+        fetchWithRetry(`https://sports.bzzoiro.com/api/v2/events/${bzzId}/odds/`, bzzoiroHeaders),
+        fetchWithRetry(`https://sports.bzzoiro.com/api/v2/events/${bzzId}/h2h/`, bzzoiroHeaders),
+        fetchWithRetry(`https://sports.bzzoiro.com/api/v2/events/${bzzId}/form/?side=home`, bzzoiroHeaders),
+        fetchWithRetry(`https://sports.bzzoiro.com/api/v2/events/${bzzId}/form/?side=away`, bzzoiroHeaders),
+      ]);
+
+      if (predData || oddsData) enrichedCount++;
+
+      const h2hData = h2hRes?.results || h2hRes?.response || [];
+      const homeForm = homeFormRes?.results || homeFormRes?.response || [];
+      const awayForm = awayFormRes?.results || awayFormRes?.response || [];
+
+      const kickoffTime = kickoffIso
+        ? new Date(kickoffIso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        : 'TBA';
+
       const { error: upsertError } = await supabase.from('match_stats').upsert({
-        fixture_id: fixtureId,
-        home_team_id: homeId,
-        away_team_id: awayId,
+        fixture_id: bzzId,
         league_name: leagueName,
         kickoff_time: kickoffTime,
-        fixture_date: match.fixture.date, // full ISO timestamp, used for day filtering
-        status: match.fixture.status?.short || 'NS', // NS, 1H, HT, 2H, FT, PST, CANC...
-        home_score: match.goals?.home ?? null,
-        away_score: match.goals?.away ?? null,
+        fixture_date: kickoffIso,
+        status: statusRaw,
+        home_score: homeScore,
+        away_score: awayScore,
         home_team_name: homeName,
         away_team_name: awayName,
         h2h_data: h2hData,
@@ -142,41 +139,32 @@ async function runHybridScraper() {
         away_form: awayForm,
         prediction_data: predData,
         odds_data: oddsData,
-        updated_at: new Date()
+        updated_at: new Date(),
       }, { onConflict: 'fixture_id' });
 
       if (upsertError) {
-        console.error(`  ❌ Supabase upsert FAILED for fixture ${fixtureId}:`, upsertError.message || upsertError);
+        console.error(`  ❌ Supabase upsert FAILED for event ${bzzId}:`, upsertError.message || upsertError);
         failedCount++;
       } else {
-        console.log(`  ✅ Saved to Supabase! (API Requests Used: ${apiRequestsUsed}/100)`);
+        console.log(`  ✅ Saved${predData || oddsData ? ' with prediction/odds data' : ''}.`);
         savedCount++;
       }
 
-      // Polite delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Polite delay between events
+      await new Promise((r) => setTimeout(r, 500));
     }
-  } catch (error) {
-    console.error(`❌ Fatal Error while scraping ${today}:`, error.response?.data || error.message);
   }
-  } // end for-each date
 
-  console.log(`\n🎉 HYBRID SCRAPER COMPLETE!`);
-  console.log(`📊 Fixtures Found: ${totalFixtures}`);
-  console.log(`✅ Actually Saved to Supabase: ${savedCount}`);
-  console.log(`❌ Failed to Save: ${failedCount}`);
-  console.log(`🏆 Richly Enriched (Top Leagues): ${enrichedCount}`);
-  console.log(`📝 Basic Info Only (Lower Leagues): ${basicCount}`);
-  console.log(`🔑 API-Football Requests Used: ${apiRequestsUsed}/100`);
+  console.log(`\n🎉 BZZOIRO SCRAPER COMPLETE!`);
+  console.log(`📊 Events Found: ${totalFound}`);
+  console.log(`✅ Saved to Supabase: ${savedCount}`);
+  console.log(`✨ With Prediction/Odds Data: ${enrichedCount}`);
+  console.log(`❌ Failed: ${failedCount}`);
 
-  // Fail the CI run loudly if fixtures were found but nothing actually
-  // saved — this is exactly the "workflow says success but the site has
-  // no data" scenario, and it should show up as a red X, not a silent
-  // green checkmark.
-  if (totalFixtures > 0 && savedCount === 0) {
+  if (totalFound > 0 && savedCount === 0) {
     console.error('\n⚠️  Every single Supabase write failed. Failing the job so this shows up as an error, not a false success.');
     process.exitCode = 1;
   }
 }
 
-runHybridScraper();
+runBzzoiroScraper();

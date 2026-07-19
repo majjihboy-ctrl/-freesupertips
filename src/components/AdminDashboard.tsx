@@ -49,6 +49,9 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Record<number, Partial<MatchRow>>>({});
   const [message, setMessage] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newMatch, setNewMatch] = useState({ home: '', away: '', league: '', kickoff: '' });
+  const [adding, setAdding] = useState(false);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -106,6 +109,51 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
     else fetchMatches();
   };
 
+  // Manually-added matches (Bzzoiro doesn't cover everything) get a
+  // negative fixture_id, guaranteed never to collide with a real
+  // Bzzoiro event ID (always positive). Finds the current lowest
+  // negative ID in use and goes one further, rather than deriving from
+  // a timestamp — safe regardless of whether the column is a 4-byte or
+  // 8-byte integer.
+  const handleAddMatch = async () => {
+    if (!newMatch.home.trim() || !newMatch.away.trim() || !newMatch.kickoff) {
+      setMessage('❌ Home team, away team, and kickoff time are all required.');
+      return;
+    }
+    setAdding(true);
+
+    const { data: minRow } = await supabase
+      .from('match_stats')
+      .select('fixture_id')
+      .lt('fixture_id', 0)
+      .order('fixture_id', { ascending: true })
+      .limit(1);
+
+    const newId = (minRow?.[0]?.fixture_id ?? 0) - 1;
+    const kickoffDate = new Date(newMatch.kickoff);
+
+    const { error } = await supabase.from('match_stats').insert({
+      fixture_id: newId,
+      home_team_name: newMatch.home.trim(),
+      away_team_name: newMatch.away.trim(),
+      league_name: newMatch.league.trim() || 'Other',
+      kickoff_time: kickoffDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      fixture_date: kickoffDate.toISOString(),
+      status: 'NS',
+    });
+
+    setAdding(false);
+
+    if (error) {
+      setMessage('❌ Failed to add match: ' + error.message);
+    } else {
+      setMessage(`✅ Added ${newMatch.home} vs ${newMatch.away} — now enter a tip for it below.`);
+      setNewMatch({ home: '', away: '', league: '', kickoff: '' });
+      setShowAddForm(false);
+      fetchMatches();
+    }
+  };
+
   const filtered = matches.filter((m) => {
     const q = search.toLowerCase();
     return !q || m.home_team_name?.toLowerCase().includes(q) || m.away_team_name?.toLowerCase().includes(q) || String(m.fixture_id).includes(q);
@@ -131,15 +179,67 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
 
         <div className="bg-bg-surface p-4 rounded-2xl border border-bg-surface-hover mb-6">
           <p className="text-xs text-slate-400 mb-3">
-            Enter a tip here to publish it on the live site. Matches only appear on the homepage once you've entered a prediction for them — nothing is shown automatically. Rows come from <code className="text-brand-green">match_stats</code>, populated by <code className="text-brand-green">hybrid-scraper.js</code> (fixtures, kickoff times, and final scores only — not tips).
+            Enter a tip here to publish it on the live site. Matches only appear on the homepage once you've entered a prediction for them — nothing is shown automatically. Rows come from <code className="text-brand-green">match_stats</code>, populated by <code className="text-brand-green">hybrid-scraper.js</code> (Bzzoiro fixtures, kickoff times, and final scores only — not tips).
           </p>
-          <input
-            type="text"
-            placeholder="Search by team name or match ID…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
-          />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              placeholder="Search by team name or match ID…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+            />
+            <button
+              onClick={() => setShowAddForm((v) => !v)}
+              className="bg-brand-green/10 hover:bg-brand-green/20 text-brand-green font-bold text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+            >
+              {showAddForm ? '✕ Cancel' : '+ Add Match'}
+            </button>
+          </div>
+
+          {showAddForm && (
+            <div className="mt-4 pt-4 border-t border-bg-surface-hover">
+              <p className="text-xs text-slate-400 mb-3">
+                For any match Bzzoiro doesn't cover — its match coverage is narrower than a full global sweep, so use this for anything missing.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <input
+                  type="text"
+                  placeholder="Home team"
+                  value={newMatch.home}
+                  onChange={(e) => setNewMatch((p) => ({ ...p, home: e.target.value }))}
+                  className="bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+                />
+                <input
+                  type="text"
+                  placeholder="Away team"
+                  value={newMatch.away}
+                  onChange={(e) => setNewMatch((p) => ({ ...p, away: e.target.value }))}
+                  className="bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+                />
+                <input
+                  type="text"
+                  placeholder="League (optional)"
+                  value={newMatch.league}
+                  onChange={(e) => setNewMatch((p) => ({ ...p, league: e.target.value }))}
+                  className="bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+                />
+                <input
+                  type="datetime-local"
+                  value={newMatch.kickoff}
+                  onChange={(e) => setNewMatch((p) => ({ ...p, kickoff: e.target.value }))}
+                  className="bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+                />
+              </div>
+              <button
+                onClick={handleAddMatch}
+                disabled={adding}
+                className="bg-brand-green hover:bg-brand-green-hover disabled:opacity-40 text-white font-bold text-sm px-4 py-2 rounded-lg transition-colors"
+              >
+                {adding ? 'Adding…' : 'Add Match'}
+              </button>
+            </div>
+          )}
         </div>
 
         {message && <p className="text-sm mb-4 text-brand-green">{message}</p>}
@@ -169,6 +269,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
                         <span className="font-bold text-white">{m.home_team_name} vs {m.away_team_name}</span>
                         <span className="text-xs text-slate-500 ml-2">
                           #{m.fixture_id} • {m.league_name} • {m.status || '⚠️ no status (re-scrape needed)'}
+                          {m.fixture_id < 0 && <span className="text-brand-premium ml-1">• Manually Added</span>}
                         </span>
                       </div>
                       {m.admin_prediction && (
