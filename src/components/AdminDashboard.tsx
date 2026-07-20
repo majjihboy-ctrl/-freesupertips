@@ -54,6 +54,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMatch, setNewMatch] = useState({ home: '', away: '', league: '', kickoff: '' });
   const [adding, setAdding] = useState(false);
+  const [viewFilter, setViewFilter] = useState<'upcoming' | 'needs-tip' | 'all'>('upcoming');
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -156,10 +157,24 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
     }
   };
 
-  const filtered = matches.filter((m) => {
-    const q = search.toLowerCase();
-    return !q || m.home_team_name?.toLowerCase().includes(q) || m.away_team_name?.toLowerCase().includes(q) || String(m.fixture_id).includes(q);
-  });
+  const FINISHED_LIKE = new Set(['finished', 'cancelled', 'canceled']);
+
+  const filtered = matches
+    .filter((m) => {
+      const q = search.toLowerCase();
+      return !q || m.home_team_name?.toLowerCase().includes(q) || m.away_team_name?.toLowerCase().includes(q) || String(m.fixture_id).includes(q);
+    })
+    .filter((m) => {
+      if (viewFilter === 'all') return true;
+      const isFinishedLike = m.status ? FINISHED_LIKE.has(m.status) : false;
+      if (viewFilter === 'upcoming') return !isFinishedLike;
+      if (viewFilter === 'needs-tip') {
+        if (isFinishedLike) return false;
+        const hasAuto = !!derivePredictionFromBzzoiro(m.prediction_data, m.home_team_name, m.away_team_name);
+        return !m.admin_prediction && !hasAuto;
+      }
+      return true;
+    });
 
   return (
     <div className="min-h-screen bg-bg-base p-4 md:p-8">
@@ -183,6 +198,23 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
           <p className="text-xs text-slate-400 mb-3">
             Matches with real Bzzoiro prediction data show up on the live site <strong className="text-white">automatically</strong> — no action needed. Type a tip below only to <strong className="text-white">override</strong> a specific match's auto pick, mark it VIP, or add a tip for a match Bzzoiro doesn't cover. Rows come from <code className="text-brand-green">match_stats</code>, populated by <code className="text-brand-green">hybrid-scraper.js</code>.
           </p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {([
+              { key: 'upcoming', label: 'Upcoming' },
+              { key: 'needs-tip', label: 'Needs a tip' },
+              { key: 'all', label: 'All (incl. finished)' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setViewFilter(opt.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  viewFilter === opt.key ? 'bg-brand-green text-white' : 'bg-bg-base text-slate-400 hover:text-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
