@@ -17,11 +17,32 @@ export interface Fixture {
   date: string;
 }
 
-// Predictions are entered manually by the admin after the scraper
-// populates fixtures — there is no auto-derived odds/probability model
-// on the live site. A fixture only appears once an admin has actually
-// set a tip for it.
+// Turns Bzzoiro's CatBoost prediction payload into a human-readable tip.
+// Mirrors the shape confirmed in Bzzoiro's own API docs:
+// recommendations: { bet_favorite, favorite: "H"|"A"|"D", favorite_prob,
+//                     over_15, over_25, over_35, btts, winner }
+export function derivePredictionFromBzzoiro(predictionData: any, homeTeam: string, awayTeam: string): string | null {
+  const rec = predictionData?.recommendations;
+  if (!rec) return null;
+
+  if (rec.bet_favorite && rec.favorite) {
+    if (rec.favorite === 'H') return `${homeTeam} to Win`;
+    if (rec.favorite === 'A') return `${awayTeam} to Win`;
+    if (rec.favorite === 'D') return 'Draw';
+  }
+  if (rec.over_25) return 'Over 2.5 Goals';
+  if (rec.btts) return 'Both Teams to Score';
+  if (rec.over_15) return 'Over 1.5 Goals';
+
+  return null;
+}
+
+// An admin-entered tip always wins if one exists (lets you correct or
+// customize any pick). Otherwise, Bzzoiro's own prediction is used
+// automatically — no admin action needed for matches Bzzoiro covers.
 function deriveFixture(stat: any): Fixture {
+  const prediction = stat.admin_prediction || derivePredictionFromBzzoiro(stat.prediction_data, stat.home_team_name, stat.away_team_name);
+
   return {
     id: stat.fixture_id,
     homeTeamId: stat.home_team_id,
@@ -30,7 +51,7 @@ function deriveFixture(stat: any): Fixture {
     time: stat.kickoff_time || 'TBA',
     homeTeam: stat.home_team_name,
     awayTeam: stat.away_team_name,
-    prediction: stat.admin_prediction,
+    prediction: prediction || '',
     isPremium: stat.is_premium_override ?? false,
     status: stat.status || 'notstarted',
     homeScore: stat.home_score ?? null,
@@ -41,15 +62,18 @@ function deriveFixture(stat: any): Fixture {
   };
 }
 
-// All upcoming fixtures an admin has manually entered a tip for, soonest
-// kickoff first. No day-window filtering — this always reflects whatever
-// is currently on the board.
+// All upcoming fixtures with a tip — either Bzzoiro's own auto-generated
+// prediction, or an admin override/manually-added match. No day-window
+// filtering — this always reflects whatever is currently on the board.
 export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
   try {
     const { data, error } = await supabase
       .from('match_stats')
       .select('*')
-      .not('admin_prediction', 'is', null)
+      // A pickable match needs EITHER an admin-entered tip OR real
+      // Bzzoiro prediction data to derive one from — otherwise there's
+      // nothing to show.
+      .or('admin_prediction.not.is.null,prediction_data.not.is.null')
       // Bzzoiro's status enum is 'finished' / 'notstarted' / 'cancelled' /
       // '1st_half' / etc — NOT API-Football's 'FT'/'NS'. A plain
       // .neq('status', 'finished') would ALSO silently drop any row
@@ -58,7 +82,7 @@ export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
       // isn't finished or cancelled.
       .or('status.is.null,status.not.in.(finished,cancelled,canceled)')
       .order('fixture_date', { ascending: true })
-      .limit(100);
+      .limit(200);
 
     if (error) {
       console.error('❌ Supabase fetch error:', error);
@@ -66,7 +90,7 @@ export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
     }
     if (!data || data.length === 0) return [];
 
-    return data.map(deriveFixture);
+    return data.map(deriveFixture).filter((f) => f.prediction); // drop anything that still ended up with no usable tip
   } catch (error) {
     console.error('Fetch failed:', error);
     return [];
@@ -92,13 +116,14 @@ function settleOutcome(
 
   if (p.includes('over 2.5')) return totalGoals > 2.5 ? 'WON' : 'LOST';
   if (p.includes('under 2.5')) return totalGoals < 2.5 ? 'WON' : 'LOST';
+  if (p.includes('over 1.5')) return totalGoals > 1.5 ? 'WON' : 'LOST';
   if (p.includes('both teams to score') || p === 'btts') {
     return homeScore > 0 && awayScore > 0 ? 'WON' : 'LOST';
   }
   if (p.includes(' win')) {
     if (homeScore === awayScore) return 'LOST'; // a "win" tip never pushes on a draw
     const homeWon = homeScore > awayScore;
-    // Which side did the admin actually pick? Check which team's name
+    // Which side did the tip actually pick? Check which team's name
     // appears in the prediction text — don't just assume "home" won.
     const pickedHome = p.includes(homeTeam.toLowerCase());
     const pickedAway = p.includes(awayTeam.toLowerCase());
@@ -116,9 +141,9 @@ export async function fetchRecentResults(limit = 15): Promise<ResultRow[]> {
       .from('match_stats')
       .select('*')
       .eq('status', 'finished')
-      .not('admin_prediction', 'is', null)
+      .or('admin_prediction.not.is.null,prediction_data.not.is.null')
       .order('fixture_date', { ascending: false })
-      .limit(limit);
+      .limit(limit * 3); // over-fetch since some rows may end up with no usable tip after deriving
 
     if (error) {
       console.error('❌ Supabase fetch error:', error);
@@ -126,13 +151,14 @@ export async function fetchRecentResults(limit = 15): Promise<ResultRow[]> {
     }
     if (!data || data.length === 0) return [];
 
-    return data.map((stat) => {
-      const fixture = deriveFixture(stat);
-      return {
+    return data
+      .map(deriveFixture)
+      .filter((f) => f.prediction)
+      .slice(0, limit)
+      .map((fixture) => ({
         ...fixture,
         outcome: settleOutcome(fixture.prediction, fixture.homeTeam, fixture.awayTeam, fixture.homeScore, fixture.awayScore),
-      };
-    });
+      }));
   } catch (error) {
     console.error('Fetch failed:', error);
     return [];

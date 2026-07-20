@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isAdminEmail } from '../lib/adminEmails';
+import { derivePredictionFromBzzoiro } from '../api/football';
 
 interface MatchRow {
   fixture_id: number;
@@ -14,6 +15,7 @@ interface MatchRow {
   status: string;
   admin_prediction: string | null;
   is_premium_override: boolean | null;
+  prediction_data: any;
 }
 
 interface AdminDashboardProps {
@@ -58,7 +60,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
     // Today + tomorrow's scraped matches — the ones an admin would actually be curating tips for.
     const { data, error } = await supabase
       .from('match_stats')
-      .select('fixture_id, home_team_name, away_team_name, league_name, kickoff_time, fixture_date, status, admin_prediction, is_premium_override')
+      .select('fixture_id, home_team_name, away_team_name, league_name, kickoff_time, fixture_date, status, admin_prediction, is_premium_override, prediction_data')
       .order('fixture_date', { ascending: true })
       .limit(200);
 
@@ -179,7 +181,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
 
         <div className="bg-bg-surface p-4 rounded-2xl border border-bg-surface-hover mb-6">
           <p className="text-xs text-slate-400 mb-3">
-            Enter a tip here to publish it on the live site. Matches only appear on the homepage once you've entered a prediction for them — nothing is shown automatically. Rows come from <code className="text-brand-green">match_stats</code>, populated by <code className="text-brand-green">hybrid-scraper.js</code> (Bzzoiro fixtures, kickoff times, and final scores only — not tips).
+            Matches with real Bzzoiro prediction data show up on the live site <strong className="text-white">automatically</strong> — no action needed. Type a tip below only to <strong className="text-white">override</strong> a specific match's auto pick, mark it VIP, or add a tip for a match Bzzoiro doesn't cover. Rows come from <code className="text-brand-green">match_stats</code>, populated by <code className="text-brand-green">hybrid-scraper.js</code>.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
@@ -261,10 +263,13 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
                 const draft = editing[m.fixture_id] || {};
                 const val = (field: keyof MatchRow) => (draft[field] !== undefined ? draft[field] : m[field]) as string | null;
                 const hasChanges = !!editing[m.fixture_id];
+                const autoPrediction = derivePredictionFromBzzoiro(m.prediction_data, m.home_team_name, m.away_team_name);
+                const currentTipValue = val('admin_prediction') || '';
+                const liveTip = m.admin_prediction || autoPrediction;
 
                 return (
                   <div key={m.fixture_id} className="p-4 hover:bg-bg-base/50 transition-colors">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-2">
                       <div>
                         <span className="font-bold text-white">{m.home_team_name} vs {m.away_team_name}</span>
                         <span className="text-xs text-slate-500 ml-2">
@@ -273,16 +278,28 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
                         </span>
                       </div>
                       {m.admin_prediction && (
-                        <button onClick={() => clearRow(m.fixture_id)} className="text-xs text-slate-500 hover:text-brand-danger">
-                          Remove tip
+                        <button onClick={() => clearRow(m.fixture_id)} className="text-xs text-slate-500 hover:text-brand-danger whitespace-nowrap">
+                          Clear override
                         </button>
                       )}
                     </div>
+
+                    <div className="mb-2 text-xs">
+                      {liveTip ? (
+                        <span className={m.admin_prediction ? 'text-brand-premium' : 'text-brand-green'}>
+                          {m.admin_prediction ? '✍️ Manual override live: ' : '🤖 Auto (Bzzoiro) live: '}
+                          <strong>{liveTip}</strong>
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">No Bzzoiro prediction available — enter a tip manually to publish this match.</span>
+                      )}
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-3">
                       <input
                         type="text"
-                        placeholder="Tip (e.g. Arsenal to Win, Over 2.5 Goals, BTTS)"
-                        value={val('admin_prediction') || ''}
+                        placeholder={autoPrediction ? `Override auto pick (currently: ${autoPrediction})` : 'Tip (e.g. Arsenal to Win, Over 2.5 Goals, BTTS)'}
+                        value={currentTipValue}
                         onChange={(e) => updateField(m.fixture_id, 'admin_prediction', e.target.value)}
                         className="flex-1 bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
                       />
