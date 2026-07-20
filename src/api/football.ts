@@ -17,11 +17,30 @@ export interface Fixture {
   date: string;
 }
 
+// PostgREST returns jsonb columns as native JS objects/arrays via
+// supabase-js — but if this column was ever created/altered as plain
+// `text` instead of `jsonb`, the same value comes back as a raw JSON
+// string instead. Handle both so a column-type mismatch can't silently
+// make every prediction look empty.
+function safeJsonField(value: any): any {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'object') return value; // already parsed (jsonb)
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 // Turns Bzzoiro's CatBoost prediction payload into a human-readable tip.
 // Mirrors the shape confirmed in Bzzoiro's own API docs:
 // recommendations: { bet_favorite, favorite: "H"|"A"|"D", favorite_prob,
 //                     over_15, over_25, over_35, btts, winner }
-export function derivePredictionFromBzzoiro(predictionData: any, homeTeam: string, awayTeam: string): string | null {
+export function derivePredictionFromBzzoiro(predictionDataRaw: any, homeTeam: string, awayTeam: string): string | null {
+  const predictionData = safeJsonField(predictionDataRaw);
   const rec = predictionData?.recommendations;
   if (!rec) return null;
 
@@ -65,24 +84,27 @@ function deriveFixture(stat: any): Fixture {
 // All upcoming fixtures with a tip — either Bzzoiro's own auto-generated
 // prediction, or an admin override/manually-added match. No day-window
 // filtering — this always reflects whatever is currently on the board.
+//
+// NOTE: whether a row has a usable prediction is decided CLIENT-SIDE
+// (after deriveFixture), not via a database filter. Chaining multiple
+// .or() calls to check both admin_prediction and prediction_data at the
+// DB level adds a layer of PostgREST filter-combination behavior that's
+// easy to get subtly wrong; filtering the already-small result set in
+// JS after fetching is simpler and impossible to get wrong the same way.
 export async function fetchUpcomingFixtures(): Promise<Fixture[]> {
   try {
     const { data, error } = await supabase
       .from('match_stats')
-      .select('*')
-      // A pickable match needs EITHER an admin-entered tip OR real
-      // Bzzoiro prediction data to derive one from — otherwise there's
-      // nothing to show.
-      .or('admin_prediction.not.is.null,prediction_data.not.is.null')
       // Bzzoiro's status enum is 'finished' / 'notstarted' / 'cancelled' /
       // '1st_half' / etc — NOT API-Football's 'FT'/'NS'. A plain
       // .neq('status', 'finished') would ALSO silently drop any row
       // where status is NULL (NULL <> 'finished' evaluates to NULL, not
       // true, in SQL). Explicitly include NULL alongside anything that
       // isn't finished or cancelled.
+      .select('*')
       .or('status.is.null,status.not.in.(finished,cancelled,canceled)')
       .order('fixture_date', { ascending: true })
-      .limit(200);
+      .limit(300);
 
     if (error) {
       console.error('❌ Supabase fetch error:', error);
@@ -141,9 +163,8 @@ export async function fetchRecentResults(limit = 15): Promise<ResultRow[]> {
       .from('match_stats')
       .select('*')
       .eq('status', 'finished')
-      .or('admin_prediction.not.is.null,prediction_data.not.is.null')
       .order('fixture_date', { ascending: false })
-      .limit(limit * 3); // over-fetch since some rows may end up with no usable tip after deriving
+      .limit(limit * 5); // over-fetch since most finished rows won't have a usable tip after deriving
 
     if (error) {
       console.error('❌ Supabase fetch error:', error);
