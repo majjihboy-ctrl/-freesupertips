@@ -8,7 +8,7 @@ import SEOContent from './components/SEOContent';
 import FAQSection from './components/FAQSection';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
-import AdminDashboard from './components/AdminDashboard';
+import AdminFrozenPage from './pages/AdminFrozenPage';
 import Pricing from './components/Pricing';
 import TipCategoryPage from './components/TipCategoryPage';
 import ResultsPage from './components/ResultsPage';
@@ -48,7 +48,7 @@ function App() {
             </>
           } />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/admin" element={<AdminDashboard user={auth.user} />} />
+          <Route path="/admin" element={<AdminFrozenPage />} />
           <Route path="/tips/:category" element={<TipCategoryPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/terms" element={<TermsPage />} />
