@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, Crown } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, Crown, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { useTheme } from '../hooks/useTheme';
+import { isAdminEmail } from '../lib/adminEmails';
 import ThemeToggle from './ThemeToggle';
 
 interface NavbarProps {
@@ -16,6 +17,7 @@ export default function Navbar({ user, hasPremium, onLogout, onOpenAuth }: Navba
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const isAdmin = isAdminEmail(user?.email);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -52,6 +54,14 @@ export default function Navbar({ user, hasPremium, onLogout, onOpenAuth }: Navba
 
             {user ? (
               <div className="flex items-center gap-3">
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-1.5 text-xs font-bold text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full hover:bg-brand-green/20 transition-colors"
+                  >
+                    <Shield className="w-3.5 h-3.5" /> Admin
+                  </Link>
+                )}
                 {hasPremium && (
                   <span className="flex items-center gap-1 text-xs font-bold text-brand-premium bg-brand-premium/10 px-3 py-1.5 rounded-full">
                     <Crown className="w-3.5 h-3.5" /> VIP
@@ -110,6 +120,15 @@ export default function Navbar({ user, hasPremium, onLogout, onOpenAuth }: Navba
               {user ? (
                 <>
                   <span className="text-sm text-slate-400">{user.email}</span>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-1.5 w-full px-6 py-2 rounded-full bg-brand-green/10 text-brand-green font-semibold"
+                    >
+                      <Shield className="w-4 h-4" /> Admin Dashboard
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       onLogout();

@@ -2,13 +2,14 @@ import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import DailyPredictions from './components/DailyPredictions';
+import AccumulatorSection from './components/AccumulatorSection';
 import TipCategoryGrid from './components/TipCategoryGrid';
 import RecentResults from './components/RecentResults';
 import SEOContent from './components/SEOContent';
 import FAQSection from './components/FAQSection';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
-import AdminFrozenPage from './pages/AdminFrozenPage';
+import AdminDashboard from './components/AdminDashboard';
 import Pricing from './components/Pricing';
 import TipCategoryPage from './components/TipCategoryPage';
 import ResultsPage from './components/ResultsPage';
@@ -41,6 +42,7 @@ function App() {
             <>
               <Hero />
               <DailyPredictions />
+              <AccumulatorSection />
               <TipCategoryGrid />
               <RecentResults />
               <SEOContent />
@@ -48,7 +50,7 @@ function App() {
             </>
           } />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/admin" element={<AdminFrozenPage />} />
+          <Route path="/admin" element={<AdminDashboard user={auth.user} />} />
           <Route path="/tips/:category" element={<TipCategoryPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/terms" element={<TermsPage />} />

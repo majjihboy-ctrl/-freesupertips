@@ -59,7 +59,7 @@ export function derivePredictionFromBzzoiro(predictionDataRaw: any, homeTeam: st
 // An admin-entered tip always wins if one exists (lets you correct or
 // customize any pick). Otherwise, Bzzoiro's own prediction is used
 // automatically — no admin action needed for matches Bzzoiro covers.
-function deriveFixture(stat: any): Fixture {
+export function deriveFixture(stat: any): Fixture {
   const prediction = stat.admin_prediction || derivePredictionFromBzzoiro(stat.prediction_data, stat.home_team_name, stat.away_team_name);
 
   return {
@@ -182,6 +182,70 @@ export async function fetchRecentResults(limit = 15): Promise<ResultRow[]> {
       }));
   } catch (error) {
     console.error('Fetch failed:', error);
+    return [];
+  }
+}
+
+export interface Accumulator {
+  id: string;
+  title: string;
+  isPremium: boolean;
+  picks: Fixture[];
+}
+
+// An admin-curated bundle of picks built from matches already in
+// match_stats. Picks are always derived live (admin_prediction or
+// Bzzoiro's own data) at fetch time — never snapshotted — so an
+// accumulator can't go stale relative to the match it references. Any
+// pick whose match has since finished, been cancelled, or lost its
+// prediction is silently dropped rather than shown broken.
+export async function fetchAccumulators(): Promise<Accumulator[]> {
+  try {
+    const { data: accs, error: accError } = await supabase
+      .from('accumulators')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (accError || !accs || accs.length === 0) {
+      if (accError) console.error('❌ Supabase fetch error (accumulators):', accError);
+      return [];
+    }
+
+    const { data: links, error: linksError } = await supabase
+      .from('accumulator_matches')
+      .select('*')
+      .in('accumulator_id', accs.map((a) => a.id))
+      .order('sort_order', { ascending: true });
+
+    if (linksError || !links || links.length === 0) return [];
+
+    const fixtureIds = [...new Set(links.map((l) => l.fixture_id))];
+    const { data: matches, error: matchesError } = await supabase
+      .from('match_stats')
+      .select('*')
+      .in('fixture_id', fixtureIds);
+
+    if (matchesError || !matches) return [];
+
+    const fixtureById = new Map(matches.map((m) => [m.fixture_id, deriveFixture(m)]));
+
+    return accs
+      .map((acc) => {
+        const picks = links
+          .filter((l) => l.accumulator_id === acc.id)
+          .map((l) => fixtureById.get(l.fixture_id))
+          .filter((f): f is Fixture => !!f && !!f.prediction && f.status !== 'finished' && f.status !== 'cancelled' && f.status !== 'canceled');
+
+        return {
+          id: acc.id,
+          title: acc.title,
+          isPremium: acc.is_premium,
+          picks,
+        };
+      })
+      .filter((acc) => acc.picks.length > 0); // don't show an accumulator that's lost all its picks
+  } catch (error) {
+    console.error('Fetch failed (accumulators):', error);
     return [];
   }
 }

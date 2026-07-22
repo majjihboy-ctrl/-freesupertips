@@ -18,6 +18,20 @@ interface MatchRow {
   prediction_data: any;
 }
 
+interface AccumulatorRow {
+  id: string;
+  title: string;
+  is_premium: boolean;
+  created_at: string;
+}
+
+interface AccumulatorMatchRow {
+  id: string;
+  accumulator_id: string;
+  fixture_id: number;
+  sort_order: number;
+}
+
 interface AdminDashboardProps {
   user: User | null;
 }
@@ -55,6 +69,7 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
   const [newMatch, setNewMatch] = useState({ home: '', away: '', league: '', kickoff: '' });
   const [adding, setAdding] = useState(false);
   const [viewFilter, setViewFilter] = useState<'upcoming' | 'needs-tip' | 'all'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'matches' | 'accumulators'>('matches');
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -194,6 +209,27 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
           </button>
         </div>
 
+        <div className="flex gap-2 mb-6">
+          {([
+            { key: 'matches', label: '📋 Matches' },
+            { key: 'accumulators', label: '🎯 Accumulators' },
+          ] as const).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+                activeTab === tab.key ? 'bg-brand-green text-white' : 'bg-bg-surface text-slate-400 hover:text-white border border-bg-surface-hover'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'accumulators' ? (
+          <AccumulatorManager matches={matches} />
+        ) : (
+        <>
         <div className="bg-bg-surface p-4 rounded-2xl border border-bg-surface-hover mb-6">
           <p className="text-xs text-slate-400 mb-3">
             Matches with real Bzzoiro prediction data show up on the live site <strong className="text-white">automatically</strong> — no action needed. Type a tip below only to <strong className="text-white">override</strong> a specific match's auto pick, mark it VIP, or add a tip for a match Bzzoiro doesn't cover. Rows come from <code className="text-brand-green">match_stats</code>, populated by <code className="text-brand-green">hybrid-scraper.js</code>.
@@ -360,7 +396,218 @@ function AdminDashboardContent({ user, navigate }: { user: User | null; navigate
             )}
           </div>
         </div>
+        </>
+        )}
       </div>
+    </div>
+  );
+}
+
+function AccumulatorManager({ matches }: { matches: MatchRow[] }) {
+  const [accumulators, setAccumulators] = useState<AccumulatorRow[]>([]);
+  const [links, setLinks] = useState<AccumulatorMatchRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newIsPremium, setNewIsPremium] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [searchByAcc, setSearchByAcc] = useState<Record<string, string>>({});
+
+  const fetchAll = async () => {
+    setLoading(true);
+    const [accRes, linkRes] = await Promise.all([
+      supabase.from('accumulators').select('*').order('created_at', { ascending: false }),
+      supabase.from('accumulator_matches').select('*').order('sort_order', { ascending: true }),
+    ]);
+    if (accRes.error) setMessage('❌ Failed to load accumulators: ' + accRes.error.message);
+    else setAccumulators(accRes.data || []);
+    if (!linkRes.error) setLinks(linkRes.data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const createAccumulator = async () => {
+    if (!newTitle.trim()) {
+      setMessage('❌ Give the accumulator a title first.');
+      return;
+    }
+    setCreating(true);
+    const { error } = await supabase.from('accumulators').insert({ title: newTitle.trim(), is_premium: newIsPremium });
+    setCreating(false);
+    if (error) {
+      setMessage('❌ Failed to create: ' + error.message);
+    } else {
+      setNewTitle('');
+      setNewIsPremium(false);
+      fetchAll();
+    }
+  };
+
+  const deleteAccumulator = async (id: string) => {
+    if (!window.confirm('Delete this accumulator entirely?')) return;
+    const { error } = await supabase.from('accumulators').delete().eq('id', id);
+    if (error) setMessage('❌ Failed to delete: ' + error.message);
+    else fetchAll();
+  };
+
+  const addMatchToAccumulator = async (accumulatorId: string, fixtureId: number) => {
+    const currentCount = links.filter((l) => l.accumulator_id === accumulatorId).length;
+    const { error } = await supabase.from('accumulator_matches').insert({
+      accumulator_id: accumulatorId,
+      fixture_id: fixtureId,
+      sort_order: currentCount,
+    });
+    if (error) setMessage('❌ Failed to add match: ' + error.message);
+    else fetchAll();
+  };
+
+  const removeMatchFromAccumulator = async (linkId: string) => {
+    const { error } = await supabase.from('accumulator_matches').delete().eq('id', linkId);
+    if (error) setMessage('❌ Failed to remove match: ' + error.message);
+    else fetchAll();
+  };
+
+  const matchById = new Map(matches.map((m) => [m.fixture_id, m]));
+  const FINISHED_LIKE = new Set(['finished', 'cancelled', 'canceled']);
+  const pickableMatches = matches.filter((m) => {
+    const isFinishedLike = m.status ? FINISHED_LIKE.has(m.status) : false;
+    if (isFinishedLike) return false;
+    const hasLiveTip = m.admin_prediction || derivePredictionFromBzzoiro(m.prediction_data, m.home_team_name, m.away_team_name);
+    return !!hasLiveTip;
+  });
+
+  if (loading) return <div className="p-8 text-center text-slate-500">Loading accumulators…</div>;
+
+  return (
+    <div>
+      <div className="bg-bg-surface p-4 rounded-2xl border border-bg-surface-hover mb-6">
+        <p className="text-xs text-slate-400 mb-3">
+          Build a bundle of picks from matches that already have a live tip (auto or manual). Picks stay in sync
+          automatically — if a match's tip changes or it finishes, the accumulator reflects that live, nothing is
+          duplicated or snapshotted.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            placeholder="Accumulator title (e.g. Today's 3-Fold)"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            className="flex-1 bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+          />
+          <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={newIsPremium}
+              onChange={(e) => setNewIsPremium(e.target.checked)}
+              className="rounded bg-bg-base border-slate-600 text-brand-green focus:ring-brand-green"
+            />
+            VIP only
+          </label>
+          <button
+            onClick={createAccumulator}
+            disabled={creating}
+            className="bg-brand-green hover:bg-brand-green-hover disabled:opacity-40 text-white font-bold text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+          >
+            {creating ? 'Creating…' : '+ New Accumulator'}
+          </button>
+        </div>
+      </div>
+
+      {message && <p className="text-sm mb-4 text-brand-green">{message}</p>}
+
+      {accumulators.length === 0 ? (
+        <div className="bg-bg-surface rounded-2xl border border-bg-surface-hover p-8 text-center text-slate-500">
+          No accumulators yet — create one above.
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {accumulators.map((acc) => {
+            const accLinks = links.filter((l) => l.accumulator_id === acc.id);
+            const q = (searchByAcc[acc.id] || '').toLowerCase();
+            const searchResults = q
+              ? pickableMatches
+                  .filter((m) => !accLinks.some((l) => l.fixture_id === m.fixture_id))
+                  .filter((m) => m.home_team_name?.toLowerCase().includes(q) || m.away_team_name?.toLowerCase().includes(q))
+                  .slice(0, 8)
+              : [];
+
+            return (
+              <div key={acc.id} className="bg-bg-surface rounded-2xl border border-bg-surface-hover overflow-hidden">
+                <div className="p-4 border-b border-bg-surface-hover bg-bg-base/50 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-white">{acc.title}</h3>
+                    <span className="text-xs text-slate-500">
+                      {accLinks.length} pick{accLinks.length !== 1 ? 's' : ''}
+                      {acc.is_premium && <span className="text-brand-premium ml-2">• VIP</span>}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => deleteAccumulator(acc.id)}
+                    className="text-xs text-slate-500 hover:text-brand-danger"
+                  >
+                    Delete accumulator
+                  </button>
+                </div>
+
+                <div className="p-4">
+                  {accLinks.length > 0 && (
+                    <ul className="space-y-2 mb-4">
+                      {accLinks.map((link) => {
+                        const m = matchById.get(link.fixture_id);
+                        if (!m) return null;
+                        const tip = m.admin_prediction || derivePredictionFromBzzoiro(m.prediction_data, m.home_team_name, m.away_team_name);
+                        return (
+                          <li key={link.id} className="flex items-center justify-between text-sm bg-bg-base rounded-lg px-3 py-2">
+                            <div>
+                              <span className="text-white font-semibold">{m.home_team_name} vs {m.away_team_name}</span>
+                              <span className="text-brand-green ml-2">{tip}</span>
+                            </div>
+                            <button onClick={() => removeMatchFromAccumulator(link.id)} className="text-slate-500 hover:text-brand-danger text-xs">
+                              Remove
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+
+                  <input
+                    type="text"
+                    placeholder="Search a match to add…"
+                    value={searchByAcc[acc.id] || ''}
+                    onChange={(e) => setSearchByAcc((prev) => ({ ...prev, [acc.id]: e.target.value }))}
+                    className="w-full bg-bg-base border border-bg-surface-hover rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-green"
+                  />
+                  {searchResults.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {searchResults.map((m) => {
+                        const tip = m.admin_prediction || derivePredictionFromBzzoiro(m.prediction_data, m.home_team_name, m.away_team_name);
+                        return (
+                          <li key={m.fixture_id}>
+                            <button
+                              onClick={() => {
+                                addMatchToAccumulator(acc.id, m.fixture_id);
+                                setSearchByAcc((prev) => ({ ...prev, [acc.id]: '' }));
+                              }}
+                              className="w-full text-left flex items-center justify-between text-sm px-3 py-2 rounded-lg hover:bg-bg-base transition-colors"
+                            >
+                              <span className="text-slate-300">{m.home_team_name} vs {m.away_team_name}</span>
+                              <span className="text-brand-green text-xs">{tip} — Add +</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
