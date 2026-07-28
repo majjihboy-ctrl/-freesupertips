@@ -15,6 +15,11 @@ if not DEBUG and SECRET_KEY == "django-insecure-change-me":
         "Set a real SECRET_KEY environment variable before deploying."
     )
 
+# Vercel sets VERCEL=1 in the function's environment automatically. Used
+# below to skip filesystem operations that aren't safe in that environment
+# (only /tmp is writable there, and it doesn't persist between invocations).
+IS_VERCEL = config("VERCEL", default=False, cast=bool)
+
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
     default="127.0.0.1,localhost",
@@ -118,15 +123,25 @@ SECURE_HSTS_PRELOAD = not DEBUG
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600
 
+# Redis cache. Points at localhost by default for local dev; in production
+# (Vercel or anywhere else) set REDIS_URL to a real managed Redis instance
+# (e.g. Upstash via the Vercel Marketplace) — there is no local Redis
+# process available inside a Vercel serverless function.
+REDIS_URL = config("REDIS_URL", default="redis://127.0.0.1:6379/1")
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {
                 "protocol": 2,  # This forces Redis to skip the HELLO command
-            }
+            },
+            # Most managed providers (Upstash included) terminate TLS with
+            # a cert that Python's default verification is picky about from
+            # inside serverless runtimes. Relaxing verification here is the
+            # commonly recommended workaround for django-redis + rediss://.
+            **({"CONNECTION_POOL_KWARGS": {"ssl_cert_reqs": None}} if REDIS_URL.startswith("rediss://") else {}),
         }
     }
 }
@@ -137,8 +152,29 @@ STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
 
 # Logging
-LOGS_DIR = BASE_DIR / "logs"
-LOGS_DIR.mkdir(exist_ok=True)
+# File logging is only safe on a filesystem that's actually writable and
+# persistent. Vercel functions only expose a writable /tmp that doesn't
+# survive between invocations, so on Vercel we log to stdout only (visible
+# in the Vercel dashboard's function logs) and skip the file handler
+# entirely rather than crashing on LOGS_DIR.mkdir().
+LOG_HANDLERS = {
+    "console": {
+        "level": "DEBUG" if DEBUG else "INFO",
+        "class": "logging.StreamHandler",
+        "formatter": "verbose",
+    },
+}
+
+if not IS_VERCEL:
+    LOGS_DIR = BASE_DIR / "logs"
+    LOGS_DIR.mkdir(exist_ok=True)
+    LOG_HANDLERS["file"] = {
+        "level": "ERROR",
+        "class": "logging.FileHandler",
+        "filename": LOGS_DIR / "django.log",
+        "formatter": "verbose",
+    }
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -148,22 +184,10 @@ LOGGING = {
             "style": "{",
         },
     },
-    "handlers": {
-        "file": {
-            "level": "ERROR",
-            "class": "logging.FileHandler",
-            "filename": LOGS_DIR / "django.log",
-            "formatter": "verbose",
-        },
-        "console": {
-            "level": "DEBUG" if DEBUG else "INFO",
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
+    "handlers": LOG_HANDLERS,
     "loggers": {
         "django": {
-            "handlers": ["file", "console"],
+            "handlers": list(LOG_HANDLERS.keys()),
             "level": "ERROR",
             "propagate": True,
         },
@@ -171,7 +195,7 @@ LOGGING = {
         # views.py (e.g. Stripe webhook errors, unknown-customer warnings)
         # that previously had nowhere to go.
         "predictions": {
-            "handlers": ["file", "console"],
+            "handlers": list(LOG_HANDLERS.keys()),
             "level": "INFO",
             "propagate": False,
         },
