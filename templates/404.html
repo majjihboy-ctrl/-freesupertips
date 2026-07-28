@@ -1,0 +1,9 @@
+{% extends "predictions/base.html" %}
+{% block title %}Page Not Found — Matchday Pro{% endblock %}
+{% block content %}
+<div style="text-align:center;padding:5rem 1rem;">
+    <h1 style="font-size:5rem;font-weight:800;color:var(--border);">404</h1>
+    <p style="font-size:1.1rem;color:var(--text-muted);margin-bottom:1.5rem;">This page doesn't exist or has been moved.</p>
+    <a href="{% url 'home' %}" class="btn btn-green">Back to Home</a>
+</div>
+{% endblock %}

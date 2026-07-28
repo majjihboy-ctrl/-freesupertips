@@ -1,0 +1,12 @@
+Django>=5.0,<5.1
+scipy
+python-decouple
+psycopg2-binary
+dj-database-url
+gunicorn
+whitenoise
+redis
+django-redis
+stripe
+requests
+django-import-export

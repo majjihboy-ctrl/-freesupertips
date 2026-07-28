@@ -1,0 +1,11 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Logged Out — Matchday Pro{% endblock %}
+
+{% block content %}
+<div class="auth-box" style="text-align:center;">
+    <h1>Logged Out</h1>
+    <p style="color:var(--text-muted);margin-bottom:1.5rem;">You have been successfully logged out.</p>
+    <a href="{% url 'login' %}" class="btn btn-green">Log In Again</a>
+</div>
+{% endblock %}
