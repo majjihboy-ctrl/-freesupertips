@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/pip.exe list *)",
+      "Bash(DEBUG=True /c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/python.exe manage.py check)",
+      "Bash(DEBUG=True /c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/python.exe manage.py makemigrations --dry-run)",
+      "Bash(DEBUG=True /c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/python.exe manage.py showmigrations)",
+      "Bash(DEBUG=True /c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/python.exe manage.py test)",
+      "Bash(DEBUG=True /c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/python.exe -c \"from matchday.wsgi import application; print\\('WSGI loaded:', application\\)\")",
+      "Bash(/c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/pip.exe install *)",
+      "Bash(/c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/pip.exe show *)",
+      "Bash(DEBUG=True /c/Users/majjihboy/PycharmProjects/kimi/.venv/Scripts/python.exe manage.py collectstatic --noinput --dry-run)"
+    ]
+  }
+}
