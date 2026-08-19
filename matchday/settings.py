@@ -75,20 +75,11 @@ ASGI_APPLICATION = "matchday.asgi.application"
 # Database
 import dj_database_url
 
-# Parse the URL and set conn_max_age=0 for the serverless pooler
-db_config = dj_database_url.config(
-    default=config("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-    conn_max_age=0,
-)
-
-# Safely inject the DISABLE_SERVER_SIDE_CURSORS option
-if "OPTIONS" not in db_config:
-    db_config["OPTIONS"] = {}
-    
-db_config["OPTIONS"]["DISABLE_SERVER_SIDE_CURSORS"] = True
-
 DATABASES = {
-    "default": db_config
+    "default": dj_database_url.config(
+        default=config("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+        conn_max_age=0,
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
