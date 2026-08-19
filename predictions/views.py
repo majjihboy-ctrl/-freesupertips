@@ -1,22 +1,18 @@
-import decimal
-import json
-import stripe
+from urllib.parse import quote
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib import messages
-from django.db.models.functions import TruncMonth
-from collections import defaultdict
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.http import Http404
+from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 from django.core.cache import cache
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django_ratelimit.decorators import ratelimit
 
-from .models import Tip, Profile, Match, StripeEvent
+from .models import Prediction, Profile, Match, VIPCode
 from .forms import CustomUserCreationForm
 
 import logging
@@ -50,31 +46,19 @@ def home(request):
     data = cache.get(cache_key)
     if not data:
         featured_free = list(
-            Tip.objects.filter(tip_type="free", is_featured=True, status="pending").prefetch_related("legs").order_by("-created_at")[:5])
-        if not featured_free:
-            featured_free = list(Tip.objects.filter(tip_type="free", status="pending").prefetch_related("legs").order_by("-created_at")[:5])
-
-        recent_results = list(
-            Tip.objects.filter(status__in=("won", "lost")).prefetch_related("legs").order_by("-result_entered_at", "-created_at")[:8])
-        vip_teaser = list(Tip.objects.filter(tip_type="vip", status="pending").prefetch_related("legs").order_by("-created_at")[:3])
-
-        finished = Tip.objects.filter(status__in=("won", "lost"))
-        total_tips = finished.count()
-        won_tips = finished.filter(status="won").count()
-        win_rate = round(won_tips / total_tips * 100, 1) if total_tips else 0
-
-        total_profit = sum(t.profit for t in finished)
-        total_staked = sum(t.stake for t in finished)
-        roi = round(total_profit / total_staked * 100, 1) if total_staked else 0
+            Prediction.objects.filter(tip_type="free")
+            .select_related("match", "match__league", "match__home_team", "match__away_team")
+            .order_by("-created_at")[:5]
+        )
+        vip_teaser = list(
+            Prediction.objects.filter(tip_type="vip")
+            .select_related("match", "match__league", "match__home_team", "match__away_team")
+            .order_by("-created_at")[:3]
+        )
 
         data = {
             "featured_free": featured_free,
-            "recent_results": recent_results,
             "vip_teaser": vip_teaser,
-            "win_rate": win_rate,
-            "total_profit": total_profit,
-            "total_tips": total_tips,
-            "roi": roi,
         }
         cache.set(cache_key, data, 300)
 
@@ -83,8 +67,8 @@ def home(request):
     data["todays_matches"] = Match.objects.filter(
         kickoff__gte=today_start,
         kickoff__lt=today_end,
-        status="scheduled",  # ← FIXED
-    ).select_related("league", "home_team", "away_team").order_by("kickoff")[:20]
+        status="scheduled",
+    ).select_related("league", "home_team", "away_team").order_by("league__name", "kickoff")[:20]
 
     data["live_matches"] = Match.objects.filter(
         status="live",
@@ -92,6 +76,12 @@ def home(request):
 
     data["is_vip"] = _vip_status(request)
     return render(request, "predictions/home.html", data)
+
+
+# Day tabs shown above the tips list. Keys are what's passed on the
+# "?day=" query string; "today" is the default when it's absent/invalid.
+_DAY_OFFSETS = {"today": 0, "tomorrow": 1, "day_after": 2}
+_DAY_LABELS = {0: "Today", 1: "Tomorrow"}
 
 
 def tips_list(request, tip_type):
@@ -102,237 +92,153 @@ def tips_list(request, tip_type):
         messages.info(request, "VIP access is required to view these tips.")
         return redirect("upgrade")
 
-    bet_type = request.GET.get("bet_type", "all")
-    cache_key = f"tips_list_{tip_type}_{bet_type}"
-    tips = cache.get(cache_key)
-    if tips is None:
-        tips = Tip.objects.filter(tip_type=tip_type, status="pending").prefetch_related("legs")
-        if bet_type in ("single", "accumulator"):
-            tips = tips.filter(bet_type=bet_type)
-        tips = list(tips.order_by("-created_at"))
-        cache.set(cache_key, tips, 120)
+    day_param = request.GET.get("day", "today")
+    if day_param not in _DAY_OFFSETS:
+        day_param = "today"
+    offset = _DAY_OFFSETS[day_param]
+
+    today = timezone.localdate()
+    active_date = today + timedelta(days=offset)
+    active_day_label = _DAY_LABELS.get(offset, active_date.strftime("%A"))
+
+    day_tabs = [
+        {
+            "url": f"{reverse('tips_list', args=[tip_type])}?day={key}",
+            "label": _DAY_LABELS.get(off, (today + timedelta(days=off)).strftime("%a %d")),
+            "active": key == day_param,
+        }
+        for key, off in _DAY_OFFSETS.items()
+    ]
+
+    cache_key = f"predictions_list_{tip_type}_{day_param}"
+    fixtures = cache.get(cache_key)
+    if fixtures is None:
+        day_start = timezone.make_aware(datetime.combine(active_date, datetime.min.time()))
+        day_end = day_start + timedelta(days=1)
+
+        matches = (
+            Match.objects.filter(kickoff__gte=day_start, kickoff__lt=day_end)
+            .select_related("league", "home_team", "away_team")
+            .order_by("kickoff")
+        )
+
+        fixtures = []
+        for match in matches:
+            tips_count = match.predictions.filter(tip_type=tip_type).count()
+            if tips_count:
+                fixtures.append({"match": match, "tips_count": tips_count})
+
+        cache.set(cache_key, fixtures, 120)
 
     return render(request, "predictions/tips_list.html", {
-        "tips": tips,
+        "fixtures": fixtures,
         "tip_type": tip_type,
-        "bet_type": bet_type,
+        "day_tabs": day_tabs,
+        "active_date": active_date,
+        "active_day_label": active_day_label,
+        "is_vip": _vip_status(request),
+    })
+
+
+def match_tips(request, tip_type, match_id):
+    if tip_type not in ("free", "vip"):
+        return redirect("home")
+
+    if tip_type == "vip" and not _vip_status(request):
+        messages.info(request, "VIP access is required to view these tips.")
+        return redirect("upgrade")
+
+    match = get_object_or_404(
+        Match.objects.select_related("league", "home_team", "away_team"), pk=match_id
+    )
+    predictions = list(match.predictions.filter(tip_type=tip_type).order_by("-created_at"))
+    if not predictions:
+        raise Http404("No tips for this match.")
+
+    return render(request, "predictions/match_tips.html", {
+        "match": match,
+        "predictions": predictions,
+        "tip_type": tip_type,
         "is_vip": _vip_status(request),
     })
 
 
 def tip_detail(request, pk):
-    tip = get_object_or_404(Tip.objects.prefetch_related("legs"), pk=pk)
+    prediction = get_object_or_404(
+        Prediction.objects.select_related("match", "match__league", "match__home_team", "match__away_team"),
+        pk=pk,
+    )
     is_vip = _vip_status(request)
 
-    if tip.tip_type == "vip" and not is_vip:
+    if prediction.tip_type == "vip" and not is_vip:
         messages.error(request, "This is a VIP tip. Upgrade to unlock.")
         return redirect("upgrade")
 
-    potential_return = decimal.Decimal("0")
-    if tip.total_odds:
-        potential_return = tip.stake * tip.total_odds
-
     return render(request, "predictions/tip_detail.html", {
-        "tip": tip,
+        "prediction": prediction,
         "is_vip": is_vip,
-        "potential_return": potential_return,
     })
-
-
-def history(request):
-    tips = Tip.objects.filter(status__in=("won", "lost", "void")).prefetch_related("legs").order_by("-created_at")
-    return render(request, "predictions/history.html", {"tips": tips})
-
-
-def stats(request):
-    cache_key = "stats_page_data"
-    context = cache.get(cache_key)
-    if context is None:
-        finished = Tip.objects.filter(status__in=("won", "lost")).prefetch_related("legs")
-        total = finished.count()
-        won = finished.filter(status="won").count()
-        lost = total - won
-        win_rate = round(won / total * 100, 1) if total else 0
-
-        total_profit = sum(t.profit for t in finished)
-        total_staked = sum(t.stake for t in finished)
-        roi = round(total_profit / total_staked * 100, 1) if total_staked else 0
-
-        avg_odds = decimal.Decimal("0")
-        odds_count = 0
-        for t in finished:
-            if t.total_odds:
-                avg_odds += t.total_odds
-                odds_count += 1
-        avg_odds = avg_odds / odds_count if odds_count else decimal.Decimal("0")
-        avg_stake = total_staked / total if total else decimal.Decimal("0")
-
-        recent_form = list(finished.order_by("-created_at")[:10])
-
-        # `profit` is a Python @property on Tip, not a DB column, so it can't be
-        # summed in the database. Group tips by real calendar month (TruncMonth)
-        # and sum their `.profit` values in Python instead.
-        six_months_ago = timezone.now() - timedelta(days=180)
-        recent_tips = (
-            Tip.objects.filter(status__in=("won", "lost"), created_at__gte=six_months_ago)
-            .annotate(month=TruncMonth("created_at"))
-            .order_by("month")
-        )
-
-        profit_by_month = defaultdict(lambda: decimal.Decimal("0"))
-        for tip in recent_tips:
-            profit_by_month[tip.month] += tip.profit
-
-        max_abs = max((abs(p) for p in profit_by_month.values()), default=1) or 1
-        monthly_stats = []
-        for month, profit in sorted(profit_by_month.items()):
-            monthly_stats.append({
-                "short_name": month.strftime("%b"),
-                "profit": profit,
-                "height": min(abs(profit) / max_abs * 100, 100),
-            })
-
-        context = {
-            "total": total,
-            "won": won,
-            "lost": lost,
-            "win_rate": win_rate,
-            "total_profit": total_profit,
-            "roi": roi,
-            "avg_odds": avg_odds,
-            "avg_stake": avg_stake,
-            "recent_form": recent_form,
-            "monthly_stats": monthly_stats,
-        }
-        cache.set(cache_key, context, 300)
-
-    return render(request, "predictions/stats.html", context)
 
 
 @login_required
 def upgrade(request):
     profile = request.user.profile
-    if request.method == "POST":
-        profile.upgrade_requested = True
-        profile.save()
-        messages.success(request, "Upgrade request submitted. Admin will review shortly.")
-        return redirect("home")
-    return render(request, "predictions/upgrade.html", {"profile": profile})
+
+    whatsapp_url = None
+    if settings.WHATSAPP_NUMBER:
+        message = (
+            "Hi! I'd like to get VIP access on Matchday Pro "
+            f"(username: {request.user.username})."
+        )
+        whatsapp_url = f"https://wa.me/{settings.WHATSAPP_NUMBER}?text={quote(message)}"
+
+    return render(request, "predictions/upgrade.html", {
+        "profile": profile,
+        "whatsapp_url": whatsapp_url,
+    })
 
 
 @login_required
-def create_checkout_session(request):
-    if not settings.STRIPE_SECRET_KEY:
-        messages.error(request, "Payment system is temporarily unavailable.")
+@ratelimit(key="user", rate="10/h", block=True)
+def redeem_vip_code(request):
+    if request.method != "POST":
+        return redirect("upgrade")
+
+    raw_code = request.POST.get("code", "").strip().upper()
+    if not raw_code:
+        messages.error(request, "Enter a code first.")
         return redirect("upgrade")
 
     try:
-        session = stripe.checkout.Session.create(
-            api_key=settings.STRIPE_SECRET_KEY,
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {"name": "Matchday Pro VIP — 30 Days"},
-                    "unit_amount": 2999,
-                },
-                "quantity": 1,
-            }],
-            mode="payment",
-            success_url=request.build_absolute_uri("/upgrade/success/"),
-            cancel_url=request.build_absolute_uri("/upgrade/"),
-        )
-        return redirect(session.url, status=303)
-    except Exception:
-        messages.error(request, "Payment initialization failed. Please try again.")
+        vip_code = VIPCode.objects.get(code=raw_code)
+    except VIPCode.DoesNotExist:
+        messages.error(request, "That code isn't valid. Double-check it and try again.")
         return redirect("upgrade")
 
+    if vip_code.is_used:
+        messages.error(request, "That code has already been used.")
+        return redirect("upgrade")
 
-@login_required
-def upgrade_success(request):
     profile = request.user.profile
+    now = timezone.now()
+    # Extend from the current expiry if VIP is still active, otherwise
+    # start the clock from now.
+    base = profile.vip_expires_at if profile.is_vip_active and profile.vip_expires_at else now
     profile.is_vip = True
-    profile.vip_expires_at = timezone.now() + timedelta(days=30)
+    profile.vip_expires_at = base + timedelta(days=vip_code.duration_days)
     profile.save()
-    cache.delete("home_page_data")
-    messages.success(request, "Welcome to VIP! Your access is now active for 30 days.")
+
+    vip_code.is_used = True
+    vip_code.used_by = request.user
+    vip_code.used_at = now
+    vip_code.save()
+
+    messages.success(
+        request,
+        f"VIP activated! You now have access until "
+        f"{timezone.localtime(profile.vip_expires_at).strftime('%B %d, %Y')}.",
+    )
     return redirect("home")
-
-
-@csrf_exempt
-def stripe_webhook(request):
-    payload = request.body
-    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
-    except ValueError:
-        return HttpResponse(status=400)
-    except stripe.error.SignatureVerificationError:
-        return HttpResponse(status=400)
-    except Exception:
-        # Anything else (malformed payload structure, library errors, etc.)
-        # should not surface as a 500 to Stripe - treat as a bad request so
-        # Stripe's retry/alerting behaves sanely and we log it ourselves.
-        logger.exception("Unexpected error verifying Stripe webhook")
-        return HttpResponse(status=400)
-
-    if event["type"] == "checkout.session.completed":
-        # Stripe retries webhooks on any non-2xx response or timeout, so the
-        # same event can arrive more than once. Without an idempotency check,
-        # a retried event would re-grant VIP and push vip_expires_at forward
-        # again on every retry. StripeEvent.id is the event's unique ID.
-        event_id = event.get("id")
-        if event_id and StripeEvent.objects.filter(event_id=event_id).exists():
-            return HttpResponse(status=200)
-
-        session = event["data"]["object"]
-        customer_email = session.get("customer_email") or session.get("customer_details", {}).get("email")
-        if customer_email:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            try:
-                user = User.objects.get(email=customer_email)
-                profile = user.profile
-                profile.is_vip = True
-                profile.vip_expires_at = timezone.now() + timedelta(days=30)
-                profile.save()
-                cache.delete("home_page_data")
-            except User.DoesNotExist:
-                logger.warning("Stripe checkout completed for unknown email: %s", customer_email)
-
-        if event_id:
-            StripeEvent.objects.create(event_id=event_id)
-
-    return HttpResponse(status=200)
-
-
-@require_POST
-@ratelimit(key="ip", rate="20/m", block=True)
-def betting_calculator(request):
-    """JSON API for stake/odds calculation.
-
-    Note: app.js also computes this client-side for instant feedback
-    without a network round-trip. This endpoint is kept as the source of
-    truth for any non-JS client (mobile app, embed widget, server-side
-    integration) and for validating/auditing values server-side - it is
-    intentionally not "dead code" duplicating the JS.
-    """
-    try:
-        data = json.loads(request.body)
-        stake = decimal.Decimal(str(data.get("stake", 0)))
-        odds = decimal.Decimal(str(data.get("odds", 0)))
-        result = {
-            "stake": float(stake),
-            "odds": float(odds),
-            "potential_return": float(stake * odds),
-            "profit": float(stake * (odds - 1)),
-        }
-        return JsonResponse(result)
-    except Exception:
-        return JsonResponse({"error": "Invalid input"}, status=400)
 
 
 @ratelimit(key="ip", rate="5/h", block=True)

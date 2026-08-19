@@ -1,18 +1,56 @@
 from django.db import models
 from django.contrib.auth.models import User
-import decimal
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
-class StripeEvent(models.Model):
-    """Records processed Stripe webhook event IDs so retried webhook
-    deliveries (which Stripe sends on any non-2xx response or timeout)
-    don't re-apply side effects like re-granting VIP access."""
+import secrets
 
-    event_id = models.CharField(max_length=255, unique=True)
-    received_at = models.DateTimeField(auto_now_add=True)
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+# Avoids visually ambiguous characters (0/O, 1/I) so codes are easy to
+# read back over WhatsApp/phone without transcription errors.
+_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+_CODE_LENGTH = 10
+
+
+def _generate_unique_code():
+    while True:
+        code = "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
+        if not VIPCode.objects.filter(code=code).exists():
+            return code
+
+
+class VIPCode(models.Model):
+    """A single-use code that grants VIP access for a fixed number of days
+    when redeemed. Generated in the admin, then handed to a customer
+    (e.g. over WhatsApp) after payment is arranged manually -- there's no
+    payment processor involved."""
+
+    code = models.CharField(max_length=20, unique=True, blank=True)
+    duration_days = models.PositiveIntegerField(
+        default=30, help_text="How many days of VIP this code grants when redeemed."
+    )
+    is_used = models.BooleanField(default=False)
+    used_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="redeemed_vip_codes",
+    )
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = _generate_unique_code()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.event_id
+        status = "used" if self.is_used else "unused"
+        return f"{self.code} ({self.duration_days}d, {status})"
 
 
 class Profile(models.Model):
@@ -20,7 +58,6 @@ class Profile(models.Model):
     is_vip = models.BooleanField(default=False)
     vip_expires_at = models.DateTimeField(null=True, blank=True)
     phone = models.CharField(max_length=20, blank=True, default="")
-    upgrade_requested = models.BooleanField(default=False)
 
     @property
     def is_vip_active(self):
@@ -51,9 +88,6 @@ class Team(models.Model):
     short_name = models.CharField(max_length=10)
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="teams")
     crest_color = models.CharField(max_length=7, default="#1a3a5c")
-    attack_strength = models.FloatField(default=1.0)
-    defense_strength = models.FloatField(default=1.0)
-    home_advantage = models.FloatField(default=1.15)
 
     class Meta:
         ordering = ["name"]
@@ -70,6 +104,12 @@ class Match(models.Model):
         ("postponed", "Postponed"),
     ]
 
+    PICK_CHOICES = [
+        ("1", "Home Win"),
+        ("X", "Draw"),
+        ("2", "Away Win"),
+    ]
+
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="matches")
     home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="home_matches")
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="away_matches")
@@ -78,24 +118,28 @@ class Match(models.Model):
     home_score = models.IntegerField(null=True, blank=True)
     away_score = models.IntegerField(null=True, blank=True)
 
-    # Model predictions
-    pred_home_goals = models.FloatField(null=True, blank=True)
-    pred_away_goals = models.FloatField(null=True, blank=True)
-    pred_home_win = models.FloatField(null=True, blank=True)
-    pred_draw = models.FloatField(null=True, blank=True)
-    pred_away_win = models.FloatField(null=True, blank=True)
-
-    # H2H / Form / Odds (fetched from API-Football)
-    h2h_home_wins = models.IntegerField(null=True, blank=True)
-    h2h_draws = models.IntegerField(null=True, blank=True)
-    h2h_away_wins = models.IntegerField(null=True, blank=True)
-
-    home_form = models.CharField(max_length=10, blank=True, default="")
-    away_form = models.CharField(max_length=10, blank=True, default="")
-
-    bookmaker_odds_home = models.FloatField(null=True, blank=True)
-    bookmaker_odds_draw = models.FloatField(null=True, blank=True)
-    bookmaker_odds_away = models.FloatField(null=True, blank=True)
+    # Manually entered prediction, shown on the "Today's Matches" table.
+    # There's no statistical model behind these anymore -- fill them in
+    # by hand per match in the admin. Leave all blank to show the match
+    # as "not yet predicted" instead of a fabricated 0%/0-0.
+    win_prob_home = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Home win probability, 0-100 (%)",
+    )
+    win_prob_draw = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Draw probability, 0-100 (%)",
+    )
+    win_prob_away = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Away win probability, 0-100 (%)",
+    )
+    pick = models.CharField(max_length=1, choices=PICK_CHOICES, blank=True, default="")
+    proj_home_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    proj_away_score = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["-kickoff"]
@@ -105,106 +149,23 @@ class Match(models.Model):
         return f"{self.home_team} vs {self.away_team}"
 
 
-class Tip(models.Model):
+class Prediction(models.Model):
+    """A single client-facing tip: one match, one predicted market, one
+    price. Replaces the old Tip/TipLeg pair — no stake, no result tracking,
+    no free-text reasoning. Just what to bet on and at what odds."""
+
     TIP_TYPE = [("free", "Free"), ("vip", "VIP")]
-    BET_TYPE = [("single", "Single"), ("accumulator", "Accumulator")]
-    STATUS = [("pending", "Pending"), ("won", "Won"), ("lost", "Lost"), ("void", "Void")]
 
-    title = models.CharField(
-        max_length=200,
-        blank=True,
-        default="",
-        help_text="Optional title, e.g. 'Saturday Mega Acca'",
-    )
+    match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name="predictions")
     tip_type = models.CharField(max_length=10, choices=TIP_TYPE, default="free")
-    bet_type = models.CharField(max_length=15, choices=BET_TYPE, default="single")
-    status = models.CharField(max_length=10, choices=STATUS, default="pending")
-
-    stake = models.DecimalField(
-        max_digits=4, decimal_places=2, default=decimal.Decimal("1.00")
+    prediction = models.CharField(
+        max_length=100, help_text="e.g. 'Over 2.5 Goals', '1X', 'Home Win'"
     )
-    description = models.TextField(blank=True, help_text="Analysis / reasoning")
+    odds = models.DecimalField(max_digits=6, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
-    result_entered_at = models.DateTimeField(null=True, blank=True)
-    is_featured = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return self.title or f"{self.get_tip_type_display()} {self.get_bet_type_display()} #{self.id}"
-
-    @property
-    def total_odds(self):
-        legs = self.legs.all()
-        if not legs:
-            return None
-        total = decimal.Decimal("1.00")
-        for leg in legs:
-            total *= leg.odds
-        return total.quantize(decimal.Decimal("0.01"))
-
-    @property
-    def profit(self):
-        if self.status == "won":
-            return (
-                self.stake * (self.total_odds - decimal.Decimal("1"))
-                if self.total_odds
-                else decimal.Decimal("0")
-            )
-        elif self.status == "lost":
-            return -self.stake
-        return decimal.Decimal("0")
-
-    def evaluate(self):
-        legs = self.legs.all()
-        if not legs or any(l.status == "pending" for l in legs):
-            return
-        if any(l.status == "lost" for l in legs):
-            self.status = "lost"
-        elif all(l.status == "won" for l in legs):
-            self.status = "won"
-        else:
-            self.status = "void"
-        self.save()
-
-
-class TipLeg(models.Model):
-    STATUS = [("pending", "Pending"), ("won", "Won"), ("lost", "Lost"), ("void", "Void")]
-
-    tip = models.ForeignKey(Tip, on_delete=models.CASCADE, related_name="legs")
-    match = models.ForeignKey(
-        Match,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="tip_legs",
-    )
-
-    fixture_text = models.CharField(
-        max_length=200, help_text="e.g. 'Man City vs Liverpool'"
-    )
-    league = models.CharField(max_length=100, blank=True, default="")
-    kickoff = models.DateTimeField(null=True, blank=True)
-
-    prediction = models.CharField(
-        max_length=100, help_text="e.g. 'Over 2.5 Goals', '1X', 'Home Win'"
-    )
-    odds = models.DecimalField(max_digits=6, decimal_places=2)
-
-    status = models.CharField(max_length=10, choices=STATUS, default="pending")
-    actual_result = models.CharField(
-        max_length=50, blank=True, help_text="e.g. '2-1' or 'Lost'"
-    )
-
-    model_home_goals = models.FloatField(null=True, blank=True)
-    model_away_goals = models.FloatField(null=True, blank=True)
-    model_home_prob = models.FloatField(null=True, blank=True)
-    model_draw_prob = models.FloatField(null=True, blank=True)
-    model_away_prob = models.FloatField(null=True, blank=True)
-
-    class Meta:
-        ordering = ["id"]
-
-    def __str__(self):
-        return f"{self.fixture_text} — {self.prediction} @ {self.odds}"
+        return f"{self.match} — {self.prediction} @ {self.odds}"

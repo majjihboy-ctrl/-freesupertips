@@ -1,27 +1,20 @@
 {% extends "predictions/base.html" %}
 
-{% block title %}{{ tip.title|default:"Tip" }} — Matchday Pro{% endblock %}
-{% block meta_desc %}{{ tip.description|default:"Expert football prediction and betting tip analysis."|truncatechars:160 }}{% endblock %}
-{% block og_title %}{{ tip.title|default:"Match Prediction" }} — Matchday Pro{% endblock %}
-{% block og_desc %}{{ tip.description|default:"Professional football prediction with data-driven analysis."|truncatechars:160 }}{% endblock %}
+{% block title %}{{ prediction.match }} — Matchday Pro{% endblock %}
+{% block meta_desc %}{{ prediction.prediction }} prediction for {{ prediction.match }} — Matchday Pro.{% endblock %}
+{% block og_title %}{{ prediction.match }} — Matchday Pro{% endblock %}
+{% block og_desc %}{{ prediction.prediction }} @ {{ prediction.odds }} — Matchday Pro{% endblock %}
 
 {% block schema %}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
     "@type": "SportsEvent",
-    "name": "{{ tip.title|default:'Football Prediction' }}",
-    "description": "{{ tip.description|default:'Expert football prediction and betting tip.'|escapejs }}",
-    "startDate": "{{ tip.legs.first.kickoff|date:'c'|default:'' }}",
+    "name": "{{ prediction.match|escapejs }}",
+    "startDate": "{{ prediction.match.kickoff|date:'c' }}",
     "location": {
         "@type": "Place",
-        "name": "{{ tip.legs.first.league|default:'Football League' }}"
-    },
-    "offers": {
-        "@type": "Offer",
-        "price": "{{ tip.stake }}",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock"
+        "name": "{{ prediction.match.league.name|escapejs }}"
     }
 }
 </script>
@@ -32,60 +25,28 @@
     <div class="detail-panel">
         <div class="panel-header">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
-                <h1>{{ tip.title|default:"Match Prediction" }}</h1>
-                <div>
-                    {% if tip.tip_type == 'vip' %}<span class="badge-vip">VIP</span>{% endif %}
-                    <span class="prediction-tag tag-green" style="margin-left:0.5rem;">{{ tip.get_bet_type_display }}</span>
-                </div>
+                <h1>{{ prediction.match.home_team }} vs {{ prediction.match.away_team }}</h1>
+                {% if prediction.tip_type == 'vip' %}<span class="badge-vip">VIP</span>{% endif %}
             </div>
-
         </div>
         <div class="panel-body">
             <div class="detail-meta">
-                <span>📅 {{ tip.created_at|date:"F d, Y" }}</span>
-                <span>💰 Stake: {{ tip.stake }} unit{{ tip.stake|pluralize }}</span>
-                <span>📊 Total Odds: <strong style="color:var(--blue);">{{ tip.total_odds|default:"—" }}</strong></span>
-                {% if tip.status != 'pending' %}
-                    <span>🏁 Result: <strong class="{% if tip.status == 'won' %}result-won{% else %}result-lost{% endif %}">{{ tip.status|upper }}</strong></span>
-                {% endif %}
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> {{ prediction.match.kickoff|date:"F d, Y — H:i" }}</span>
+                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v5a6 6 0 0 1-12 0z"/><path d="M6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3M9 15v3M15 15v3M7 21h10"/></svg> {{ prediction.match.league.name }}</span>
             </div>
 
-            {% if tip.description %}
-                <p style="color:var(--text-muted);line-height:1.7;margin-bottom:1.5rem;">{{ tip.description|linebreaksbr }}</p>
-            {% endif %}
-
-            <h3 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:0.75rem;border-bottom:1px solid var(--border);padding-bottom:0.5rem;">Selections</h3>
-
-            {% for leg in tip.legs.all %}
             <div class="leg-row">
                 <div class="leg-info">
-                    <div class="leg-fixture-name">{{ leg.fixture_text }}</div>
-                    <div class="leg-pred">{{ leg.prediction }} · {{ leg.league|default:"Premier Division" }}</div>
+                    <div class="leg-fixture-name">{{ prediction.match.home_team }} vs {{ prediction.match.away_team }}</div>
                 </div>
-                <div class="leg-odds">@ {{ leg.odds }}</div>
-                <div class="leg-result">
-                    {% if leg.status == 'won' %}
-                        <span class="result-won">WON</span>
-                        {% if leg.actual_result %}<div class="match-time">{{ leg.actual_result }}</div>{% endif %}
-                    {% elif leg.status == 'lost' %}
-                        <span class="result-lost">LOST</span>
-                        {% if leg.actual_result %}<div class="match-time">{{ leg.actual_result }}</div>{% endif %}
-                    {% else %}
-                        <span class="result-pending">Pending</span>
-                    {% endif %}
+                <div class="leg-odds" style="font-size:1.3rem;">
+                    <span class="prediction-tag {% if prediction.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ prediction.prediction }}</span>
+                    <span style="margin-left:0.5rem;">@ {{ prediction.odds }}</span>
                 </div>
             </div>
-            {% endfor %}
-
-            {% if tip.status == 'pending' and tip.total_odds %}
-            <div style="margin-top:1.5rem;padding-top:1rem;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-                <span style="color:var(--text-muted);font-size:0.9rem;">Potential Return</span>
-                <span style="font-size:1.4rem;font-weight:800;color:var(--green);">{{ potential_return|floatformat:2 }} units</span>
-            </div>
-            {% endif %}
 
             <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
-                <button onclick="copyTip()" class="btn btn-outline" style="font-size:0.85rem;">📋 Copy Tip</button>
+                <button onclick="copyTip()" class="btn btn-outline" style="font-size:0.85rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px;"><rect x="8" y="4" width="12" height="16" rx="1.5"/><path d="M8 8H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3"/></svg> Copy Tip</button>
                 <span id="copy-feedback" style="font-size:0.8rem;color:var(--green);margin-left:0.5rem;opacity:0;transition:opacity 0.3s;">Copied!</span>
             </div>
         </div>
@@ -94,7 +55,7 @@
 
 <script>
 function copyTip() {
-    const text = `{{ tip.title|default:"Match Prediction" }}\n\n{% for leg in tip.legs.all %}{{ leg.fixture_text }} — {{ leg.prediction }} @ {{ leg.odds }}\n{% endfor %}\nTotal Odds: {{ tip.total_odds|default:"—" }}\nStake: {{ tip.stake }} units\n\nvia Matchday Pro`;
+    const text = `{{ prediction.match|escapejs }}\n{{ prediction.prediction|escapejs }} @ {{ prediction.odds }}\n\nvia Matchday Pro`;
     navigator.clipboard.writeText(text).then(() => {
         const fb = document.getElementById('copy-feedback');
         fb.style.opacity = '1';

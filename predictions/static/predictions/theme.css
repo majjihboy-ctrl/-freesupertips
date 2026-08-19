@@ -1,0 +1,132 @@
+/* Light/dark theme toggle.
+   styles.css defines the dark "data-terminal" palette on :root with no
+   light variant, so :root below just restates it explicitly (keeps the
+   default unchanged if this file loads before/after styles.css) and
+   [data-theme="light"] provides the new light palette. Toggled by the
+   inline script + button handler in base.html, which set data-theme on
+   <html>. Alias vars in styles.css (--amber, --green-light, etc.) are
+   defined as var(--other-var) references, so they follow these overrides
+   automatically -- no need to restate them here. */
+
+:root,
+[data-theme="dark"] {
+    --bg: #0a0f1a;
+    --bg-panel: #101825;
+    --bg-raised: #16202f;
+    --bg-inset: #0d1420;
+    --border: #233047;
+    --border-bright: #34435f;
+
+    --text: #eef2f8;
+    --text-muted: #8994ab;
+    --text-faint: #5c6883;
+
+    --green: #22c55e;
+    --green-dim: #16a34a;
+    --green-bg: rgba(34, 197, 94, 0.12);
+    --gold: #f2b544;
+    --gold-bg: rgba(242, 181, 68, 0.12);
+    --blue: #4d9fef;
+    --blue-bg: rgba(77, 159, 239, 0.12);
+    --red: #f0554a;
+    --red-bg: rgba(240, 85, 74, 0.12);
+
+    --row-hover: #131c2b;
+
+    /* Previously hardcoded directly in styles.css (a:hover, .vip-link:hover,
+       .subnav, .lock-cta) -- pulled out into variables so light mode can
+       supply values that don't assume a dark page background. Dark values
+       below match exactly what was hardcoded before, so dark mode is
+       visually unchanged. */
+    --link-hover: #4ade80;
+    --gold-hover: #f8cd7c;
+    --overlay-bg: rgba(16, 24, 37, 0.7);
+    --scrim-bg: rgba(16, 24, 37, 0.35);
+
+    --alert-success-text: #4ade80;
+    --alert-error-text: #f87b71;
+    --alert-info-text: #7cb8f5;
+}
+
+[data-theme="light"] {
+    --bg: #f6f7f9;
+    --bg-panel: #ffffff;
+    --bg-raised: #eef1f5;
+    --bg-inset: #eef1f5;
+    --border: #dde3ec;
+    --border-bright: #c7d0dc;
+
+    --text: #10141c;
+    --text-muted: #56607a;
+    --text-faint: #7b869e;
+
+    --green: #16a34a;
+    --green-dim: #15803d;
+    --green-bg: rgba(22, 163, 74, 0.1);
+    --gold: #b45309;
+    --gold-bg: rgba(180, 83, 9, 0.1);
+    --blue: #2563eb;
+    --blue-bg: rgba(37, 99, 235, 0.1);
+    --red: #dc2626;
+    --red-bg: rgba(220, 38, 38, 0.1);
+
+    --row-hover: #f1f4f8;
+
+    --link-hover: #15803d;
+    --gold-hover: #92400e;
+    --overlay-bg: rgba(255, 255, 255, 0.82);
+    --scrim-bg: rgba(255, 255, 255, 0.6);
+
+    --alert-success-text: #15803d;
+    --alert-error-text: #b91c1c;
+    --alert-info-text: #1d4ed8;
+}
+
+/* Buttons that use dark-on-brand text (--green, --gold, etc. as a
+   background) hardcode a near-black label color in styles.css, e.g.
+   .btn-green { color: #06210f }. That still reads fine against the
+   lighter, more saturated light-mode --green/--gold above, so no
+   override needed there. */
+
+body {
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.site-header,
+.side-panel,
+.pred-panel,
+.detail-panel,
+.auth-box,
+.price-card,
+.data-table,
+.pick-card,
+.error-card {
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Toggle button */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.theme-toggle:hover {
+    color: var(--text);
+    border-color: var(--border-bright);
+}
+.theme-toggle-icon {
+    width: 16px;
+    height: 16px;
+}
+/* Icon shown = the mode you'll switch TO on click */
+[data-theme="dark"] .theme-toggle .icon-moon,
+[data-theme="light"] .theme-toggle .icon-sun {
+    display: none;
+}

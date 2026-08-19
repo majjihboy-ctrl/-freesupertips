@@ -2,6 +2,7 @@ const CACHE_NAME = 'matchday-v1';
 const urlsToCache = [
     '/',
     '/static/predictions/styles.css',
+    '/static/predictions/theme.css',
     '/static/predictions/app.js'
 ];
 

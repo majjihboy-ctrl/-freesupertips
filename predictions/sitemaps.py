@@ -1,21 +1,19 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
-from .models import Tip
+from .models import Prediction
 
 
-class TipSitemap(Sitemap):
+class PredictionSitemap(Sitemap):
     changefreq = "daily"
     priority = 0.8
 
     def items(self):
-        return Tip.objects.all()
+        return Prediction.objects.all()
 
     def lastmod(self, obj):
         return obj.created_at
 
     def location(self, obj):
-        # Tip has no get_absolute_url(), so Sitemap's default location()
-        # (which calls obj.get_absolute_url()) would raise AttributeError.
         return reverse("tip_detail", args=[obj.pk])
 
 
@@ -24,10 +22,9 @@ class StaticViewSitemap(Sitemap):
     changefreq = "weekly"
 
     def items(self):
-        # "tips_list" requires a tip_type arg (path("tips/<str:tip_type>/", ...)),
-        # so reverse("tips_list") with no args would raise NoReverseMatch.
-        # List the two concrete variants instead.
-        return ["home", "history", "stats"]
+        # "tips_list" requires a tip_type arg, so it's listed separately
+        # below via TipsListSitemap rather than here.
+        return ["home"]
 
     def location(self, item):
         return reverse(item)

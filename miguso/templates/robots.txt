@@ -1,8 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /accounts/
-Disallow: /upgrade/checkout/
-Disallow: /stripe/webhook/
-
-Sitemap: /sitemap.xml

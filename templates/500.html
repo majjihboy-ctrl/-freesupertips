@@ -2,17 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#13291e">
     <title>Server Error — Matchday Pro</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 5rem 1rem; background: #f8fafc; color: #1e293b; }
-        h1 { font-size: 4rem; color: #cbd5e1; margin-bottom: 0.5rem; }
-        p { color: #64748b; font-size: 1.1rem; }
-        a { color: #16a34a; text-decoration: none; font-weight: 600; }
+        :root {
+            --bg: #13291e;
+            --surface: #17352a;
+            --border: #2c4a3a;
+            --text: #f4efdd;
+            --muted: #a9b4a4;
+            --green: #236b45;
+            --green-strong: #2e8a5a;
+            --gold: #a97a2c;
+            --gold-bright: #c19143;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "IBM Plex Sans", sans-serif;
+            background: var(--bg);
+            background-image:
+                repeating-linear-gradient(90deg, rgba(244,239,221,0.03) 0px, rgba(244,239,221,0.03) 1px, transparent 1px, transparent 64px);
+            color: var(--text);
+            min-height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            -webkit-font-smoothing: antialiased;
+        }
+        .card {
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            background: var(--surface);
+            border: 1.5px solid var(--gold);
+            border-radius: 4px;
+            padding: 3rem 2rem;
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.35);
+        }
+        .badge {
+            display: inline-block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #241a06;
+            background: var(--gold);
+            padding: 0.35rem 0.85rem;
+            border-radius: 3px;
+        }
+        .code {
+            font-family: "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+            font-size: 5.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 1.25rem 0 0.25rem;
+            color: var(--text);
+            letter-spacing: 1px;
+        }
+        .title { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px; }
+        .text { color: var(--muted); font-size: 1rem; line-height: 1.6; margin-bottom: 1.75rem; }
+        .btn {
+            display: inline-block;
+            font-weight: 700;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-size: 0.88rem;
+            padding: 0.8rem 1.6rem;
+            border-radius: 3px;
+            color: #fff;
+            background: var(--green);
+            border: 1.5px solid var(--green-strong);
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+            transition: transform 0.12s ease;
+        }
+        .btn:hover { transform: translate(-1px, -1px); }
     </style>
 </head>
 <body>
-    <h1>500</h1>
-    <p>Something went wrong on our end. We're fixing it.</p>
-    <p><a href="/">Return to Matchday Pro</a></p>
+    <div class="card">
+        <span class="badge">Error 500</span>
+        <div class="code">500</div>
+        <h1 class="title">Something went wrong on our end</h1>
+        <p class="text">Our team has been notified and we&apos;re working on a fix. Please try again in a few moments.</p>
+        <a href="/" class="btn">Return to Matchday Pro</a>
+    </div>
 </body>
 </html>

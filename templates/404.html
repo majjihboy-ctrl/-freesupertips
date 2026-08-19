@@ -1,9 +1,16 @@
 {% extends "predictions/base.html" %}
 {% block title %}Page Not Found — Matchday Pro{% endblock %}
 {% block content %}
-<div style="text-align:center;padding:5rem 1rem;">
-    <h1 style="font-size:5rem;font-weight:800;color:var(--border);">404</h1>
-    <p style="font-size:1.1rem;color:var(--text-muted);margin-bottom:1.5rem;">This page doesn't exist or has been moved.</p>
-    <a href="{% url 'home' %}" class="btn btn-green">Back to Home</a>
-</div>
+<section class="error-page">
+    <div class="error-card">
+        <span class="error-badge">Error 404</span>
+        <h1 class="error-code">404</h1>
+        <h2 class="error-title">This page has gone off the pitch</h2>
+        <p class="error-text">The page you&apos;re looking for doesn&apos;t exist or has been moved. Let&apos;s get you back to the action.</p>
+        <div class="error-actions">
+            <a href="{% url 'home' %}" class="btn btn-green">Back to Home</a>
+            <a href="{% url 'tips_list' 'free' %}" class="btn btn-outline">Browse Tips</a>
+        </div>
+    </div>
+</section>
 {% endblock %}

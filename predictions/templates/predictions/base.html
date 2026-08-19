@@ -15,9 +15,24 @@
     <link rel="icon" type="image/png" href="{% static 'predictions/favicon.png' %}">
     <link rel="canonical" href="{{ request.build_absolute_uri }}">
     <link rel="manifest" href="{% static 'predictions/manifest.json' %}">
-    <meta name="theme-color" content="#16a34a">
-    <title>{% block title %}Matchday Pro{% endblock %}</title>
+    <meta name="theme-color" content="#0a0f1a" id="theme-color-meta">
+    <title>{% block title %}Free Supertips Daily{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'predictions/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'predictions/theme.css' %}">
+    <script>
+        /* Runs before first paint so the page never flashes the wrong
+           theme. Kept inline (not in app.js) specifically so it blocks
+           rendering at this point in <head>. */
+        (function () {
+            try {
+                var stored = localStorage.getItem('theme');
+                var theme = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
     {% block schema %}{% endblock %}
 </head>
 <body>
@@ -29,20 +44,22 @@
             <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
             <a href="{% url 'tips_list' 'free' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'free' %}active{% endif %}">Free Tips</a>
             <a href="{% url 'tips_list' 'vip' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'vip' %}active{% endif %}">VIP</a>
-            <a href="{% url 'history' %}">History</a>
-            <a href="{% url 'stats' %}">Stats</a>
             {% if not user.is_authenticated or not user.profile.is_vip_active %}
                 <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
             {% endif %}
         </nav>
         <div class="header-user">
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch between light and dark mode" title="Switch theme">
+                <svg class="theme-toggle-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg>
+                <svg class="theme-toggle-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5a8.5 8.5 0 1 1-9.5-11.9 7 7 0 0 0 9.5 11.9z"/></svg>
+            </button>
             {% if user.is_staff %}
                 <a href="/admin/" style="color:var(--gold);font-size:0.85rem;font-weight:600;">Admin</a>
             {% endif %}
-            <button id="theme-toggle" class="theme-toggle" title="Toggle theme">🌙</button>
             {% if user.is_authenticated %}
                 {% if user.profile.is_vip_active %}<span class="badge-vip">VIP</span>{% endif %}
                 <span>{{ user.username }}</span>
+                <a href="{% url 'password_change' %}" style="color:rgba(255,255,255,0.6);font-size:0.8rem;">Change Password</a>
                 <form method="post" action="{% url 'logout' %}" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit" style="color:rgba(255,255,255,0.6);font-size:0.8rem;background:none;border:none;cursor:pointer;">Logout</button>
@@ -85,7 +102,7 @@
 </main>
 
 <footer class="site-footer">
-    Matchday Pro — Football Predictions & Betting Tips
+    Matchday Pro — Data-driven football predictions &amp; betting tips.
 </footer>
 
 <div id="page-loader">
@@ -97,5 +114,26 @@
 </div>
 
 <script src="{% static 'predictions/app.js' %}"></script>
+<script>
+    (function () {
+        var THEME_COLORS = { dark: '#0a0f1a', light: '#f6f7f9' };
+        var btn = document.getElementById('theme-toggle');
+        var meta = document.getElementById('theme-color-meta');
+
+        function applyThemeColor(theme) {
+            if (meta) meta.setAttribute('content', THEME_COLORS[theme] || THEME_COLORS.dark);
+        }
+        applyThemeColor(document.documentElement.getAttribute('data-theme') || 'dark');
+
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            var current = document.documentElement.getAttribute('data-theme') || 'dark';
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            applyThemeColor(next);
+            try { localStorage.setItem('theme', next); } catch (e) {}
+        });
+    })();
+</script>
 </body>
 </html>

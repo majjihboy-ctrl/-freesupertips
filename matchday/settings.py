@@ -88,7 +88,14 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+# Matters more than it looks: the home view's "today" filter is computed
+# with timezone.now() against this setting. Leaving it as UTC means a
+# match with a kickoff "today" by your local clock can silently fall
+# outside the query window whenever it's currently between midnight and
+# your UTC offset (e.g. 00:00-03:00 in Nairobi, UTC+3). Set TIME_ZONE=
+# Africa/Nairobi in your .env (and Vercel env vars in production) so
+# "today" matches your actual calendar day.
+TIME_ZONE = config("TIME_ZONE", default="UTC")
 USE_I18N = True
 USE_TZ = True
 
@@ -123,33 +130,87 @@ SECURE_HSTS_PRELOAD = not DEBUG
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600
 
-# Redis cache. Points at localhost by default for local dev; in production
-# (Vercel or anywhere else) set REDIS_URL to a real managed Redis instance
-# (e.g. Upstash via the Vercel Marketplace) — there is no local Redis
-# process available inside a Vercel serverless function.
-REDIS_URL = config("REDIS_URL", default="redis://127.0.0.1:6379/1")
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "protocol": 2,  # This forces Redis to skip the HELLO command
+# Redis cache. In production (Vercel or anywhere else) set REDIS_URL to a
+# real managed Redis instance (e.g. Upstash via the Vercel Marketplace) --
+# there is no local Redis process available inside a Vercel serverless
+# function, and pointing at 127.0.0.1 there would just raise ConnectionError
+# on every cache access. If REDIS_URL isn't set at all, fall back to an
+# in-process LocMemCache so local dev / misconfigured deploys degrade
+# gracefully instead of 500ing.
+REDIS_URL = config("REDIS_URL", default="")
+
+if REDIS_URL:
+    _connection_pool_kwargs = {
+        "protocol": 2,  # This forces Redis to skip the HELLO command
+    }
+    if REDIS_URL.startswith("rediss://"):
+        # Most managed providers (Upstash included) terminate TLS with
+        # a cert that Python's default verification is picky about from
+        # inside serverless runtimes. Relaxing verification here is the
+        # commonly recommended workaround for django-redis + rediss://.
+        # NOTE: merge into the same dict rather than passing a second
+        # "CONNECTION_POOL_KWARGS" key, which would silently clobber the
+        # "protocol" setting above instead of combining with it.
+        _connection_pool_kwargs["ssl_cert_reqs"] = None
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": _connection_pool_kwargs,
+                # Treat a Redis outage/misconfiguration as a cache miss
+                # rather than a 500 -- pages still render, just uncached.
+                "IGNORE_EXCEPTIONS": True,
             },
-            # Most managed providers (Upstash included) terminate TLS with
-            # a cert that Python's default verification is picky about from
-            # inside serverless runtimes. Relaxing verification here is the
-            # commonly recommended workaround for django-redis + rediss://.
-            **({"CONNECTION_POOL_KWARGS": {"ssl_cert_reqs": None}} if REDIS_URL.startswith("rediss://") else {}),
         }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
 
-# Stripe
-STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
-STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
-STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
+# Email
+# Zero-cost transactional email: Brevo (https://brevo.com) gives 300
+# emails/day free forever, no card required -- plenty for password resets
+# on a project this size. Setup:
+#   1. Sign up at brevo.com (free plan)
+#   2. Settings -> SMTP & API -> SMTP -> generate an SMTP key
+#   3. Set these env vars in production (Vercel dashboard -> Environment
+#      Variables):
+#        EMAIL_HOST=smtp-relay.brevo.com
+#        EMAIL_HOST_USER=<your Brevo account email>
+#        EMAIL_HOST_PASSWORD=<the SMTP key from step 2, not your account password>
+#        DEFAULT_FROM_EMAIL=Matchday Pro <no-reply@yourdomain.com>
+#
+# Any other free SMTP provider (Resend, Mailjet, etc.) works the same way
+# -- just point EMAIL_HOST at their relay. With EMAIL_HOST unset (e.g.
+# local dev with no provider configured yet), emails print to the console
+# instead of raising a connection error.
+EMAIL_HOST = config("EMAIL_HOST", default="")
+if EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+    EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+    EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+    EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL", default="Matchday Pro <no-reply@matchdaypro.com>"
+)
+
+# WhatsApp
+# VIP access is arranged manually over WhatsApp, not through a payment
+# processor. Set WHATSAPP_NUMBER to your number in international format
+# with no leading + or spaces (e.g. 254712345678 for a Kenyan number) so
+# the "Chat on WhatsApp" button on the Upgrade page builds a valid
+# wa.me link. Left blank, that button is simply hidden.
+WHATSAPP_NUMBER = config("WHATSAPP_NUMBER", default="")
 
 # Logging
 # File logging is only safe on a filesystem that's actually writable and
@@ -192,7 +253,7 @@ LOGGING = {
             "propagate": True,
         },
         # Catches logger.exception()/logger.warning() calls added in
-        # views.py (e.g. Stripe webhook errors, unknown-customer warnings)
+        # views.py (e.g. VIP code redemption errors, unknown-customer warnings)
         # that previously had nowhere to go.
         "predictions": {
             "handlers": list(LOG_HANDLERS.keys()),

@@ -1,23 +1,11 @@
 (function() {
     'use strict';
 
-    // ── Dark Mode ──
-    const toggle = document.getElementById('theme-toggle');
-    const body = document.body;
-    const stored = localStorage.getItem('theme');
-
-    if (stored === 'dark') {
-        body.classList.add('dark-mode');
-        if (toggle) toggle.textContent = '☀️';
-    }
-
-    if (toggle) {
-        toggle.addEventListener('click', function() {
-            const isDark = body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            toggle.textContent = isDark ? '☀️' : '🌙';
-        });
-    }
+    // Dark/light mode is handled entirely by the inline script and click
+    // handler in base.html (sets data-theme="dark"/"light" on <html>,
+    // persisted to localStorage under the "theme" key). Kept out of this
+    // file so the very first paint can be gated synchronously in <head>
+    // before app.js has even loaded, avoiding a flash of the wrong theme.
 
     // ── Clickable Table Rows ──
     document.querySelectorAll('.clickable-row').forEach(function(row) {

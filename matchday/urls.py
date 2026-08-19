@@ -2,11 +2,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 from django.contrib.sitemaps.views import sitemap
-from predictions.sitemaps import TipSitemap, StaticViewSitemap, TipsListSitemap
+from predictions.sitemaps import PredictionSitemap, StaticViewSitemap, TipsListSitemap
 from predictions.views import RateLimitedLoginView
 
 sitemaps = {
-    "tips": TipSitemap,
+    "predictions": PredictionSitemap,
     "static": StaticViewSitemap,
     "tips_list": TipsListSitemap,
 }
