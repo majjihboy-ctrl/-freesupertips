@@ -4,17 +4,24 @@
     {
       "src": "matchday/wsgi.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "50mb", "runtime": "python3.12" }
-    },
-    {
-      "src": "build_files.sh",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "staticfiles" }
+      "config": {
+        "maxLambdaSize": "50mb",
+        "runtime": "python3.12"
+      }
     }
   ],
   "routes": [
-    { "src": "/static/(.*)", "dest": "/static/$1" },
-    { "src": "/favicon.ico", "dest": "/static/favicon.ico" },
-    { "src": "/(.*)", "dest": "matchday/wsgi.py" }
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/static/favicon.ico"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "matchday/wsgi.py"
+    }
   ]
 }
