@@ -74,10 +74,21 @@ ASGI_APPLICATION = "matchday.asgi.application"
 
 # Database
 import dj_database_url
+
+# Parse the URL and set conn_max_age=0 for the serverless pooler
+db_config = dj_database_url.config(
+    default=config("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+    conn_max_age=0,
+)
+
+# Safely inject the DISABLE_SERVER_SIDE_CURSORS option
+if "OPTIONS" not in db_config:
+    db_config["OPTIONS"] = {}
+    
+db_config["OPTIONS"]["DISABLE_SERVER_SIDE_CURSORS"] = True
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=config("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
-    )
+    "default": db_config
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -262,12 +273,3 @@ LOGGING = {
         },
     },
 }
-
-# Optional: for real-time error visibility in production, wire up Sentry
-# (or similar) here, e.g.:
-#
-#   import sentry_sdk
-#   from sentry_sdk.integrations.django import DjangoIntegration
-#   SENTRY_DSN = config("SENTRY_DSN", default="")
-#   if SENTRY_DSN:
-#       sentry_sdk.init(dsn=SENTRY_DSN, integrations=[DjangoIntegration()], traces_sample_rate=0.1)
