@@ -62,8 +62,12 @@
     }
 
     // ── Service Worker ──
+    // Registered from the root (see urls.py's "sw.js" route), not
+    // /static/predictions/sw.js -- a service worker's default control
+    // scope is limited to its own directory, so serving it from /static/
+    // would leave it unable to control any actual page on the site.
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/predictions/sw.js')
+        navigator.serviceWorker.register('/sw.js')
             .then(function(reg) {
                 console.log('SW registered:', reg.scope);
             })
