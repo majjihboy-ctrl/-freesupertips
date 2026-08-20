@@ -7,6 +7,11 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me")
+
+# Only this email may access /admin/, even if another account is
+# accidentally granted is_staff/is_superuser. Override via the
+# ADMIN_ALLOWED_EMAIL env var if it ever needs to change.
+ADMIN_ALLOWED_EMAIL = config("ADMIN_ALLOWED_EMAIL", default="majjihboy@gmail.com")
 DEBUG = config("DEBUG", default=False, cast=bool)
 
 if not DEBUG and SECRET_KEY == "django-insecure-change-me":

@@ -1,7 +1,25 @@
+from django.conf import settings
 from django.contrib import admin
 from django.utils.html import format_html
 from django.core.cache import cache
 from .models import League, Team, Match, Profile, Prediction, VIPCode
+
+# Restrict /admin/ to a single account, on top of the normal
+# is_staff/is_superuser check Django already does. This is a deliberate
+# extra gate: if any other account is ever accidentally marked staff
+# (e.g. a redemption bug, a bad migration, someone messing with the
+# shell), it still can't get into the admin panel.
+_default_has_permission = admin.site.has_permission
+
+
+def _restricted_has_permission(request):
+    return (
+        _default_has_permission(request)
+        and request.user.email.lower() == settings.ADMIN_ALLOWED_EMAIL.lower()
+    )
+
+
+admin.site.has_permission = _restricted_has_permission
 
 
 def _invalidate_prediction_caches():
