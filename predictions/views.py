@@ -31,6 +31,7 @@ class RateLimitedLoginView(LoginView):
     """Same as Django's default LoginView, but rate-limited per IP to
     reduce brute-force login attempts."""
     template_name = "registration/login.html"
+    redirect_authenticated_user = True
 
 
 @never_cache
