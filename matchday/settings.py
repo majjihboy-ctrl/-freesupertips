@@ -70,7 +70,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "matchday.wsgi.application"
-ASGI_APPLICATION = "matchday.asgi.application"
 
 # Database
 import dj_database_url
