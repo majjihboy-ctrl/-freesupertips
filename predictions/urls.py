@@ -9,4 +9,7 @@ urlpatterns = [
     path("upgrade/", views.upgrade, name="upgrade"),
     path("upgrade/redeem/", views.redeem_vip_code, name="redeem_vip_code"),
     path("register/", views.register, name="register"),
+    path("check-email/", views.check_email, name="check_email"),
+    path("verify-email/<uidb64>/<token>/", views.verify_email, name="verify_email"),
+    path("verify-email/resend/", views.resend_verification, name="resend_verification"),
 ]

@@ -3,10 +3,15 @@ from urllib.parse import quote
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
+from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.http import Http404, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.staticfiles.storage import staticfiles_storage
@@ -301,14 +306,85 @@ def redeem_vip_code(request):
     return redirect("home")
 
 
+def _send_verification_email(request, user):
+    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    verify_url = request.build_absolute_uri(
+        reverse("verify_email", args=[uidb64, token])
+    )
+    send_mail(
+        subject="Confirm your Matchday Pro account",
+        message=(
+            f"Hi {user.username},\n\n"
+            "Click the link below to confirm your email and activate your "
+            "Matchday Pro account:\n\n"
+            f"{verify_url}\n\n"
+            "If you didn't sign up for Matchday Pro, you can ignore this email."
+        ),
+        from_email=None,  # falls back to DEFAULT_FROM_EMAIL
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+
 @ratelimit(key="ip", rate="5/h", block=True)
 def register(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect("home")
+            user = form.save(commit=False)
+            # Inactive until they click the emailed confirmation link --
+            # Django's own login form already refuses inactive users, so
+            # this alone blocks a bot/spam signup from doing anything on
+            # the site until a real inbox has confirmed the address.
+            user.is_active = False
+            user.save()
+            _send_verification_email(request, user)
+            return redirect("check_email")
     else:
         form = CustomUserCreationForm()
     return render(request, "predictions/register.html", {"form": form})
+
+
+def check_email(request):
+    return render(request, "predictions/check_email.html")
+
+
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and not user.is_active and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        messages.success(request, "Email confirmed! Welcome to Matchday Pro.")
+        return redirect("home")
+
+    messages.error(
+        request,
+        "That confirmation link is invalid or has expired. "
+        "Request a new one below.",
+    )
+    return redirect("resend_verification")
+
+
+@ratelimit(key="ip", rate="5/h", block=True)
+def resend_verification(request):
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+        try:
+            user = User.objects.get(email__iexact=email, is_active=False)
+            _send_verification_email(request, user)
+        except User.DoesNotExist:
+            # Don't reveal whether the address is registered.
+            pass
+        messages.success(
+            request,
+            "If that email is awaiting confirmation, a new link has been sent.",
+        )
+        return redirect("check_email")
+    return render(request, "predictions/resend_verification.html")
