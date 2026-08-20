@@ -72,6 +72,24 @@ def web_manifest(request):
     return JsonResponse(manifest, content_type="application/manifest+json")
 
 
+@never_cache
+def cron_cleanup_matches(request):
+    """Triggered daily by Vercel Cron (see vercel.json). Vercel sends
+    'Authorization: Bearer <CRON_SECRET>' automatically when CRON_SECRET is
+    set as an env var -- reject anything that doesn't match so this can't
+    be triggered by a random public request."""
+    from io import StringIO
+    from django.core.management import call_command
+
+    expected = f"Bearer {settings.CRON_SECRET}" if settings.CRON_SECRET else None
+    if not expected or request.headers.get("Authorization") != expected:
+        return HttpResponse(status=401)
+
+    out = StringIO()
+    call_command("cleanup_old_matches", stdout=out)
+    return HttpResponse(out.getvalue(), content_type="text/plain")
+
+
 def _vip_status(request):
     if not request.user.is_authenticated:
         return False

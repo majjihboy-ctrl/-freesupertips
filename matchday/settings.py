@@ -214,6 +214,14 @@ DEFAULT_FROM_EMAIL = config(
 # wa.me link. Left blank, that button is simply hidden.
 WHATSAPP_NUMBER = config("WHATSAPP_NUMBER", default="")
 
+# Cron
+# Verifies that requests to /cron/cleanup-matches/ actually came from
+# Vercel's own Cron Jobs feature, not a random public request. Vercel
+# automatically sends this value as "Authorization: Bearer <CRON_SECRET>"
+# when it invokes a scheduled job, as long as CRON_SECRET is set as an
+# environment variable in the Vercel project settings.
+CRON_SECRET = config("CRON_SECRET", default="")
+
 # Logging
 # File logging is only safe on a filesystem that's actually writable and
 # persistent. Vercel functions only expose a writable /tmp that doesn't

@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from django.contrib.sitemaps.views import sitemap
 from predictions.sitemaps import PredictionSitemap, StaticViewSitemap, TipsListSitemap
-from predictions.views import RateLimitedLoginView, service_worker, web_manifest
+from predictions.views import RateLimitedLoginView, service_worker, web_manifest, cron_cleanup_matches
 
 sitemaps = {
     "predictions": PredictionSitemap,
@@ -25,6 +25,9 @@ urlpatterns = [
     # Generated at request time so its icon URLs always match whatever
     # hashed filenames collectstatic actually produced.
     path("manifest.json", web_manifest, name="web_manifest"),
+    # Hit daily by Vercel Cron (see vercel.json "crons") to delete matches
+    # once their day has ended.
+    path("cron/cleanup-matches/", cron_cleanup_matches, name="cron_cleanup_matches"),
     path("", include("predictions.urls")),
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),

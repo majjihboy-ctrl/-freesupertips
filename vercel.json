@@ -4,5 +4,11 @@
     "matchday/wsgi.py": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/cron/cleanup-matches/",
+      "schedule": "10 21 * * *"
+    }
+  ]
 }
