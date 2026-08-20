@@ -49,6 +49,9 @@
             {% endif %}
         </nav>
         <div class="header-user">
+            <button type="button" id="nav-toggle" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
             <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch between light and dark mode" title="Switch theme">
                 <svg class="theme-toggle-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg>
                 <svg class="theme-toggle-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5a8.5 8.5 0 1 1-9.5-11.9 7 7 0 0 0 9.5 11.9z"/></svg>
@@ -69,6 +72,24 @@
             {% endif %}
         </div>
     </div>
+    <nav id="mobile-nav" class="mobile-nav">
+        <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
+        <a href="{% url 'tips_list' 'free' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'free' %}active{% endif %}">Free Tips</a>
+        <a href="{% url 'tips_list' 'vip' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'vip' %}active{% endif %}">VIP</a>
+        {% if not user.is_authenticated or not user.profile.is_vip_active %}
+            <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
+        {% endif %}
+        {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
+        {% if user.is_authenticated %}
+            <a href="{% url 'password_change' %}">Change Password</a>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="mobile-nav-logout">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+        {% endif %}
+    </nav>
 </header>
 
 {% if live_matches %}
@@ -125,14 +146,34 @@
         }
         applyThemeColor(document.documentElement.getAttribute('data-theme') || 'dark');
 
-        if (!btn) return;
-        btn.addEventListener('click', function () {
-            var current = document.documentElement.getAttribute('data-theme') || 'dark';
-            var next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            applyThemeColor(next);
-            try { localStorage.setItem('theme', next); } catch (e) {}
-        });
+        if (btn) {
+            btn.addEventListener('click', function () {
+                var current = document.documentElement.getAttribute('data-theme') || 'dark';
+                var next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                applyThemeColor(next);
+                try { localStorage.setItem('theme', next); } catch (e) {}
+            });
+        }
+
+        var navBtn = document.getElementById('nav-toggle');
+        var nav = document.getElementById('mobile-nav');
+        if (navBtn && nav) {
+            var closeNav = function () {
+                nav.classList.remove('open');
+                navBtn.setAttribute('aria-expanded', 'false');
+            };
+            navBtn.addEventListener('click', function () {
+                var isOpen = nav.classList.toggle('open');
+                navBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+            nav.addEventListener('click', function (e) {
+                if (e.target.tagName === 'A') closeNav();
+            });
+            document.addEventListener('click', function (e) {
+                if (nav.classList.contains('open') && !nav.contains(e.target) && !navBtn.contains(e.target)) closeNav();
+            });
+        }
     })();
 </script>
 </body>
