@@ -103,7 +103,10 @@
                     </div>
                 {% endfor %}
             {% empty %}
-                <div class="empty-cell">No matches scheduled today.</div>
+                <div class="empty-cell">
+                    <div class="empty-title">No matches scheduled today</div>
+                    <div class="empty-sub">Check back once today's fixtures are posted, or browse free tips for what's coming up next.</div>
+                </div>
             {% endfor %}
         </div>
     </div>

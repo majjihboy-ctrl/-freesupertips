@@ -383,6 +383,12 @@ input:focus-visible,
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 1.1rem;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.side-panel:hover {
+    border-color: var(--border-bright);
+    box-shadow: var(--shadow-md);
 }
 .side-panel + .side-panel {
     margin-top: 1.25rem;
@@ -684,7 +690,32 @@ input:focus-visible,
 .empty-cell {
     text-align: center;
     color: var(--text-faint);
-    padding: 3rem 1rem;
+    padding: 4rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+}
+.empty-cell::before {
+    content: "";
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c6883' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+.empty-cell .empty-title {
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+.empty-cell .empty-sub {
+    font-size: 0.82rem;
+    max-width: 320px;
+    line-height: 1.5;
 }
 
 /* ---------- Pick cards (curated free/VIP picks in the sidebar) ---------- */
@@ -887,18 +918,18 @@ input:focus-visible,
 }
 .btn:active { transform: scale(0.98); }
 
-.btn-green { background: var(--green); color: #06210f; }
-.btn-green:hover { background: #4ade80; color: #06210f; }
+.btn-green { background: var(--green); color: #06210f; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.btn-green:hover { background: #4ade80; color: #06210f; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(34,197,94,0.28); }
 
 .btn-outline-light {
     background: var(--bg-raised);
     color: var(--text);
     border: 1px solid var(--border-bright);
 }
-.btn-outline-light:hover { background: var(--bg-panel); border-color: var(--green); }
+.btn-outline-light:hover { background: var(--bg-panel); border-color: var(--green); transform: translateY(-1px); }
 
-.btn-gold { background: var(--gold); color: #241a00; }
-.btn-gold:hover { background: #f8cd7c; color: #241a00; }
+.btn-gold { background: var(--gold); color: #241a00; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.btn-gold:hover { background: #f8cd7c; color: #241a00; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(242,181,68,0.28); }
 
 .btn-outline {
     background: transparent;

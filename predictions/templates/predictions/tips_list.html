@@ -47,7 +47,8 @@
         {% empty %}
             <tr>
                 <td colspan="4" class="empty-cell">
-                    No {{ tip_type }} tips for {{ active_day_label|lower }}.
+                    <div class="empty-title">No {{ tip_type }} tips for {{ active_day_label|lower }}</div>
+                    <div class="empty-sub">Try another day using the tabs above, or check back once picks are posted.</div>
                 </td>
             </tr>
         {% endfor %}
