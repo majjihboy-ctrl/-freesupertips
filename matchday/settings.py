@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "import_export",
     "django_ratelimit",
+    "axes",
     "predictions",
 ]
 
@@ -54,7 +55,22 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",  # must stay last
 ]
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesBackend",  # must stay first
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# django-axes: lock out a specific *username* after repeated failed
+# logins, on top of the existing per-IP rate limiting in views.py (which
+# only slows down one IP hammering many accounts, not a distributed
+# attempt against one account).
+AXES_FAILURE_LIMIT = 5
+AXES_LOCKOUT_PARAMETERS = ["username"]
+AXES_COOLOFF_TIME = 1  # hours
+AXES_RESET_ON_SUCCESS = True
 
 ROOT_URLCONF = "matchday.urls"
 

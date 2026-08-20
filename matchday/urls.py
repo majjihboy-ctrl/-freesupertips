@@ -3,7 +3,13 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from django.contrib.sitemaps.views import sitemap
 from predictions.sitemaps import PredictionSitemap, StaticViewSitemap, TipsListSitemap
-from predictions.views import RateLimitedLoginView, service_worker, web_manifest, cron_cleanup_matches
+from predictions.views import (
+    RateLimitedLoginView,
+    RateLimitedPasswordResetView,
+    service_worker,
+    web_manifest,
+    cron_cleanup_matches,
+)
 
 sitemaps = {
     "predictions": PredictionSitemap,
@@ -13,10 +19,11 @@ sitemaps = {
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # Override the default LoginView from django.contrib.auth.urls with a
-    # rate-limited version; must be listed before the include() below so
-    # it takes precedence.
+    # Override the default LoginView/PasswordResetView from
+    # django.contrib.auth.urls with rate-limited versions; must be listed
+    # before the include() below so they take precedence.
     path("accounts/login/", RateLimitedLoginView.as_view(), name="login"),
+    path("accounts/password_reset/", RateLimitedPasswordResetView.as_view(), name="password_reset"),
     path("accounts/", include("django.contrib.auth.urls")),
     # Served from the root (not /static/) so the service worker's default
     # scope covers the whole site, and outside collectstatic so its

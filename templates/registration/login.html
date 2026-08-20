@@ -8,6 +8,9 @@
     <form method="post" action="{% url 'login' %}">
         {% csrf_token %}
         {{ form.as_p }}
+        <p class="remember-me-row">
+            <label><input type="checkbox" name="remember_me" checked> Remember me on this device</label>
+        </p>
         <button type="submit" class="btn btn-green">Log In</button>
         <input type="hidden" name="next" value="{{ next|default:'/' }}">
     </form>

@@ -8,3 +8,4 @@ redis
 django-redis
 django-ratelimit
 django-import-export
+django-axes

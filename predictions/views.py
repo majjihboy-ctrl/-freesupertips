@@ -27,21 +27,34 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, PasswordResetView
 from django.utils.decorators import method_decorator
 
 
 @method_decorator(ratelimit(key="ip", rate="10/m", block=True), name="post")
 class RateLimitedLoginView(LoginView):
     """Same as Django's default LoginView, but rate-limited per IP to
-    reduce brute-force login attempts."""
+    reduce brute-force login attempts, plus an optional "remember me"
+    that shortens the session to browser-close when unchecked."""
     template_name = "registration/login.html"
     redirect_authenticated_user = True
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        if not self.request.POST.get("remember_me"):
+            self.request.session.set_expiry(0)  # expires on browser close
         messages.success(self.request, f"Welcome back, {self.request.user.username}!")
         return response
+
+
+class RateLimitedPasswordResetView(PasswordResetView):
+    """Same as Django's default PasswordResetView, but rate-limited per
+    IP -- otherwise anyone can mail-bomb an arbitrary inbox by repeatedly
+    submitting their email to this form."""
+
+    @ratelimit(key="ip", rate="5/h", method="POST", block=True)
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 @never_cache
