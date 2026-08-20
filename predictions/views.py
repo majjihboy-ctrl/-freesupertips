@@ -4,11 +4,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 from django.core.cache import cache
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.views.decorators.cache import never_cache
 from datetime import datetime, timedelta
 from django_ratelimit.decorators import ratelimit
 
@@ -29,6 +31,44 @@ class RateLimitedLoginView(LoginView):
     """Same as Django's default LoginView, but rate-limited per IP to
     reduce brute-force login attempts."""
     template_name = "registration/login.html"
+
+
+@never_cache
+def service_worker(request):
+    """Served from the site root (see matchday/urls.py) rather than
+    /static/, so the SW's default control scope covers the whole site
+    instead of just /static/predictions/, and outside collectstatic so
+    its filename never gets hash-renamed by ManifestStaticFilesStorage."""
+    path = settings.BASE_DIR / "predictions" / "static" / "predictions" / "sw.js"
+    return HttpResponse(path.read_text(), content_type="application/javascript")
+
+
+@never_cache
+def web_manifest(request):
+    """Generated at request time so icon URLs always match whatever
+    hashed filenames collectstatic actually produced, instead of the
+    hardcoded paths a static manifest.json can't keep in sync with."""
+    manifest = {
+        "name": "Matchday Pro",
+        "short_name": "Matchday",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0f172a",
+        "theme_color": "#16a34a",
+        "icons": [
+            {
+                "src": staticfiles_storage.url("predictions/icon-192.png"),
+                "sizes": "192x192",
+                "type": "image/png",
+            },
+            {
+                "src": staticfiles_storage.url("predictions/icon-512.png"),
+                "sizes": "512x512",
+                "type": "image/png",
+            },
+        ],
+    }
+    return JsonResponse(manifest, content_type="application/manifest+json")
 
 
 def _vip_status(request):
