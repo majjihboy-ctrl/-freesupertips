@@ -82,6 +82,7 @@ def _vip_status(request):
         return False
 
 
+@never_cache
 def home(request):
     cache_key = "home_page_data"
     data = cache.get(cache_key)
