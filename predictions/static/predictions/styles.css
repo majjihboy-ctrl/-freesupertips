@@ -266,6 +266,38 @@ input:focus-visible,
     .mobile-nav { display: none !important; }
 }
 
+/* ---------- Day tabs (free/vip tips list day filter) ---------- */
+.day-tabs-wrap {
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.day-tabs-wrap::-webkit-scrollbar { display: none; }
+.day-tabs {
+    display: inline-flex;
+    gap: 0.4rem;
+    padding: 0.3rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+}
+.day-tab {
+    padding: 0.45rem 1rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.day-tab:hover {
+    color: var(--text);
+    background: var(--bg-raised);
+}
+.day-tab.is-active {
+    background: var(--green);
+    color: #06210f;
+}
+
 /* ---------- Sub-nav (on-page section jump links, real anchors — not
    fake dynamic filters we can't back without more view logic) ---------- */
 .subnav {

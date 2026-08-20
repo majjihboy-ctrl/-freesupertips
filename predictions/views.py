@@ -38,6 +38,11 @@ class RateLimitedLoginView(LoginView):
     template_name = "registration/login.html"
     redirect_authenticated_user = True
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f"Welcome back, {self.request.user.username}!")
+        return response
+
 
 @never_cache
 def service_worker(request):
