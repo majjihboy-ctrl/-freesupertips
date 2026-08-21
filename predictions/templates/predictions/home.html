@@ -83,13 +83,13 @@
                         </div>
 
                         {% if match.free_tips %}
-                            <div class="tip-chips" style="grid-column: span 2;">
+                            <div class="tip-chips">
                                 {% for tip in match.free_tips %}
-                                    <span class="pred-flag">{{ tip.prediction }} @ {{ tip.odds }}</span>
+                                    <span class="pred-flag">{{ tip.prediction }} <span class="tip-odds">@ {{ tip.odds }}</span></span>
                                 {% endfor %}
                             </div>
                         {% else %}
-                            <div class="pred-pending" style="grid-column: span 2;">Not yet predicted</div>
+                            <div class="pred-pending">Not yet predicted</div>
                         {% endif %}
                     </div>
                 {% endfor %}
