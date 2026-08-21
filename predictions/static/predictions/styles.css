@@ -1083,6 +1083,40 @@ input:focus-visible,
 @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+/* ---------- Tips ticker (home page only) ----------
+   Reuses the live-ticker's visual language (mono font, bordered pills,
+   scrolling marquee) but for today's free/VIP picks rather than live
+   scores -- distinguished by a green "TIPS" label instead of red "LIVE"
+   so the two never get visually confused if both are on screen. */
+.tips-ticker {
+    display: flex;
+    align-items: center;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    height: 40px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+.tips-ticker .ticker-label {
+    background: var(--green);
+    color: #06170d;
+}
+.tips-ticker .ticker-label::before { background: #06170d; }
+.tips-ticker .ticker-move { animation-duration: 38s; }
+.tips-ticker .ticker-item { display: inline-flex; align-items: center; gap: 0.5rem; }
+.tips-ticker .ticker-item a { color: inherit; }
+.tips-ticker .ticker-item a:hover { color: var(--text); }
+.tips-ticker .odds-tag {
+    font-weight: 700;
+    color: var(--green);
+}
+.tips-ticker .vip-tag {
+    font-weight: 700;
+    color: var(--gold);
+}
+.tips-ticker:hover .ticker-move { animation-play-state: paused; }
+
 /* ---------- Skeleton loader ---------- */
 #page-loader {
     position: fixed;
@@ -1163,4 +1197,5 @@ input:focus-visible,
 
 @media (prefers-reduced-motion: reduce) {
     .ticker-move, .live-dot, .skeleton, .ticker-label::before { animation: none; }
+    .tips-ticker .ticker-wrap { overflow-x: auto; }
 }

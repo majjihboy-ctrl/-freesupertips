@@ -6,6 +6,28 @@
 {% block content %}
 {% regroup todays_matches by league as league_groups %}
 
+{% if featured_free or vip_teaser %}
+<div class="tips-ticker">
+    <div class="ticker-label">TIPS</div>
+    <div class="ticker-wrap">
+        <div class="ticker-move">
+            {% for tip in featured_free %}
+            <span class="ticker-item">
+                <a href="{% url 'match_tips' 'free' tip.match.id %}">{{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}: {{ tip.prediction }}</a>
+                <span class="odds-tag">@ {{ tip.odds }}</span>
+            </span>
+            {% endfor %}
+            {% for tip in vip_teaser %}
+            <span class="ticker-item">
+                <a href="{% url 'upgrade' %}">{{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}</a>
+                <span class="vip-tag">VIP pick — unlock</span>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="dash-grid">
 
     <!-- Left: leagues appearing in today's fixture list, with real counts -->
