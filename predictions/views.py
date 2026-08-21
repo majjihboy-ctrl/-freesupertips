@@ -47,14 +47,11 @@ class RateLimitedLoginView(LoginView):
         return response
 
 
+@method_decorator(ratelimit(key="ip", rate="5/h", method="POST", block=True), name="post")
 class RateLimitedPasswordResetView(PasswordResetView):
     """Same as Django's default PasswordResetView, but rate-limited per
     IP -- otherwise anyone can mail-bomb an arbitrary inbox by repeatedly
     submitting their email to this form."""
-
-    @ratelimit(key="ip", rate="5/h", method="POST", block=True)
-    def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
 
 
 @never_cache
