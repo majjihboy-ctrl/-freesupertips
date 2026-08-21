@@ -41,9 +41,7 @@
         <div class="pred-panel">
             <div class="pred-head">
                 <div>Match</div>
-                <div class="center">Win Probability</div>
-                <div class="center">Pick</div>
-                <div class="center proj-col">Proj. Score</div>
+                <div class="center" style="grid-column: span 2;">Tips</div>
             </div>
 
             {% for group in league_groups %}
@@ -62,43 +60,14 @@
                             </div>
                         </div>
 
-                        {% if match.win_prob_home is not None %}
-                            <div class="prob-set">
-                                <div class="prob-cell home">
-                                    <div class="pct">{{ match.win_prob_home }}%</div>
-                                    <div class="prob-bar"><div class="prob-fill home" style="width:{{ match.win_prob_home }}%"></div></div>
-                                </div>
-                                <div class="prob-cell draw">
-                                    <div class="pct">{{ match.win_prob_draw }}%</div>
-                                    <div class="prob-bar"><div class="prob-fill draw" style="width:{{ match.win_prob_draw }}%"></div></div>
-                                </div>
-                                <div class="prob-cell away">
-                                    <div class="pct">{{ match.win_prob_away }}%</div>
-                                    <div class="prob-bar"><div class="prob-fill away" style="width:{{ match.win_prob_away }}%"></div></div>
-                                </div>
-                            </div>
-
-                            <div class="center">
-                                {% if match.pick == "1" %}
-                                    <span class="pred-flag home">1</span>
-                                {% elif match.pick == "2" %}
-                                    <span class="pred-flag away">2</span>
-                                {% elif match.pick == "X" %}
-                                    <span class="pred-flag draw">X</span>
-                                {% else %}
-                                    <span class="pred-flag">—</span>
-                                {% endif %}
-                            </div>
-
-                            <div class="proj-score">
-                                {% if match.proj_home_score is not None %}
-                                    {{ match.proj_home_score }}-{{ match.proj_away_score }}
-                                {% else %}
-                                    —
-                                {% endif %}
+                        {% if match.free_tips %}
+                            <div class="tip-chips" style="grid-column: span 2;">
+                                {% for tip in match.free_tips %}
+                                    <span class="pred-flag">{{ tip.prediction }} @ {{ tip.odds }}</span>
+                                {% endfor %}
                             </div>
                         {% else %}
-                            <div class="pred-pending" style="grid-column: span 3;">Not yet predicted</div>
+                            <div class="pred-pending" style="grid-column: span 2;">Not yet predicted</div>
                         {% endif %}
                     </div>
                 {% endfor %}

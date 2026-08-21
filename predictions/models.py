@@ -1,13 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator, MaxValueValidator
-
-
 import secrets
-
-from django.db import models
-from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Avoids visually ambiguous characters (0/O, 1/I) so codes are easy to
 # read back over WhatsApp/phone without transcription errors.
@@ -104,12 +97,6 @@ class Match(models.Model):
         ("postponed", "Postponed"),
     ]
 
-    PICK_CHOICES = [
-        ("1", "Home Win"),
-        ("X", "Draw"),
-        ("2", "Away Win"),
-    ]
-
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="matches")
     home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="home_matches")
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="away_matches")
@@ -117,29 +104,6 @@ class Match(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="scheduled")
     home_score = models.IntegerField(null=True, blank=True)
     away_score = models.IntegerField(null=True, blank=True)
-
-    # Manually entered prediction, shown on the "Today's Matches" table.
-    # There's no statistical model behind these anymore -- fill them in
-    # by hand per match in the admin. Leave all blank to show the match
-    # as "not yet predicted" instead of a fabricated 0%/0-0.
-    win_prob_home = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text="Home win probability, 0-100 (%)",
-    )
-    win_prob_draw = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text="Draw probability, 0-100 (%)",
-    )
-    win_prob_away = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text="Away win probability, 0-100 (%)",
-    )
-    pick = models.CharField(max_length=1, choices=PICK_CHOICES, blank=True, default="")
-    proj_home_score = models.PositiveSmallIntegerField(null=True, blank=True)
-    proj_away_score = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["-kickoff"]

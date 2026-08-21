@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib import admin
-from django.utils.html import format_html
 from django.core.cache import cache
 from .models import League, Team, Match, Profile, Prediction, VIPCode
 
@@ -99,11 +98,9 @@ class MatchAdmin(admin.ModelAdmin):
         "status",
         "home_score",
         "away_score",
-        "win_probs",
-        "pick",
-        "proj_score",
+        "tips_count",
     ]
-    list_filter = ["status", "league", "kickoff", "pick"]
+    list_filter = ["status", "league", "kickoff"]
     search_fields = ["home_team__name", "away_team__name"]
     list_editable = ["status", "home_score", "away_score"]
     date_hierarchy = "kickoff"
@@ -119,34 +116,11 @@ class MatchAdmin(admin.ModelAdmin):
         ("Result", {
             "fields": ("home_score", "away_score"),
         }),
-        ("Prediction (entered manually)", {
-            "fields": (
-                ("win_prob_home", "win_prob_draw", "win_prob_away"),
-                "pick",
-                ("proj_home_score", "proj_away_score"),
-            ),
-            "description": "Win probabilities should add up to roughly 100%. "
-                            "Leave all blank to show this match as not yet "
-                            "predicted on the site.",
-        }),
     )
 
-    @admin.display(description="Win Prob 1/X/2")
-    def win_probs(self, obj):
-        if obj.win_prob_home is None:
-            return "—"
-        return format_html(
-            '<span style="color:#22c55e">{}%</span> / '
-            '<span style="color:#f2b544">{}%</span> / '
-            '<span style="color:#4d9fef">{}%</span>',
-            obj.win_prob_home, obj.win_prob_draw, obj.win_prob_away,
-        )
-
-    @admin.display(description="Proj. Score")
-    def proj_score(self, obj):
-        if obj.proj_home_score is None or obj.proj_away_score is None:
-            return "—"
-        return f"{obj.proj_home_score}-{obj.proj_away_score}"
+    @admin.display(description="Tips")
+    def tips_count(self, obj):
+        return obj.predictions.count()
 
     @admin.action(description="Mark as FINISHED (enter scores first)")
     def mark_finished(self, request, queryset):

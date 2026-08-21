@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.db.models import Prefetch
 from django.http import Http404, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -164,7 +165,13 @@ def home(request):
         kickoff__gte=today_start,
         kickoff__lt=today_end,
         status="scheduled",
-    ).select_related("league", "home_team", "away_team").order_by("league__name", "kickoff")[:20]
+    ).select_related("league", "home_team", "away_team").prefetch_related(
+        Prefetch(
+            "predictions",
+            queryset=Prediction.objects.filter(tip_type="free").order_by("-created_at"),
+            to_attr="free_tips",
+        )
+    ).order_by("league__name", "kickoff")[:20]
 
     data["live_matches"] = Match.objects.filter(
         status="live",

@@ -5,14 +5,14 @@ Run with: python manage.py test predictions
 (or `pytest` if pytest-django is configured)
 
 Rewritten against the current schema: the old Tip/TipLeg pair was replaced
-by the single-market `Prediction` model, there is no `stats` view in this
-codebase, the Dixon-Coles engine was removed in favor of manually entered
-predictions on Match (win_prob_home/draw/away, pick, proj_home/away_score),
-and Stripe was replaced with manually-issued VIPCode redemption -- so tests
+by the single-market `Prediction` model (free-text market + odds -- e.g.
+"Over 2.5 Goals", "BTTS Yes", "5+ Corners" -- not a fixed 1X2 pick), there
+is no `stats` view in this codebase, the old fixed 1X2/win-probability
+fields on Match were removed since `Prediction` already covers this, and
+Stripe was replaced with manually-issued VIPCode redemption -- so tests
 for all of those were removed rather than left broken.
 
 These cover:
-- Manual Match prediction fields
 - VIP code redemption
 - Prediction display / sitemap rendering
 """
@@ -40,26 +40,6 @@ def _make_match(**overrides):
     )
     defaults.update(overrides)
     return Match.objects.create(**defaults)
-
-
-class MatchPredictionFieldTests(TestCase):
-    def test_match_defaults_to_unpredicted(self):
-        match = _make_match()
-        self.assertIsNone(match.win_prob_home)
-        self.assertIsNone(match.win_prob_draw)
-        self.assertIsNone(match.win_prob_away)
-        self.assertEqual(match.pick, "")
-        self.assertIsNone(match.proj_home_score)
-
-    def test_manually_entered_prediction_is_saved(self):
-        match = _make_match(
-            win_prob_home=55, win_prob_draw=25, win_prob_away=20,
-            pick="1", proj_home_score=2, proj_away_score=1,
-        )
-        match.refresh_from_db()
-        self.assertEqual(match.win_prob_home, 55)
-        self.assertEqual(match.pick, "1")
-        self.assertEqual((match.proj_home_score, match.proj_away_score), (2, 1))
 
 
 class PredictionModelTests(TestCase):
