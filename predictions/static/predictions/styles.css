@@ -527,7 +527,7 @@ input:focus-visible,
     display: grid;
     grid-template-columns: 2.2fr 2fr 0.9fr;
     gap: 0.5rem;
-    padding: 0.85rem 1.1rem;
+    padding: 0.55rem 1.1rem;
     border-bottom: 1px solid var(--border);
     align-items: center;
     transition: background 0.12s ease;
@@ -553,6 +553,11 @@ input:focus-visible,
     width: 38px;
     flex-shrink: 0;
 }
+.match-fixture .teams {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
 .match-fixture .teams .home {
     font-weight: 600;
     font-size: 0.9rem;
@@ -561,17 +566,27 @@ input:focus-visible,
     color: var(--text-muted);
     font-size: 0.85rem;
 }
+.match-fixture .teams .away::before {
+    content: "vs ";
+    color: var(--text-faint);
+    font-weight: 400;
+}
 
 .tip-cell {
     font-size: 0.85rem;
     color: var(--text);
 }
 .odds-cell {
-    text-align: center;
+    display: inline-block;
+    justify-self: center;
     font-family: var(--font-mono);
     font-weight: 800;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--green);
+    background: var(--green-bg);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: var(--radius-sm);
+    padding: 0.15rem 0.55rem;
 }
 
 .pred-pending {
