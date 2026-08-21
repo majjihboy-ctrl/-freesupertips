@@ -223,7 +223,7 @@ else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 DEFAULT_FROM_EMAIL = config(
-    "DEFAULT_FROM_EMAIL", default="Matchday Pro <no-reply@matchdaypro.com>"
+    "DEFAULT_FROM_EMAIL", default="Matchday Pro <majjihboy@gmail.com>"
 )
 
 # WhatsApp
