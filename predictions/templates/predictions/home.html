@@ -63,7 +63,8 @@
         <div class="pred-panel">
             <div class="pred-head">
                 <div>Match</div>
-                <div class="center" style="grid-column: span 2;">Tips</div>
+                <div>Tip</div>
+                <div class="center">Odds</div>
             </div>
 
             {% for group in league_groups %}
@@ -73,25 +74,30 @@
                     <span class="country">&middot; {{ group.grouper.country }}</span>
                 </div>
                 {% for match in group.list %}
-                    <div class="match-line">
-                        <div class="match-fixture">
-                            <span class="kickoff">{{ match.kickoff|date:"H:i" }}</span>
-                            <div class="teams">
-                                <div class="home">{{ match.home_team }}</div>
-                                <div class="away">{{ match.away_team }}</div>
+                    {% for tip in match.free_tips %}
+                        <div class="match-line">
+                            <div class="match-fixture">
+                                <span class="kickoff">{{ match.kickoff|date:"H:i" }}</span>
+                                <div class="teams">
+                                    <div class="home">{{ match.home_team }}</div>
+                                    <div class="away">{{ match.away_team }}</div>
+                                </div>
                             </div>
+                            <div class="tip-cell">{{ tip.prediction }}</div>
+                            <div class="odds-cell">{{ tip.odds }}</div>
                         </div>
-
-                        {% if match.free_tips %}
-                            <div class="tip-chips">
-                                {% for tip in match.free_tips %}
-                                    <span class="pred-flag">{{ tip.prediction }} <span class="tip-odds">{{ tip.odds }}</span></span>
-                                {% endfor %}
+                    {% empty %}
+                        <div class="match-line">
+                            <div class="match-fixture">
+                                <span class="kickoff">{{ match.kickoff|date:"H:i" }}</span>
+                                <div class="teams">
+                                    <div class="home">{{ match.home_team }}</div>
+                                    <div class="away">{{ match.away_team }}</div>
+                                </div>
                             </div>
-                        {% else %}
                             <div class="pred-pending">Not yet predicted</div>
-                        {% endif %}
-                    </div>
+                        </div>
+                    {% endfor %}
                 {% endfor %}
             {% empty %}
                 <div class="empty-cell">
