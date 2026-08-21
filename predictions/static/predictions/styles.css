@@ -604,11 +604,11 @@ input:focus-visible,
 .pred-flag {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.32rem 0.65rem;
+    gap: 0.5rem;
+    padding: 0.3rem 0.3rem 0.3rem 0.65rem;
     border-radius: var(--radius-sm);
-    background: var(--green-bg);
-    border: 1px solid rgba(34, 197, 94, 0.35);
+    background: var(--bg-raised);
+    border: 1px solid var(--border-bright);
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--text);
@@ -617,7 +617,12 @@ input:focus-visible,
 .pred-flag .tip-odds {
     font-family: var(--font-mono);
     font-weight: 800;
+    font-size: 0.75rem;
     color: var(--green);
+    background: var(--green-bg);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.5rem;
 }
 
 .proj-score {

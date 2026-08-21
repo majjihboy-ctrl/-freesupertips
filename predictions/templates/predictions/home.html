@@ -85,7 +85,7 @@
                         {% if match.free_tips %}
                             <div class="tip-chips">
                                 {% for tip in match.free_tips %}
-                                    <span class="pred-flag">{{ tip.prediction }} <span class="tip-odds">@ {{ tip.odds }}</span></span>
+                                    <span class="pred-flag">{{ tip.prediction }} <span class="tip-odds">{{ tip.odds }}</span></span>
                                 {% endfor %}
                             </div>
                         {% else %}
