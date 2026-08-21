@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
 from django.contrib.sitemaps.views import sitemap
 from predictions.sitemaps import PredictionSitemap, StaticViewSitemap, TipsListSitemap
 from predictions.views import (
@@ -8,6 +7,7 @@ from predictions.views import (
     RateLimitedPasswordResetView,
     service_worker,
     web_manifest,
+    robots_txt,
     cron_cleanup_matches,
 )
 
@@ -36,6 +36,6 @@ urlpatterns = [
     # once their day has ended.
     path("cron/cleanup-matches/", cron_cleanup_matches, name="cron_cleanup_matches"),
     path("", include("predictions.urls")),
-    path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
+    path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
 ]

@@ -95,6 +95,22 @@ def web_manifest(request):
     return JsonResponse(manifest, content_type="application/manifest+json")
 
 
+def robots_txt(request):
+    """Generated at request time (rather than a static template) so the
+    Sitemap: line always matches whatever domain is actually serving the
+    request -- a hardcoded domain here would go stale the moment the
+    site moves between a custom domain and Vercel's free domain."""
+    sitemap_url = request.build_absolute_uri(reverse("django.contrib.sitemaps.views.sitemap"))
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/",
+        "Disallow: /accounts/",
+        f"Sitemap: {sitemap_url}",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
+
+
 @never_cache
 def cron_cleanup_matches(request):
     """Triggered daily by Vercel Cron (see vercel.json). Vercel sends
