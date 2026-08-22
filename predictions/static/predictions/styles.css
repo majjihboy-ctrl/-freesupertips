@@ -615,6 +615,48 @@ input:focus-visible,
     padding: 0.15rem 0.55rem;
 }
 
+.locked-tip-link {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-decoration: none;
+}
+.locked-tip-link:hover { color: var(--green); text-decoration: underline; }
+.locked-lock {
+    display: inline-block;
+    justify-self: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.15rem 0.55rem;
+}
+
+.locked-tip-card {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: var(--bg-inset);
+    border: 1px dashed var(--border-bright);
+    border-radius: var(--radius);
+}
+.locked-tip-icon { font-size: 1.6rem; margin-bottom: 0.5rem; }
+.locked-tip-text {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.locked-tip-actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
 
 /* ---------- Team / league cells (kept for tips_list / tip_detail) ---------- */
 .league-cell {
