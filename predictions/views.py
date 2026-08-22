@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib import messages
 from django.core.mail import send_mail
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -171,6 +171,11 @@ def home(request):
             queryset=Prediction.objects.filter(tip_type="free").order_by("-created_at"),
             to_attr="free_tips",
         )
+    ).annotate(
+        # Count only -- never prefetch the actual VIP Prediction objects
+        # into this public view, so there's no way for the VIP market/odds
+        # to leak into the page source for a non-VIP visitor.
+        vip_tips_count=Count("predictions", filter=Q(predictions__tip_type="vip")),
     ).order_by("league__name", "kickoff")[:20]
 
     data["live_matches"] = Match.objects.filter(
@@ -283,12 +288,9 @@ def tip_detail(request, pk):
     })
 
 
-@login_required
 def upgrade(request):
-    profile = request.user.profile
-
     whatsapp_url = None
-    if settings.WHATSAPP_NUMBER:
+    if request.user.is_authenticated and settings.WHATSAPP_NUMBER:
         message = (
             "Hi! I'd like to get VIP access on Matchday Pro "
             f"(username: {request.user.username})."
@@ -296,7 +298,6 @@ def upgrade(request):
         whatsapp_url = f"https://wa.me/{settings.WHATSAPP_NUMBER}?text={quote(message)}"
 
     return render(request, "predictions/upgrade.html", {
-        "profile": profile,
         "whatsapp_url": whatsapp_url,
     })
 

@@ -95,7 +95,12 @@
                                     <div class="away">{{ match.away_team }}</div>
                                 </div>
                             </div>
-                            <div class="pred-pending">Not yet predicted</div>
+                            {% if match.vip_tips_count %}
+                                <a href="{% url 'upgrade' %}" class="tip-cell vip-pick-link">🔒 VIP pick available</a>
+                                <span class="odds-cell vip-lock">Unlock</span>
+                            {% else %}
+                                <div class="pred-pending">Not yet predicted</div>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 {% endfor %}

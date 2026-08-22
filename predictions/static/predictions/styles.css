@@ -596,6 +596,25 @@ input:focus-visible,
     font-size: 0.8rem;
 }
 
+.vip-pick-link {
+    color: var(--gold);
+    font-weight: 600;
+    text-decoration: none;
+}
+.vip-pick-link:hover { text-decoration: underline; }
+.vip-lock {
+    display: inline-block;
+    justify-self: center;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: var(--gold);
+    background: var(--gold-bg);
+    border: 1px solid rgba(242, 181, 68, 0.4);
+    border-radius: var(--radius-sm);
+    padding: 0.15rem 0.55rem;
+}
+
 
 /* ---------- Team / league cells (kept for tips_list / tip_detail) ---------- */
 .league-cell {

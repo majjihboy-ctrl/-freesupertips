@@ -31,6 +31,16 @@ ALLOWED_HOSTS = config(
     cast=lambda v: [s.strip() for s in v.split(",")],
 )
 
+# Vercel exposes the project's current production domain (whichever custom
+# domain is attached, or the *.vercel.app one if none is) as this system
+# env var automatically -- no dashboard step needed. Without this, adding
+# a custom domain in Vercel gives a 400 Bad Request from Django's own
+# ALLOWED_HOSTS check the moment traffic arrives on that new host, even
+# though the *.vercel.app domain keeps working fine.
+_vercel_production_host = os.environ.get("VERCEL_PROJECT_PRODUCTION_URL")
+if _vercel_production_host and _vercel_production_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_vercel_production_host)
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
