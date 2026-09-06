@@ -3,173 +3,194 @@
 {% block title %}Football Predictions & Tips — Matchday Pro{% endblock %}
 {% block meta_desc %}Football predictions and match win probabilities for today's fixtures — free tips and VIP accumulators.{% endblock %}
 
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          base: '#0B0F19',
+          card: '#1E293B',
+          cardhover: '#24304a',
+          neon: '#22C55E',
+          warn: '#F97316',
+          danger: '#EF4444',
+        }
+      }
+    }
+  }
+</script>
+{% endblock %}
+
 {% block content %}
 {% regroup todays_matches by league as league_groups %}
 
+<div class="bg-base text-slate-100 -mx-4 md:-mx-6 px-4 md:px-6 py-4 rounded-2xl">
+
 {% if featured_free or vip_teaser %}
-<div class="tips-ticker">
-    <div class="ticker-label">TIPS</div>
-    <div class="ticker-wrap">
-        <div class="ticker-move">
-            {% for tip in featured_free %}
-            <span class="ticker-item">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'match_tips' 'free' tip.match.id %}">{{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}: {{ tip.prediction }}</a>
-                    <span class="odds-tag">@ {{ tip.odds }}</span>
-                {% else %}
-                    <a href="{% url 'login' %}?next={{ request.path }}">{{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}</a>
-                    <span class="vip-tag">🔒 Login to view</span>
-                {% endif %}
-            </span>
-            {% endfor %}
-            {% for tip in vip_teaser %}
-            <span class="ticker-item">
-                <a href="{% url 'upgrade' %}">{{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}</a>
-                <span class="vip-tag">VIP pick — unlock</span>
-            </span>
-            {% endfor %}
+<div class="flex items-center gap-3 overflow-x-auto no-scrollbar bg-card/60 border border-white/5 rounded-2xl px-4 py-3 mb-5">
+    <span class="shrink-0 text-[10px] font-extrabold tracking-widest text-neon uppercase">Tips</span>
+    <div class="flex gap-3">
+        {% for tip in featured_free %}
+        <div class="shrink-0 flex items-center gap-2 bg-card border border-white/5 rounded-full px-3 py-1.5 text-xs">
+            {% if user.is_authenticated %}
+                <a href="{% url 'match_tips' 'free' tip.match.id %}" class="font-semibold text-slate-100 hover:text-neon">
+                    {{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}: {{ tip.prediction }}
+                </a>
+                <span class="text-neon font-mono font-bold">@ {{ tip.odds }}</span>
+            {% else %}
+                <a href="{% url 'login' %}?next={{ request.path }}" class="font-semibold text-slate-100 hover:text-neon">
+                    {{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}
+                </a>
+                <span class="text-warn font-medium">🔒 Login to view</span>
+            {% endif %}
         </div>
+        {% endfor %}
+        {% for tip in vip_teaser %}
+        <div class="shrink-0 flex items-center gap-2 bg-card border border-amber-400/20 rounded-full px-3 py-1.5 text-xs">
+            <a href="{% url 'upgrade' %}" class="font-semibold text-slate-100 hover:text-amber-300">
+                {{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}
+            </a>
+            <span class="text-amber-400 font-medium">VIP pick — unlock</span>
+        </div>
+        {% endfor %}
     </div>
 </div>
 {% endif %}
 
 {% if banker %}
-<div class="banker-card">
+<div class="relative overflow-hidden bg-gradient-to-br from-card to-base border border-amber-400/30 rounded-2xl px-5 py-4 mb-5 flex flex-wrap items-center justify-between gap-4">
     <div>
-        <div class="banker-label">🔥 Banker of the Day</div>
-        <div class="banker-fixture">{{ banker.match.home_team }} vs {{ banker.match.away_team }}</div>
-        <div class="banker-sub">{{ banker.match.league.name }} — {{ banker.match.kickoff|date:"H:i" }}</div>
+        <div class="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase text-amber-400 mb-1">
+            🔥 Banker of the Day
+        </div>
+        <div class="font-bold text-lg text-white">{{ banker.match.home_team }} vs {{ banker.match.away_team }}</div>
+        <div class="text-sm text-slate-400">{{ banker.match.league.name }} — {{ banker.match.kickoff|date:"H:i" }}</div>
     </div>
-    <div class="banker-pick">
+    <div class="text-right">
         {% if banker.tip_type == 'vip' and not is_vip %}
-            <a href="{% url 'upgrade' %}" class="btn btn-gold" style="font-size:0.85rem;">Unlock Pick</a>
+            <a href="{% url 'upgrade' %}" class="inline-block bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-sm px-4 py-2 rounded-xl transition">Unlock Pick</a>
         {% else %}
-            <span class="prediction-tag {% if banker.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ banker.prediction }}</span>
-            <span style="margin-left:0.4rem;">@ {{ banker.odds }}</span>
+            <span class="inline-block {% if banker.tip_type == 'vip' %}bg-amber-400 text-slate-900{% else %}bg-neon text-slate-900{% endif %} font-bold text-sm px-3 py-1.5 rounded-lg">{{ banker.prediction }}</span>
+            <span class="ml-2 font-mono font-bold text-white">@ {{ banker.odds }}</span>
         {% endif %}
-        <div class="banker-confidence">{{ banker.confidence }}% model confidence</div>
+        <div class="text-xs text-slate-500 mt-1">{{ banker.confidence }}% model confidence</div>
     </div>
 </div>
 {% endif %}
 
-<div class="dash-grid">
+<!-- Bento grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-    <!-- Left: leagues appearing in today's fixture list, with real counts -->
-    <aside>
-        <div class="side-panel sticky-side">
-            <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v5a6 6 0 0 1-12 0z"/><path d="M6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3M9 15v3M15 15v3M7 21h10"/></svg>
+    <!-- Leagues rail -->
+    <aside class="lg:col-span-3 order-2 lg:order-1">
+        <div class="bg-card border border-white/5 rounded-2xl p-4 lg:sticky lg:top-4">
+            <h3 class="flex items-center gap-2 text-sm font-bold text-white mb-3">
+                <svg class="w-4 h-4 text-neon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v5a6 6 0 0 1-12 0z"/><path d="M6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3M9 15v3M15 15v3M7 21h10"/></svg>
                 Today's Leagues
             </h3>
-            <div class="league-list">
+            <div class="flex flex-col gap-1">
                 {% for group in league_groups %}
-                    <a href="#league-{{ group.grouper.id }}">
+                    <a href="#league-{{ group.grouper.id }}" class="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm text-slate-300 hover:bg-cardhover hover:text-white transition">
                         <span>{{ group.grouper.name }}</span>
-                        <span class="count">{{ group.list|length }}</span>
+                        <span class="text-xs font-mono bg-base rounded-full px-2 py-0.5 text-slate-400">{{ group.list|length }}</span>
                     </a>
                 {% empty %}
-                    <span style="color:var(--text-faint);font-size:0.85rem;">No fixtures today.</span>
+                    <span class="text-sm text-slate-500">No fixtures today.</span>
                 {% endfor %}
             </div>
         </div>
     </aside>
 
-    <!-- Main: dense model-output table, grouped by league -->
-    <div class="dash-main">
-        <div class="section-header">
-            <h2>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8l3.5 2.5-1.3 4h-4.4L8.5 10.5z"/><path d="M12 3v5M4.2 8.5l3 2M19.8 8.5l-3 2M7 21l1.8-6.5M17 21l-1.8-6.5"/></svg>
+    <!-- Match bento cards -->
+    <div class="lg:col-span-6 order-1 lg:order-2">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="flex items-center gap-2 text-base font-bold text-white">
+                <svg class="w-4 h-4 text-neon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8l3.5 2.5-1.3 4h-4.4L8.5 10.5z"/><path d="M12 3v5M4.2 8.5l3 2M19.8 8.5l-3 2M7 21l1.8-6.5M17 21l-1.8-6.5"/></svg>
                 Today's Matches
             </h2>
-            <span class="section-meta">{{ todays_matches|length }} fixtures</span>
+            <span class="text-xs font-mono text-slate-500">{{ todays_matches|length }} fixtures</span>
         </div>
 
-        <div class="pred-panel">
-            <div class="pred-head">
-                <div>Match</div>
-                <div>Tip</div>
-                <div class="center">Odds</div>
+        {% for group in league_groups %}
+            <div id="league-{{ group.grouper.id }}" class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400 mt-5 mb-2 first:mt-0">
+                <span class="bg-card rounded px-1.5 py-0.5 text-slate-300">{{ group.grouper.name|slice:":2"|upper }}</span>
+                <span>{{ group.grouper.name }}</span>
+                <span class="text-slate-600">&middot; {{ group.grouper.country }}</span>
             </div>
 
-            {% for group in league_groups %}
-                <div class="league-group-header" id="league-{{ group.grouper.id }}">
-                    <span class="flag">{{ group.grouper.name|slice:":2"|upper }}</span>
-                    <span>{{ group.grouper.name }}</span>
-                    <span class="country">&middot; {{ group.grouper.country }}</span>
-                </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-1">
                 {% for match in group.list %}
                     {% for tip in match.free_tips %}
-                        <div class="match-line">
-                            <div class="match-fixture">
-                                <span class="kickoff">{{ match.kickoff|date:"H:i" }}</span>
-                                <div class="teams">
-                                    <div class="home">{{ match.home_team }}</div>
-                                    <div class="away">{{ match.away_team }}</div>
-                                </div>
+                        <div class="bg-card border border-white/5 hover:border-neon/40 rounded-2xl p-4 transition">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-mono text-slate-500">{{ match.kickoff|date:"H:i" }}</span>
+                                {% if user.is_authenticated %}
+                                    <span class="text-xs font-mono font-bold text-neon">@ {{ tip.odds }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-sm font-semibold text-white leading-snug mb-3">
+                                {{ match.home_team }} <span class="text-slate-500">vs</span> {{ match.away_team }}
                             </div>
                             {% if user.is_authenticated %}
-                                <div class="tip-cell">{{ tip.prediction }}</div>
-                                <div class="odds-cell">{{ tip.odds }}</div>
+                                <div class="inline-block bg-neon/10 text-neon text-xs font-bold px-2.5 py-1 rounded-lg">{{ tip.prediction }}</div>
                             {% else %}
-                                <a href="{% url 'login' %}?next={{ request.path }}" class="tip-cell locked-tip-link">🔒 Login to view tip</a>
-                                <span class="odds-cell locked-lock">Locked</span>
+                                <a href="{% url 'login' %}?next={{ request.path }}" class="inline-flex items-center gap-1 bg-warn/10 text-warn text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-warn/20 transition">🔒 Login to view tip</a>
                             {% endif %}
                         </div>
                     {% empty %}
-                        <div class="match-line">
-                            <div class="match-fixture">
-                                <span class="kickoff">{{ match.kickoff|date:"H:i" }}</span>
-                                <div class="teams">
-                                    <div class="home">{{ match.home_team }}</div>
-                                    <div class="away">{{ match.away_team }}</div>
-                                </div>
+                        <div class="bg-card/60 border border-white/5 rounded-2xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-mono text-slate-500">{{ match.kickoff|date:"H:i" }}</span>
+                            </div>
+                            <div class="text-sm font-semibold text-white leading-snug mb-3">
+                                {{ match.home_team }} <span class="text-slate-500">vs</span> {{ match.away_team }}
                             </div>
                             {% if match.vip_tips_count %}
-                                <a href="{% url 'upgrade' %}" class="tip-cell vip-pick-link">🔒 VIP pick available</a>
-                                <span class="odds-cell vip-lock">Unlock</span>
+                                <a href="{% url 'upgrade' %}" class="inline-flex items-center gap-1 bg-amber-400/10 text-amber-400 text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-amber-400/20 transition">🔒 VIP pick available</a>
                             {% else %}
-                                <div class="pred-pending">Not yet predicted</div>
+                                <div class="inline-block bg-white/5 text-slate-500 text-xs font-medium px-2.5 py-1 rounded-lg">Not yet predicted</div>
                             {% endif %}
                         </div>
                     {% endfor %}
                 {% endfor %}
-            {% empty %}
-                <div class="empty-cell">
-                    <div class="empty-title">No matches scheduled today</div>
-                    <div class="empty-sub">Check back once today's fixtures are posted, or browse free tips for what's coming up next.</div>
-                </div>
-            {% endfor %}
-        </div>
+            </div>
+        {% empty %}
+            <div class="bg-card border border-white/5 rounded-2xl p-10 flex flex-col items-center text-center gap-2">
+                <div class="w-11 h-11 rounded-full bg-base border border-white/5 flex items-center justify-center text-slate-500">📅</div>
+                <div class="text-sm font-bold text-white">No matches scheduled today</div>
+                <div class="text-xs text-slate-500 max-w-xs">Check back once today's fixtures are posted, or browse free tips for what's coming up next.</div>
+            </div>
+        {% endfor %}
     </div>
 
-    <!-- Right: generic VIP upsell only -- no actual tip content lives on the
-         home page; Free Tips and VIP Tips are only ever shown on their own
-         pages via the header-nav tabs. -->
-    <aside>
-        <div class="side-panel sticky-side">
-            <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    <!-- Upsell rail -->
+    <aside class="lg:col-span-3 order-3 flex flex-col gap-4">
+        <div class="bg-gradient-to-br from-neon/20 to-card border border-neon/30 rounded-2xl p-4">
+            <h3 class="flex items-center gap-2 text-sm font-bold text-white mb-2">
+                <svg class="w-4 h-4 text-neon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
                 Get VIP Access
             </h3>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.9rem;line-height:1.5;">
+            <p class="text-xs text-slate-400 leading-relaxed mb-3">
                 Unlock every VIP pick, including higher-confidence singles and accumulators.
             </p>
-            <a href="{% url 'upgrade' %}" class="btn btn-green" style="width:100%;">Upgrade Now</a>
+            <a href="{% url 'upgrade' %}" class="block text-center bg-neon hover:bg-emerald-400 text-slate-900 font-bold text-sm py-2.5 rounded-xl transition">Upgrade Now</a>
         </div>
 
-        <div class="side-panel">
-            <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2 1-3.2 1.8-4.5.5 1 1.2 1.5 1.2 1.5S9 6.5 12 2z"/></svg>
+        <div class="bg-card border border-white/5 rounded-2xl p-4">
+            <h3 class="flex items-center gap-2 text-sm font-bold text-white mb-2">
+                <svg class="w-4 h-4 text-neon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2 1-3.2 1.8-4.5.5 1 1.2 1.5 1.2 1.5S9 6.5 12 2z"/></svg>
                 Free Tips
             </h3>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.9rem;line-height:1.5;">
+            <p class="text-xs text-slate-400 leading-relaxed mb-3">
                 Today's curated free picks, posted separately from the raw model table above.
             </p>
-            <a href="{% url 'tips_list' 'free' %}" class="btn btn-outline-light" style="width:100%;">View Free Tips</a>
+            <a href="{% url 'tips_list' 'free' %}" class="block text-center bg-white/5 hover:bg-white/10 text-white font-semibold text-sm py-2.5 rounded-xl transition">View Free Tips</a>
         </div>
 
-        <div class="side-panel">
-            <p class="disclaimer">
+        <div class="bg-card/60 border border-white/5 rounded-2xl p-4">
+            <p class="text-[11px] text-slate-500 leading-relaxed">
                 Win probabilities and projected scores are our editorial predictions, not
                 outputs of an automated model. They are estimates, not guarantees.
                 18+ Gamble responsibly.
@@ -177,4 +198,7 @@
         </div>
     </aside>
 </div>
+</div>
+
+<style>.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}</style>
 {% endblock %}
