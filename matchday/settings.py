@@ -252,6 +252,11 @@ WHATSAPP_NUMBER = config("WHATSAPP_NUMBER", default="")
 # environment variable in the Vercel project settings.
 CRON_SECRET = config("CRON_SECRET", default="")
 
+# Used by the import_bzzoiro management command to pull fixtures and model
+# predictions from sports.bzzoiro.com. Get a free key at
+# https://sports.bzzoiro.com/register/
+BZZOIRO_API_KEY = config("BZZOIRO_API_KEY", default="")
+
 # Logging
 # File logging is only safe on a filesystem that's actually writable and
 # persistent. Vercel functions only expose a writable /tmp that doesn't

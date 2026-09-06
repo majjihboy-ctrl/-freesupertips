@@ -9,6 +9,7 @@ from predictions.views import (
     web_manifest,
     robots_txt,
     cron_cleanup_matches,
+    cron_import_bzzoiro,
 )
 
 sitemaps = {
@@ -35,6 +36,9 @@ urlpatterns = [
     # Hit daily by Vercel Cron (see vercel.json "crons") to delete matches
     # once their day has ended.
     path("cron/cleanup-matches/", cron_cleanup_matches, name="cron_cleanup_matches"),
+    # Hit daily by Vercel Cron to pull fixtures + model predictions from
+    # sports.bzzoiro.com.
+    path("cron/import-bzzoiro/", cron_import_bzzoiro, name="cron_import_bzzoiro"),
     path("", include("predictions.urls")),
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),

@@ -127,6 +127,22 @@ def cron_cleanup_matches(request):
     return HttpResponse(out.getvalue(), content_type="text/plain")
 
 
+@never_cache
+def cron_import_bzzoiro(request):
+    """Triggered daily by Vercel Cron (see vercel.json). Same shared-secret
+    check as cron_cleanup_matches -- see that docstring for why."""
+    from io import StringIO
+    from django.core.management import call_command
+
+    expected = f"Bearer {settings.CRON_SECRET}" if settings.CRON_SECRET else None
+    if not expected or request.headers.get("Authorization") != expected:
+        return HttpResponse(status=401)
+
+    out = StringIO()
+    call_command("import_bzzoiro", stdout=out)
+    return HttpResponse(out.getvalue(), content_type="text/plain")
+
+
 def _vip_status(request):
     if not request.user.is_authenticated:
         return False
