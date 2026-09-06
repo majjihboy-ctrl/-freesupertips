@@ -68,6 +68,10 @@ class Profile(models.Model):
 class League(models.Model):
     name = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
+    external_id = models.CharField(
+        max_length=40, unique=True, null=True, blank=True,
+        help_text="ID from the external fixtures/predictions API, used to avoid duplicate imports.",
+    )
 
     class Meta:
         ordering = ["name"]
@@ -81,6 +85,10 @@ class Team(models.Model):
     short_name = models.CharField(max_length=10)
     league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="teams")
     crest_color = models.CharField(max_length=7, default="#1a3a5c")
+    external_id = models.CharField(
+        max_length=40, unique=True, null=True, blank=True,
+        help_text="ID from the external fixtures/predictions API, used to avoid duplicate imports.",
+    )
 
     class Meta:
         ordering = ["name"]
@@ -104,6 +112,10 @@ class Match(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="scheduled")
     home_score = models.IntegerField(null=True, blank=True)
     away_score = models.IntegerField(null=True, blank=True)
+    external_id = models.CharField(
+        max_length=40, unique=True, null=True, blank=True,
+        help_text="ID from the external fixtures/predictions API, used to avoid duplicate imports.",
+    )
 
     class Meta:
         ordering = ["-kickoff"]
@@ -119,6 +131,7 @@ class Prediction(models.Model):
     no free-text reasoning. Just what to bet on and at what odds."""
 
     TIP_TYPE = [("free", "Free"), ("vip", "VIP")]
+    SOURCE_CHOICES = [("manual", "Manual"), ("bzzoiro", "Bzzoiro API")]
 
     match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name="predictions")
     tip_type = models.CharField(max_length=10, choices=TIP_TYPE, default="free")
@@ -126,6 +139,11 @@ class Prediction(models.Model):
         max_length=100, help_text="e.g. 'Over 2.5 Goals', '1X', 'Home Win'"
     )
     odds = models.DecimalField(max_digits=6, decimal_places=2)
+    confidence = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="Model win-probability percentage (0-100), only set for auto-imported picks.",
+    )
+    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default="manual")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
