@@ -144,6 +144,11 @@ class Prediction(models.Model):
         help_text="Model win-probability percentage (0-100), only set for auto-imported picks.",
     )
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default="manual")
+    markets = models.JSONField(
+        null=True, blank=True,
+        help_text="Extra market breakdown (BTTS %, over/under %, correct score, expected goals) "
+                   "for auto-imported picks. Not used for manual predictions.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -33,6 +33,25 @@
 </div>
 {% endif %}
 
+{% if banker %}
+<div class="banker-card">
+    <div>
+        <div class="banker-label">🔥 Banker of the Day</div>
+        <div class="banker-fixture">{{ banker.match.home_team }} vs {{ banker.match.away_team }}</div>
+        <div class="banker-sub">{{ banker.match.league.name }} — {{ banker.match.kickoff|date:"H:i" }}</div>
+    </div>
+    <div class="banker-pick">
+        {% if banker.tip_type == 'vip' and not is_vip %}
+            <a href="{% url 'upgrade' %}" class="btn btn-gold" style="font-size:0.85rem;">Unlock Pick</a>
+        {% else %}
+            <span class="prediction-tag {% if banker.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ banker.prediction }}</span>
+            <span style="margin-left:0.4rem;">@ {{ banker.odds }}</span>
+        {% endif %}
+        <div class="banker-confidence">{{ banker.confidence }}% model confidence</div>
+    </div>
+</div>
+{% endif %}
+
 <div class="dash-grid">
 
     <!-- Left: leagues appearing in today's fixture list, with real counts -->

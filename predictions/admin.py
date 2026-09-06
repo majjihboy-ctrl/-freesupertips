@@ -135,8 +135,8 @@ class MatchAdmin(admin.ModelAdmin):
 
 @admin.register(Prediction)
 class PredictionAdmin(admin.ModelAdmin):
-    list_display = ["match", "tip_type", "prediction", "odds", "created_at"]
-    list_filter = ["tip_type", "created_at"]
+    list_display = ["match", "tip_type", "prediction", "odds", "confidence", "source", "created_at"]
+    list_filter = ["tip_type", "source", "created_at"]
     search_fields = ["prediction", "match__home_team__name", "match__away_team__name"]
     list_editable = ["tip_type", "prediction", "odds"]
     date_hierarchy = "created_at"

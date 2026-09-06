@@ -74,6 +74,19 @@
                     <div class="leg-fixture-name">
                         {{ prediction.match.home_team }} vs {{ prediction.match.away_team }}
                     </div>
+                    {% if prediction.markets %}
+                    <div class="extra-markets">
+                        {% if prediction.markets.btts.prob_yes %}
+                        <span class="market-chip">BTTS <strong>{{ prediction.markets.btts.prob_yes|floatformat:0 }}%</strong></span>
+                        {% endif %}
+                        {% if prediction.markets.over_under.prob_over_25 %}
+                        <span class="market-chip">Over 2.5 <strong>{{ prediction.markets.over_under.prob_over_25|floatformat:0 }}%</strong></span>
+                        {% endif %}
+                        {% if prediction.markets.score.most_likely %}
+                        <span class="market-chip">Correct Score <strong>{{ prediction.markets.score.most_likely }}</strong></span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="leg-odds" style="font-size:1.3rem;">
@@ -81,6 +94,9 @@
                         {{ prediction.prediction }}
                     </span>
                     <span style="margin-left:0.5rem;">@ {{ prediction.odds }}</span>
+                    {% if prediction.confidence %}
+                    <div class="confidence-note">{{ prediction.confidence }}% model confidence</div>
+                    {% endif %}
                 </div>
             </div>
             {% empty %}

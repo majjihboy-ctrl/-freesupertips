@@ -1,0 +1,69 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Results & Accuracy — Matchday Pro{% endblock %}
+{% block meta_desc %}Our track record — model-generated picks from the last {{ lookback_days }} days, marked hit or miss against the final score.{% endblock %}
+
+{% block content %}
+<div class="page-title">Results &amp; Accuracy — Last {{ lookback_days }} Days</div>
+
+<div class="results-summary">
+    <div class="results-stat">
+        <div class="stat-value">{{ hit_rate|default:"—" }}{% if hit_rate %}%{% endif %}</div>
+        <div class="stat-label">Hit Rate</div>
+    </div>
+    <div class="results-stat">
+        <div class="stat-value">{{ hits }}</div>
+        <div class="stat-label">Hits</div>
+    </div>
+    <div class="results-stat">
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Total Picks</div>
+    </div>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Fixture</th>
+            <th>Pick</th>
+            <th>Final Score</th>
+            <th class="center">Result</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for prediction in predictions %}
+        <tr>
+            <td class="match-time">{{ prediction.match.kickoff|date:"M j" }}</td>
+            <td>
+                <span style="color:var(--text);">
+                    {{ prediction.match.home_team }} <span style="color:var(--text-muted);font-weight:600;">vs</span> {{ prediction.match.away_team }}
+                </span>
+            </td>
+            <td>{{ prediction.prediction }}</td>
+            <td class="match-time">{{ prediction.match.home_score }}–{{ prediction.match.away_score }}</td>
+            <td class="center">
+                {% if prediction.was_hit %}
+                    <span class="result-badge hit">HIT</span>
+                {% else %}
+                    <span class="result-badge miss">MISS</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="empty-cell">
+                <div class="empty-title">No finished picks yet</div>
+                <div class="empty-sub">Once matches with model-generated picks finish, results will show up here.</div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p class="disclaimer" style="margin-top:1.25rem;">
+    Results shown are for auto-generated model picks only. A "hit" means the model's
+    predicted outcome (Home Win / Draw / Away Win) matched the final result.
+    Past accuracy is not a guarantee of future results. 18+ Gamble responsibly.
+</p>
+{% endblock %}

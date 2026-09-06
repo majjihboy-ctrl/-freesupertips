@@ -198,6 +198,18 @@ def home(request):
         status="live",
     ).select_related("home_team", "away_team").order_by("-kickoff")[:10]
 
+    data["banker"] = (
+        Prediction.objects.filter(
+            source="bzzoiro",
+            match__kickoff__gte=today_start,
+            match__kickoff__lt=today_end,
+            match__status="scheduled",
+        )
+        .select_related("match", "match__league", "match__home_team", "match__away_team")
+        .order_by("-confidence")
+        .first()
+    )
+
     data["is_vip"] = _vip_status(request)
     return render(request, "predictions/home.html", data)
 
@@ -301,6 +313,50 @@ def tip_detail(request, pk):
     return render(request, "predictions/tip_detail.html", {
         "prediction": prediction,
         "is_vip": is_vip,
+    })
+
+
+def results(request):
+    """Public accuracy history: our last N days of model-sourced picks on
+    finished matches, marked hit/miss. Manual predictions aren't included
+    since we don't have a structured way to score arbitrary tip text
+    against a final score."""
+    lookback_days = 14
+    since = timezone.now() - timedelta(days=lookback_days)
+
+    predictions = list(
+        Prediction.objects.filter(
+            source="bzzoiro",
+            match__status="finished",
+            match__kickoff__gte=since,
+            match__home_score__isnull=False,
+            match__away_score__isnull=False,
+        )
+        .select_related("match", "match__league", "match__home_team", "match__away_team")
+        .order_by("-match__kickoff")[:200]
+    )
+
+    for p in predictions:
+        home, away = p.match.home_score, p.match.away_score
+        if home > away:
+            actual = "Home Win"
+        elif home < away:
+            actual = "Away Win"
+        else:
+            actual = "Draw"
+        p.actual_result = actual
+        p.was_hit = (p.prediction == actual)
+
+    hits = sum(1 for p in predictions if p.was_hit)
+    total = len(predictions)
+    hit_rate = round((hits / total) * 100) if total else None
+
+    return render(request, "predictions/results.html", {
+        "predictions": predictions,
+        "hits": hits,
+        "total": total,
+        "hit_rate": hit_rate,
+        "lookback_days": lookback_days,
     })
 
 

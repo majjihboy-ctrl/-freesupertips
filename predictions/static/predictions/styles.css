@@ -925,6 +925,8 @@ input:focus-visible,
 .leg-fixture-name { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
 .leg-odds {
     display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
     font-family: var(--font-mono);
     font-weight: 700;
     color: var(--text);
@@ -933,6 +935,101 @@ input:focus-visible,
     padding: 0.4rem 0.85rem;
     border-radius: 6px;
 }
+.confidence-note {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.68rem;
+    color: var(--text-faint);
+    margin-top: 0.2rem;
+}
+.extra-markets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.market-chip {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-pill);
+}
+.market-chip strong { color: var(--text); }
+
+/* ---------- Banker of the Day ---------- */
+.banker-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: linear-gradient(135deg, var(--bg-panel), var(--bg-inset));
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.4rem;
+    margin-bottom: 1.25rem;
+}
+.banker-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.35rem;
+}
+.banker-fixture {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+.banker-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+.banker-pick {
+    text-align: right;
+}
+.banker-pick .prediction-tag { font-size: 0.95rem; }
+.banker-confidence {
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    margin-top: 0.3rem;
+}
+
+/* ---------- Results / accuracy history ---------- */
+.results-summary {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+.results-stat {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.25rem;
+    min-width: 120px;
+}
+.results-stat .stat-value {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.6rem;
+}
+.results-stat .stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+}
+.result-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-pill);
+}
+.result-badge.hit { background: rgba(34,197,94,0.15); color: var(--green); }
+.result-badge.miss { background: rgba(239,68,68,0.15); color: #f87171; }
 
 /* ---------- Buttons ---------- */
 .btn {
