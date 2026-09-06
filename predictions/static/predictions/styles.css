@@ -694,6 +694,36 @@ input:focus-visible,
     font-size: 0.78rem;
     color: var(--text-muted);
 }
+.more-tips-link {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--green);
+    margin-top: 0.15rem;
+}
+.locked-inline {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.locked-inline a { color: var(--green); font-weight: 600; }
+
+/* Dense predictz-style table: hide the least essential columns on small
+   screens rather than letting 8 columns squeeze into an unreadable mess. */
+@media (max-width: 900px) {
+    .dense-tips-table th:nth-child(6),
+    .dense-tips-table td:nth-child(6),
+    .dense-tips-table th:nth-child(7),
+    .dense-tips-table td:nth-child(7),
+    .dense-tips-table th:nth-child(8),
+    .dense-tips-table td:nth-child(8) {
+        display: none;
+    }
+}
+@media (max-width: 640px) {
+    .dense-tips-table th:nth-child(2),
+    .dense-tips-table td:nth-child(2) {
+        display: none;
+    }
+}
 
 /* ---------- Tags / odds ---------- */
 .prediction-tag {

@@ -246,7 +246,7 @@ def tips_list(request, tip_type):
         for key, off in _DAY_OFFSETS.items()
     ]
 
-    cache_key = f"predictions_list_{tip_type}_{day_param}"
+    cache_key = f"predictions_list_v2_{tip_type}_{day_param}"
     fixtures = cache.get(cache_key)
     if fixtures is None:
         day_start = timezone.make_aware(datetime.combine(active_date, datetime.min.time()))
@@ -255,14 +255,21 @@ def tips_list(request, tip_type):
         matches = (
             Match.objects.filter(kickoff__gte=day_start, kickoff__lt=day_end)
             .select_related("league", "home_team", "away_team")
+            .prefetch_related(
+                Prefetch(
+                    "predictions",
+                    queryset=Prediction.objects.filter(tip_type=tip_type).order_by("-confidence", "-created_at"),
+                    to_attr="matching_tips",
+                )
+            )
             .order_by("kickoff")
         )
 
         fixtures = []
         for match in matches:
-            tips_count = match.predictions.filter(tip_type=tip_type).count()
-            if tips_count:
-                fixtures.append({"match": match, "tips_count": tips_count})
+            tips = match.matching_tips
+            if tips:
+                fixtures.append({"match": match, "top_tip": tips[0], "tips_count": len(tips)})
 
         cache.set(cache_key, fixtures, 120)
 
