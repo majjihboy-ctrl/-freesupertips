@@ -5,6 +5,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import requests
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -77,10 +78,19 @@ class Command(BaseCommand):
         # external_id yet) instead of creating a duplicate.
         league = League.objects.filter(name__iexact=name or "", external_id__isnull=True).first()
         if league:
-            league.external_id = str(external_id)
-            league.save(update_fields=["external_id"])
+            try:
+                league.external_id = str(external_id)
+                league.save(update_fields=["external_id"])
+            except IntegrityError:
+                # Another concurrent run (e.g. a manual trigger overlapping
+                # the scheduled cron) already linked this external_id.
+                return League.objects.get(external_id=str(external_id))
             return league
-        return League.objects.create(external_id=str(external_id), name=name or "Unknown League", country="")
+        try:
+            with transaction.atomic():
+                return League.objects.create(external_id=str(external_id), name=name or "Unknown League", country="")
+        except IntegrityError:
+            return League.objects.get(external_id=str(external_id))
 
     def _get_or_link_team(self, external_id, name, league):
         """Same adopt-existing-row logic as leagues, above, applied to teams."""
@@ -89,12 +99,22 @@ class Command(BaseCommand):
             return team
         team = Team.objects.filter(name__iexact=name, external_id__isnull=True).first()
         if team:
-            team.external_id = str(external_id)
-            team.save(update_fields=["external_id"])
+            try:
+                team.external_id = str(external_id)
+                team.save(update_fields=["external_id"])
+            except IntegrityError:
+                return Team.objects.get(external_id=str(external_id))
             return team
-        return Team.objects.create(
-            external_id=str(external_id), name=name, short_name=_short_name(name), league=league,
-        )
+        try:
+            with transaction.atomic():
+                return Team.objects.create(
+                    external_id=str(external_id), name=name, short_name=_short_name(name), league=league,
+                )
+        except IntegrityError:
+            # Another concurrent run created this exact team between our
+            # lookup and our insert -- use what it created instead of
+            # failing the whole import.
+            return Team.objects.get(external_id=str(external_id))
 
     def _paginated_get(self, session, url, params):
         while url:
