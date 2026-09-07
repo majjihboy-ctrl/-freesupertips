@@ -32,12 +32,31 @@ self.addEventListener('fetch', function(event) {
     // network so login/VIP state is always current. Only static assets
     // use cache-first.
     if (event.request.mode === 'navigate') {
-        event.respondWith(fetch(event.request));
+        event.respondWith(
+            fetch(event.request).catch(function() {
+                // Network failed entirely (offline, DNS hiccup, etc).
+                // Fall back to whatever cached shell we have, if any,
+                // rather than letting the fetch reject uncaught.
+                return caches.match(event.request).then(function(cached) {
+                    return cached || new Response(
+                        '<!doctype html><title>Offline</title>' +
+                        '<p style="font-family:sans-serif;padding:2rem;">' +
+                        'You appear to be offline. Please check your connection and try again.</p>',
+                        { headers: { 'Content-Type': 'text/html' } }
+                    );
+                });
+            })
+        );
         return;
     }
     event.respondWith(
         caches.match(event.request).then(function(response) {
-            return response || fetch(event.request);
+            return response || fetch(event.request).catch(function() {
+                // Static asset unavailable from cache or network -- let the
+                // browser handle the missing resource rather than throwing
+                // an uncaught rejection inside the service worker.
+                return new Response('', { status: 504, statusText: 'Network error' });
+            });
         })
     );
 });
