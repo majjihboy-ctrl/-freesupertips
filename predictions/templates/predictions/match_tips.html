@@ -26,10 +26,18 @@
         <div class="panel-header">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
                 <h1>{{ match.home_team }} vs {{ match.away_team }}</h1>
-                {% if tip_type == 'vip' %}
-                    <span class="badge-vip">VIP</span>
-                {% endif %}
+                <div style="display:flex;gap:0.4rem;align-items:center;">
+                    {% if match.is_local_derby %}
+                        <span class="prediction-tag tag-amber" style="font-size:0.7rem;">🔥 Derby</span>
+                    {% endif %}
+                    {% if tip_type == 'vip' %}
+                        <span class="badge-vip">VIP</span>
+                    {% endif %}
+                </div>
             </div>
+            {% if match.round_label %}
+            <div style="font-size:0.78rem;color:var(--text-faint);margin-top:0.2rem;">{{ match.round_label }}</div>
+            {% endif %}
         </div>
 
         <div class="panel-body">
@@ -58,6 +66,39 @@
                 </span>
             </div>
 
+            {% if match.head_to_head or match.weather %}
+            <div class="insight-panel">
+                {% if match.head_to_head %}
+                <div class="h2h-block">
+                    <div class="insight-label">Head-to-Head — Last {{ match.head_to_head.total_matches }} Meetings</div>
+                    <div class="h2h-bar">
+                        <div class="h2h-seg h2h-home" style="flex:{{ match.head_to_head.home_wins|default:0 }};" title="{{ match.home_team }} wins"></div>
+                        <div class="h2h-seg h2h-draw" style="flex:{{ match.head_to_head.draws|default:0 }};" title="Draws"></div>
+                        <div class="h2h-seg h2h-away" style="flex:{{ match.head_to_head.away_wins|default:0 }};" title="{{ match.away_team }} wins"></div>
+                    </div>
+                    <div class="h2h-legend">
+                        <span><span class="dot dot-home"></span>{{ match.home_team.short_name }} {{ match.head_to_head.home_wins }}</span>
+                        <span><span class="dot dot-draw"></span>Draws {{ match.head_to_head.draws }}</span>
+                        <span><span class="dot dot-away"></span>{{ match.away_team.short_name }} {{ match.head_to_head.away_wins }}</span>
+                    </div>
+                    {% if match.head_to_head.avg_total_goals %}
+                    <div class="insight-subnote">Avg. {{ match.head_to_head.avg_total_goals|floatformat:1 }} goals/game in this fixture historically</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% if match.weather and match.weather.description %}
+                <div class="weather-block">
+                    <div class="insight-label">Conditions at Kickoff</div>
+                    <div class="weather-line">
+                        {{ match.weather.description|capfirst }}
+                        {% if match.weather.temperature_c %} · {{ match.weather.temperature_c|floatformat:0 }}°C{% endif %}
+                        {% if match.weather.wind_speed %} · wind {{ match.weather.wind_speed|floatformat:0 }} km/h{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
             {% if tip_type == 'free' and not user.is_authenticated %}
             <div class="locked-tip-card">
                 <div class="locked-tip-icon">🔒</div>
@@ -84,6 +125,12 @@
                         {% endif %}
                         {% if prediction.markets.score.most_likely %}
                         <span class="market-chip">Correct Score <strong>{{ prediction.markets.score.most_likely }}</strong></span>
+                        {% endif %}
+                        {% if prediction.markets.expected_goals.home %}
+                        <span class="market-chip">xG <strong>{{ prediction.markets.expected_goals.home|floatformat:2 }} – {{ prediction.markets.expected_goals.away|floatformat:2 }}</strong></span>
+                        {% endif %}
+                        {% if prediction.markets.corners.prob_over_95 %}
+                        <span class="market-chip">Corners O9.5 <strong>{{ prediction.markets.corners.prob_over_95|floatformat:0 }}%</strong></span>
                         {% endif %}
                     </div>
                     {% endif %}

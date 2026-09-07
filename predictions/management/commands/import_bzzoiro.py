@@ -213,28 +213,38 @@ class Command(BaseCommand):
             created_predictions += was_created
             updated_predictions += not was_created
 
-        # Second pass: refresh scores for matches that have finished, so the
-        # results/accuracy page has something to compare picks against.
-        # (The /predictions/ endpoint's embedded event doesn't include
-        # scores; /events/ does.)
+        # Second pass: pull the richer per-fixture detail (head-to-head,
+        # weather, round label, derby flag, and -- for finished games --
+        # the final score) from /events/. The /predictions/ endpoint's
+        # embedded event object doesn't carry any of this.
         score_date_from = today - timedelta(days=options["results_days_back"])
         updated_scores = 0
+        updated_detail = 0
         for event in self._paginated_get(
             session, f"{API_BASE}/events/",
             {"date_from": score_date_from.isoformat(), "date_to": date_to.isoformat(), "limit": 100},
         ):
-            if event.get("home_score") is None or event.get("away_score") is None:
-                continue
-            updated = Match.objects.filter(external_id=str(event["id"])).update(
-                home_score=event["home_score"],
-                away_score=event["away_score"],
-                status=STATUS_MAP.get(event.get("status"), "finished"),
-            )
-            updated_scores += updated
+            fields = {
+                "head_to_head": event.get("head_to_head"),
+                "weather": event.get("weather"),
+                "round_label": event.get("round_label") or "",
+                "is_local_derby": bool(event.get("is_local_derby")),
+            }
+            has_score = event.get("home_score") is not None and event.get("away_score") is not None
+            if has_score:
+                fields["home_score"] = event["home_score"]
+                fields["away_score"] = event["away_score"]
+                fields["status"] = STATUS_MAP.get(event.get("status"), "finished")
+
+            updated = Match.objects.filter(external_id=str(event["id"])).update(**fields)
+            updated_detail += updated
+            if has_score:
+                updated_scores += updated
 
         self.stdout.write(self.style.SUCCESS(
             f"Matches: {created_matches} created, {updated_matches} updated. "
             f"Predictions: {created_predictions} created, {updated_predictions} updated. "
-            f"Scores refreshed for {updated_scores} finished match(es). "
+            f"Detail (H2H/weather/round) refreshed for {updated_detail} match(es), "
+            f"scores refreshed for {updated_scores} of those. "
             f"Skipped {skipped} (finished/cancelled/no-model-data)."
         ))

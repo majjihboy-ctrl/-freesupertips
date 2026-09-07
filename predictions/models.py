@@ -116,6 +116,16 @@ class Match(models.Model):
         max_length=40, unique=True, null=True, blank=True,
         help_text="ID from the external fixtures/predictions API, used to avoid duplicate imports.",
     )
+    head_to_head = models.JSONField(
+        null=True, blank=True,
+        help_text="Historical head-to-head record between the two teams, from the API import.",
+    )
+    weather = models.JSONField(
+        null=True, blank=True,
+        help_text="Forecast conditions at kickoff, from the API import.",
+    )
+    round_label = models.CharField(max_length=120, blank=True, default="")
+    is_local_derby = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-kickoff"]

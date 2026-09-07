@@ -943,6 +943,67 @@ input:focus-visible,
 }
 .detail-meta svg { color: var(--green); }
 
+/* ---------- Match insight: head-to-head + weather ---------- */
+.insight-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.4rem;
+}
+@media (max-width: 640px) {
+    .insight-panel { grid-template-columns: 1fr; }
+}
+.insight-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    margin-bottom: 0.5rem;
+}
+.h2h-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-raised);
+}
+.h2h-seg { min-width: 2px; }
+.h2h-home { background: var(--green); }
+.h2h-draw { background: var(--text-faint); }
+.h2h-away { background: var(--gold); }
+.h2h-legend {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+.h2h-legend .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+}
+.dot-home { background: var(--green); }
+.dot-draw { background: var(--text-faint); }
+.dot-away { background: var(--gold); }
+.insight-subnote {
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    margin-top: 0.5rem;
+}
+.weather-line {
+    font-size: 0.85rem;
+    color: var(--text);
+    font-weight: 600;
+}
+
 .leg-row {
     display: flex;
     align-items: center;
