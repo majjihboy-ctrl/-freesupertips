@@ -6,42 +6,30 @@
 {% block content %}
 {% regroup todays_matches by league as league_groups %}
 
-{% if featured_free or vip_teaser %}
-<div class="day-tabs-wrap" style="margin-bottom:1rem;">
-    <div class="day-tabs" style="display:inline-flex;gap:0.5rem;flex-wrap:wrap;padding:0.5rem 0.75rem;">
-        <span style="font-size:0.68rem;font-weight:800;letter-spacing:0.04em;color:var(--green);text-transform:uppercase;align-self:center;">Tips</span>
-        {% for tip in featured_free %}
-        <a href="{% url 'match_tips' 'free' tip.match.id %}" class="market-chip" style="text-decoration:none;">
-            {{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}: <strong>{{ tip.prediction }}</strong> @ {{ tip.odds }}
-        </a>
-        {% endfor %}
-        {% for tip in vip_teaser %}
-        <a href="{% url 'upgrade' %}" class="market-chip" style="text-decoration:none;border-color:var(--gold);">
-            {{ tip.match.home_team.short_name }} v {{ tip.match.away_team.short_name }}: <strong style="color:var(--gold);">VIP pick — unlock</strong>
-        </a>
-        {% endfor %}
+<div class="hero-band">
+    <div class="hero-copy">
+        <div class="hero-eyebrow">{% now "l, F j" %}</div>
+        <h1 class="hero-title">Today's Football Predictions</h1>
+        <p class="hero-sub">Data-driven tips across {{ league_groups|length }} league{{ league_groups|length|pluralize }} — {{ todays_matches|length }} fixture{{ todays_matches|length|pluralize }} today.</p>
+        <div class="hero-actions">
+            <a href="{% url 'tips_list' 'free' %}" class="btn btn-green">Free Tips</a>
+            <a href="{% url 'upgrade' %}" class="btn btn-outline-light">Go VIP</a>
+        </div>
     </div>
-</div>
-{% endif %}
 
-{% if banker %}
-<div class="banker-card">
-    <div>
-        <div class="banker-label">🔥 Banker of the Day</div>
-        <div class="banker-fixture">{{ banker.match.home_team }} vs {{ banker.match.away_team }}</div>
-        <div class="banker-sub">{{ banker.match.league.name }} — {{ banker.match.kickoff|date:"H:i" }}</div>
-    </div>
-    <div class="banker-pick">
-        {% if banker.tip_type == 'vip' and not is_vip %}
-            <a href="{% url 'upgrade' %}" class="btn btn-gold" style="font-size:0.85rem;">Unlock Pick</a>
-        {% else %}
-            <span class="prediction-tag {% if banker.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ banker.prediction }}</span>
-            <span style="margin-left:0.4rem;">@ {{ banker.odds }}</span>
-        {% endif %}
-        <div class="banker-confidence">{{ banker.confidence }}% model confidence</div>
-    </div>
+    {% if banker %}
+    <a href="{% url 'match_tips' banker.tip_type banker.match.id %}" class="hero-banker">
+        <div class="hero-banker-tag">🔥 Banker of the Day</div>
+        <div class="hero-banker-fixture">{{ banker.match.home_team }} <span>vs</span> {{ banker.match.away_team }}</div>
+        <div class="hero-banker-meta">{{ banker.match.league.name }} · {{ banker.match.kickoff|date:"H:i" }}</div>
+        <div class="hero-banker-cta">
+            View the pick
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </div>
+        <div class="hero-banker-confidence">{{ banker.confidence }}% model confidence</div>
+    </a>
+    {% endif %}
 </div>
-{% endif %}
 
 <div class="dash-grid">
 
