@@ -1,0 +1,72 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}VIP Accumulator — Matchday Pro{% endblock %}
+{% block meta_desc %}Today's VIP accumulator — 5 legs across multiple markets, each pick at 55% confidence or higher.{% endblock %}
+
+{% block content %}
+<div class="page-title">VIP Accumulator <span class="badge-vip" style="margin-left:0.5rem;">VIP</span></div>
+
+{% if legs %}
+<div class="results-summary">
+    <div class="results-stat">
+        <div class="stat-value">{{ legs|length }}</div>
+        <div class="stat-label">Legs</div>
+    </div>
+    <div class="results-stat">
+        <div class="stat-value">{{ combined_odds }}</div>
+        <div class="stat-label">Combined Odds</div>
+    </div>
+    <div class="results-stat">
+        <div class="stat-value">{{ combined_probability }}%</div>
+        <div class="stat-label">Combined Probability</div>
+    </div>
+</div>
+
+{% if not is_complete %}
+<p class="disclaimer" style="margin-bottom:1rem;">
+    Only {{ legs|length }} qualifying leg{{ legs|length|pluralize }} met the 55% confidence floor across today's fixtures — the accumulator will fill out as more picks come in.
+</p>
+{% endif %}
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Fixture</th>
+            <th>League</th>
+            <th>Market</th>
+            <th>Pick</th>
+            <th class="center">Confidence</th>
+            <th class="center">Odds</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for leg in legs %}
+        <tr>
+            <td class="match-teams">
+                <a href="{% url 'match_tips' leg.prediction.tip_type leg.prediction.match.id %}" style="color:var(--text);">
+                    {{ leg.prediction.match.home_team }} <span style="color:var(--text-muted);font-weight:600;">vs</span> {{ leg.prediction.match.away_team }}
+                </a>
+                <div class="match-time">{{ leg.prediction.match.kickoff|date:"D, H:i" }}</div>
+            </td>
+            <td>{{ leg.prediction.match.league.name }}</td>
+            <td><span class="market-chip">{{ leg.market_type|upper }}</span></td>
+            <td><span class="prediction-tag tag-amber">{{ leg.label }}</span></td>
+            <td class="center match-time">{{ leg.probability|floatformat:0 }}%</td>
+            <td class="center match-time">{{ leg.odds }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p class="disclaimer" style="margin-top:1.25rem;">
+    Each leg is independently at or above 55% model confidence, drawn from a mix of markets (1X2, BTTS, over/under,
+    corners, draw no bet) rather than a single market type. Combined odds and probability assume all legs are
+    independent, which is a simplification — accumulators carry more risk than single bets. 18+ Gamble responsibly.
+</p>
+{% else %}
+<div class="empty-cell" style="padding:3rem 1.5rem;">
+    <div class="empty-title">No accumulator available yet</div>
+    <div class="empty-sub">No fixtures today have a market at 55% confidence or higher. Check back once today's picks are posted.</div>
+</div>
+{% endif %}
+{% endblock %}

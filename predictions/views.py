@@ -153,6 +153,151 @@ def _vip_status(request):
         return False
 
 
+# Order controls diversity priority when building the accumulator: we try to
+# fill one leg from each market type before doubling back to any type, so a
+# 5-leg acca isn't just five 1X2 picks.
+ACCA_MARKET_ORDER = ["match_result", "btts", "over_under", "corners", "draw_no_bet"]
+ACCA_MIN_CONFIDENCE = 55
+
+
+def _acca_candidates_for_match(prediction):
+    """Given a Prediction with a populated `markets` JSON blob (from the
+    Bzzoiro import), return every market on that match that clears the
+    confidence floor, as (market_type, label, probability) tuples."""
+    markets = prediction.markets or {}
+    match = prediction.match
+    candidates = []
+
+    mr = markets.get("match_result") or {}
+    probs = {"H": mr.get("prob_home"), "D": mr.get("prob_draw"), "A": mr.get("prob_away")}
+    probs = {k: v for k, v in probs.items() if v is not None}
+    if probs:
+        side, prob = max(probs.items(), key=lambda kv: kv[1])
+        if prob >= ACCA_MIN_CONFIDENCE:
+            label = {"H": "Home Win", "D": "Draw", "A": "Away Win"}[side]
+            candidates.append(("match_result", label, prob))
+
+    btts = (markets.get("btts") or {}).get("prob_yes")
+    if btts is not None:
+        if btts >= ACCA_MIN_CONFIDENCE:
+            candidates.append(("btts", "BTTS: Yes", btts))
+        elif (100 - btts) >= ACCA_MIN_CONFIDENCE:
+            candidates.append(("btts", "BTTS: No", 100 - btts))
+
+    ou = markets.get("over_under") or {}
+    best_ou = None
+    for key, line in (("prob_over_15", "1.5"), ("prob_over_25", "2.5"), ("prob_over_35", "3.5")):
+        prob = ou.get(key)
+        if prob is not None and prob >= ACCA_MIN_CONFIDENCE:
+            if best_ou is None or prob > best_ou[2]:
+                best_ou = ("over_under", f"Over {line} Goals", prob)
+    if best_ou:
+        candidates.append(best_ou)
+
+    corners = markets.get("corners") or {}
+    best_corners = None
+    for key, line in (("prob_over_85", "8.5"), ("prob_over_95", "9.5"), ("prob_over_105", "10.5")):
+        prob = corners.get(key)
+        if prob is not None and prob >= ACCA_MIN_CONFIDENCE:
+            if best_corners is None or prob > best_corners[2]:
+                best_corners = ("corners", f"Corners Over {line}", prob)
+    if best_corners:
+        candidates.append(best_corners)
+
+    dnb = (markets.get("draw_no_bet") or {}).get("prob_home")
+    if dnb is not None:
+        if dnb >= ACCA_MIN_CONFIDENCE:
+            candidates.append(("draw_no_bet", f"Draw No Bet: {match.home_team}", dnb))
+        elif (100 - dnb) >= ACCA_MIN_CONFIDENCE:
+            candidates.append(("draw_no_bet", f"Draw No Bet: {match.away_team}", 100 - dnb))
+
+    return candidates
+
+
+def _build_accumulator(leg_count=5):
+    """Picks up to `leg_count` legs for today's VIP accumulator: one match
+    per leg, diversified across market types where possible, every leg at
+    or above ACCA_MIN_CONFIDENCE. Returns a list of dicts ready for the
+    template, plus combined odds/probability."""
+    today = timezone.localtime().date()
+    day_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+    day_end = day_start + timedelta(days=1)
+
+    predictions = (
+        Prediction.objects.filter(
+            source="bzzoiro",
+            match__kickoff__gte=day_start,
+            match__kickoff__lt=day_end,
+            match__status="scheduled",
+        )
+        .select_related("match", "match__league", "match__home_team", "match__away_team")
+    )
+
+    # market_type -> list of (prediction, market_type, label, prob), best first
+    by_type = {t: [] for t in ACCA_MARKET_ORDER}
+    for prediction in predictions:
+        for market_type, label, prob in _acca_candidates_for_match(prediction):
+            by_type.setdefault(market_type, []).append((prediction, market_type, label, prob))
+    for market_type in by_type:
+        by_type[market_type].sort(key=lambda row: -row[3])
+
+    legs = []
+    used_match_ids = set()
+
+    def try_take(market_type):
+        for prediction, m_type, label, prob in by_type.get(market_type, []):
+            if prediction.match_id not in used_match_ids:
+                used_match_ids.add(prediction.match_id)
+                legs.append({"prediction": prediction, "market_type": m_type, "label": label, "probability": prob})
+                return True
+        return False
+
+    # Pass 1: one leg per market type, in priority order, for diversity.
+    for market_type in ACCA_MARKET_ORDER:
+        if len(legs) >= leg_count:
+            break
+        try_take(market_type)
+
+    # Pass 2: if we still need more legs, cycle through the types again
+    # (a match can't be reused, but a market type can supply a 2nd leg).
+    guard = 0
+    while len(legs) < leg_count and guard < leg_count * len(ACCA_MARKET_ORDER):
+        guard += 1
+        progressed = False
+        for market_type in ACCA_MARKET_ORDER:
+            if len(legs) >= leg_count:
+                break
+            if try_take(market_type):
+                progressed = True
+        if not progressed:
+            break
+
+    combined_prob = 1.0
+    combined_odds = 1.0
+    for leg in legs:
+        combined_prob *= leg["probability"] / 100
+        implied_odds = 100 / leg["probability"]
+        leg["odds"] = round(implied_odds, 2)
+        combined_odds *= implied_odds
+
+    return {
+        "legs": legs,
+        "combined_odds": round(combined_odds, 2) if legs else None,
+        "combined_probability": round(combined_prob * 100) if legs else None,
+        "is_complete": len(legs) == leg_count,
+    }
+
+
+def accumulator(request):
+    is_vip = _vip_status(request)
+    if not is_vip:
+        messages.info(request, "The VIP Accumulator is a VIP-only feature. Upgrade to unlock it.")
+        return redirect("upgrade")
+
+    acca = _build_accumulator(leg_count=5)
+    return render(request, "predictions/accumulator.html", {**acca, "is_vip": is_vip})
+
+
 @never_cache
 def home(request):
     cache_key = "home_page_data"

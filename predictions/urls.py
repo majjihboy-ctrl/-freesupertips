@@ -7,6 +7,7 @@ urlpatterns = [
     path("tips/<str:tip_type>/match/<int:match_id>/", views.match_tips, name="match_tips"),
     path("tips/detail/<int:pk>/", views.tip_detail, name="tip_detail"),
     path("results/", views.results, name="results"),
+    path("accumulator/", views.accumulator, name="accumulator"),
     path("upgrade/", views.upgrade, name="upgrade"),
     path("upgrade/redeem/", views.redeem_vip_code, name="redeem_vip_code"),
     path("register/", views.register, name="register"),
