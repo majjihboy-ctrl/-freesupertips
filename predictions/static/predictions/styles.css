@@ -5,48 +5,48 @@
    manually per match (Match.win_prob_home/draw/away, pick,
    proj_home/away_score) — no automated model or external API involved.
    ========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
 :root {
-    /* Surfaces -- dark, layered slate rather than pure black */
-    --bg: #0a0f1a;
-    --bg-panel: #101825;
-    --bg-raised: #16202f;
-    --bg-inset: #0d1420;
-    --border: #233047;
-    --border-bright: #34435f;
+    /* Surfaces -- ink navy with a faint pitch-green tint, not neutral slate */
+    --bg: #0e1720;
+    --bg-panel: #131f1a;
+    --bg-raised: #182b23;
+    --bg-inset: #0b120e;
+    --border: #23302a;
+    --border-bright: #34493f;
 
     /* Text */
-    --text: #eef2f8;
-    --text-muted: #8994ab;
-    --text-faint: #5c6883;
+    --text: #ededE6;
+    --text-muted: #8791a1;
+    --text-faint: #5f6b63;
 
-    /* Brand */
-    --green: #22c55e;
-    --green-dim: #16a34a;
-    --green-bg: rgba(34, 197, 94, 0.12);
-    --gold: #f2b544;
-    --gold-bg: rgba(242, 181, 68, 0.12);
-    --blue: #4d9fef;
-    --blue-bg: rgba(77, 159, 239, 0.12);
-    --red: #f0554a;
-    --red-bg: rgba(240, 85, 74, 0.12);
+    /* Brand -- green marks free tips, gold marks VIP; both muted, no neon */
+    --green: #6fa98a;
+    --green-dim: #588f72;
+    --green-bg: rgba(111, 169, 138, 0.14);
+    --gold: #d98f2b;
+    --gold-bg: rgba(217, 143, 43, 0.14);
+    --blue: #6e93b8;
+    --blue-bg: rgba(110, 147, 184, 0.14);
+    --red: #b5533f;
+    --red-bg: rgba(181, 83, 63, 0.14);
 
-    --row-hover: #131c2b;
+    --row-hover: #172420;
 
-    --radius: 12px;
-    --radius-sm: 8px;
-    --radius-pill: 999px;
+    --radius: 4px;
+    --radius-sm: 3px;
+    --radius-pill: 4px;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.55);
+    --shadow-sm: none;
+    --shadow-md: 0 1px 0 rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
 
-    --ring: 0 0 0 3px rgba(34, 197, 94, 0.28);
+    --ring: 0 0 0 3px rgba(111, 169, 138, 0.28);
 
-    --font-display: "Space Grotesk", system-ui, sans-serif;
+    --font-display: "Fraunces", serif;
     --font-body: "Inter", system-ui, -apple-system, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
     /* Legacy aliases so older component rules below keep working */
     --amber: var(--gold);
@@ -59,7 +59,7 @@
     --header: var(--bg-panel);
     --header-text: var(--text);
     --header-bg: var(--bg-panel);
-    --gold-dark: #b9840a;
+    --gold-dark: #9c6a1e;
     --border-dark: var(--border-bright);
 }
 
@@ -766,7 +766,7 @@ input:focus-visible,
     border-radius: 50%;
     background: var(--bg-inset);
     border: 1px solid var(--border);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c6883' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6b63' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
 }
@@ -1027,7 +1027,7 @@ input:focus-visible,
     border-radius: 6px;
 }
 .confidence-note {
-    font-family: var(--font-sans);
+    font-family: var(--font-body);
     font-weight: 500;
     font-size: 0.68rem;
     color: var(--text-faint);
@@ -1139,8 +1139,8 @@ input:focus-visible,
 }
 .btn:active { transform: scale(0.98); }
 
-.btn-green { background: var(--green); color: #06210f; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-.btn-green:hover { background: #4ade80; color: #06210f; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(34,197,94,0.28); }
+.btn-green { background: var(--green); color: #06210f; }
+.btn-green:hover { background: #7fbd9c; color: #06210f; }
 
 .btn-outline-light {
     background: var(--bg-raised);
@@ -1149,8 +1149,8 @@ input:focus-visible,
 }
 .btn-outline-light:hover { background: var(--bg-panel); border-color: var(--green); transform: translateY(-1px); }
 
-.btn-gold { background: var(--gold); color: #241a00; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-.btn-gold:hover { background: #f8cd7c; color: #241a00; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(242,181,68,0.28); }
+.btn-gold { background: var(--gold); color: #241a00; }
+.btn-gold:hover { background: #e8a54f; color: #241a00; }
 
 .btn-outline {
     background: transparent;

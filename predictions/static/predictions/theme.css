@@ -10,76 +10,76 @@
 
 :root,
 [data-theme="dark"] {
-    --bg: #0a0f1a;
-    --bg-panel: #101825;
-    --bg-raised: #16202f;
-    --bg-inset: #0d1420;
-    --border: #233047;
-    --border-bright: #34435f;
+    --bg: #0e1720;
+    --bg-panel: #131f1a;
+    --bg-raised: #182b23;
+    --bg-inset: #0b120e;
+    --border: #23302a;
+    --border-bright: #34493f;
 
-    --text: #eef2f8;
-    --text-muted: #8994ab;
-    --text-faint: #5c6883;
+    --text: #ededE6;
+    --text-muted: #8791a1;
+    --text-faint: #5f6b63;
 
-    --green: #22c55e;
-    --green-dim: #16a34a;
-    --green-bg: rgba(34, 197, 94, 0.12);
-    --gold: #f2b544;
-    --gold-bg: rgba(242, 181, 68, 0.12);
-    --blue: #4d9fef;
-    --blue-bg: rgba(77, 159, 239, 0.12);
-    --red: #f0554a;
-    --red-bg: rgba(240, 85, 74, 0.12);
+    --green: #6fa98a;
+    --green-dim: #588f72;
+    --green-bg: rgba(111, 169, 138, 0.14);
+    --gold: #d98f2b;
+    --gold-bg: rgba(217, 143, 43, 0.14);
+    --blue: #6e93b8;
+    --blue-bg: rgba(110, 147, 184, 0.14);
+    --red: #b5533f;
+    --red-bg: rgba(181, 83, 63, 0.14);
 
-    --row-hover: #131c2b;
+    --row-hover: #172420;
 
     /* Previously hardcoded directly in styles.css (a:hover, .vip-link:hover,
        .subnav, .lock-cta) -- pulled out into variables so light mode can
        supply values that don't assume a dark page background. Dark values
        below match exactly what was hardcoded before, so dark mode is
        visually unchanged. */
-    --link-hover: #4ade80;
-    --gold-hover: #f8cd7c;
-    --overlay-bg: rgba(16, 24, 37, 0.7);
-    --scrim-bg: rgba(16, 24, 37, 0.35);
+    --link-hover: #8fc4a8;
+    --gold-hover: #e8a54f;
+    --overlay-bg: rgba(11, 18, 14, 0.7);
+    --scrim-bg: rgba(11, 18, 14, 0.35);
 
-    --alert-success-text: #4ade80;
-    --alert-error-text: #f87b71;
-    --alert-info-text: #7cb8f5;
+    --alert-success-text: #8fc4a8;
+    --alert-error-text: #d98d7f;
+    --alert-info-text: #a9c3dd;
 }
 
 [data-theme="light"] {
-    --bg: #f6f7f9;
-    --bg-panel: #ffffff;
-    --bg-raised: #eef1f5;
-    --bg-inset: #eef1f5;
-    --border: #dde3ec;
-    --border-bright: #c7d0dc;
+    --bg: #e9ece4;
+    --bg-panel: #f5f6f0;
+    --bg-raised: #dfe3d7;
+    --bg-inset: #dfe3d7;
+    --border: #cdd2c2;
+    --border-bright: #b7bda8;
 
-    --text: #10141c;
-    --text-muted: #56607a;
-    --text-faint: #7b869e;
+    --text: #14201a;
+    --text-muted: #565f56;
+    --text-faint: #7a8177;
 
-    --green: #16a34a;
-    --green-dim: #15803d;
-    --green-bg: rgba(22, 163, 74, 0.1);
-    --gold: #b45309;
-    --gold-bg: rgba(180, 83, 9, 0.1);
-    --blue: #2563eb;
-    --blue-bg: rgba(37, 99, 235, 0.1);
-    --red: #dc2626;
-    --red-bg: rgba(220, 38, 38, 0.1);
+    --green: #4c7f63;
+    --green-dim: #3a6a4f;
+    --green-bg: rgba(76, 127, 99, 0.1);
+    --gold: #a3661f;
+    --gold-bg: rgba(163, 102, 31, 0.1);
+    --blue: #3f6893;
+    --blue-bg: rgba(63, 104, 147, 0.1);
+    --red: #963f2d;
+    --red-bg: rgba(150, 63, 45, 0.1);
 
-    --row-hover: #f1f4f8;
+    --row-hover: #dfe3d7;
 
-    --link-hover: #15803d;
-    --gold-hover: #92400e;
-    --overlay-bg: rgba(255, 255, 255, 0.82);
-    --scrim-bg: rgba(255, 255, 255, 0.6);
+    --link-hover: #3a6a4f;
+    --gold-hover: #7d4e17;
+    --overlay-bg: rgba(251, 250, 245, 0.85);
+    --scrim-bg: rgba(251, 250, 245, 0.6);
 
-    --alert-success-text: #15803d;
-    --alert-error-text: #b91c1c;
-    --alert-info-text: #1d4ed8;
+    --alert-success-text: #3a6a4f;
+    --alert-error-text: #7d3121;
+    --alert-info-text: #2e4f70;
 }
 
 /* Buttons that use dark-on-brand text (--green, --gold, etc. as a
