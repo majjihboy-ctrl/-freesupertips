@@ -1,9 +1,9 @@
 {% extends "predictions/base.html" %}
 
 {% block title %}{{ prediction.match }} — Matchday Pro{% endblock %}
-{% block meta_desc %}{% if prediction.tip_type == 'free' and not user.is_authenticated %}Free prediction for {{ prediction.match }} — log in to view — Matchday Pro.{% else %}{{ prediction.prediction }} prediction for {{ prediction.match }} — Matchday Pro.{% endif %}{% endblock %}
+{% block meta_desc %}{{ prediction.prediction }} prediction for {{ prediction.match }} — Matchday Pro.{% endblock %}
 {% block og_title %}{{ prediction.match }} — Matchday Pro{% endblock %}
-{% block og_desc %}{% if prediction.tip_type == 'free' and not user.is_authenticated %}Free prediction for {{ prediction.match }} — log in to view — Matchday Pro{% else %}{{ prediction.prediction }} @ {{ prediction.odds }} — Matchday Pro{% endif %}{% endblock %}
+{% block og_desc %}{{ prediction.prediction }} @ {{ prediction.odds }} — Matchday Pro{% endblock %}
 
 {% block schema %}
 <script type="application/ld+json">
@@ -39,36 +39,20 @@
                 <div class="leg-info">
                     <div class="leg-fixture-name">{{ prediction.match.home_team }} vs {{ prediction.match.away_team }}</div>
                 </div>
-                {% if prediction.tip_type == 'free' and not user.is_authenticated %}
-                <div class="leg-odds"></div>
-                {% else %}
                 <div class="leg-odds" style="font-size:1.3rem;">
                     <span class="prediction-tag {% if prediction.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ prediction.prediction }}</span>
                     <span style="margin-left:0.5rem;">@ {{ prediction.odds }}</span>
                 </div>
-                {% endif %}
             </div>
 
-            {% if prediction.tip_type == 'free' and not user.is_authenticated %}
-            <div class="locked-tip-card">
-                <div class="locked-tip-icon">🔒</div>
-                <p class="locked-tip-text">Log in or create a free account to view this tip.</p>
-                <div class="locked-tip-actions">
-                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-green">Log In</a>
-                    <a href="{% url 'register' %}?next={{ request.path }}" class="btn btn-outline">Create Account</a>
-                </div>
-            </div>
-            {% else %}
             <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
                 <button onclick="copyTip()" class="btn btn-outline" style="font-size:0.85rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px;"><rect x="8" y="4" width="12" height="16" rx="1.5"/><path d="M8 8H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3"/></svg> Copy Tip</button>
                 <span id="copy-feedback" style="font-size:0.8rem;color:var(--green);margin-left:0.5rem;opacity:0;transition:opacity 0.3s;">Copied!</span>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
-{% if not prediction.tip_type == 'free' or user.is_authenticated %}
 <script>
 function copyTip() {
     const text = `{{ prediction.match|escapejs }}\n{{ prediction.prediction|escapejs }} @ {{ prediction.odds }}\n\nvia Matchday Pro`;
@@ -79,5 +63,4 @@ function copyTip() {
     });
 }
 </script>
-{% endif %}
 {% endblock %}

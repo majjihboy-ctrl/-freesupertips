@@ -26,10 +26,10 @@
         (function () {
             try {
                 var stored = localStorage.getItem('theme');
-                var theme = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                var theme = stored || 'light';
                 document.documentElement.setAttribute('data-theme', theme);
             } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-theme', 'light');
             }
         })();
     </script>
@@ -149,11 +149,11 @@
         function applyThemeColor(theme) {
             if (meta) meta.setAttribute('content', THEME_COLORS[theme] || THEME_COLORS.dark);
         }
-        applyThemeColor(document.documentElement.getAttribute('data-theme') || 'dark');
+        applyThemeColor(document.documentElement.getAttribute('data-theme') || 'light');
 
         if (btn) {
             btn.addEventListener('click', function () {
-                var current = document.documentElement.getAttribute('data-theme') || 'dark';
+                var current = document.documentElement.getAttribute('data-theme') || 'light';
                 var next = current === 'dark' ? 'light' : 'dark';
                 document.documentElement.setAttribute('data-theme', next);
                 applyThemeColor(next);

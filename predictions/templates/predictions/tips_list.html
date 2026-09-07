@@ -31,8 +31,7 @@
     </thead>
     <tbody>
         {% for fixture in fixtures %}
-        <tr class="{% if tip_type == 'free' and not user.is_authenticated %}clickable-row{% endif %}"
-            {% if tip_type == 'free' and not user.is_authenticated %}data-href="{% url 'login' %}?next={{ request.path }}"{% endif %}>
+        <tr>
             <td class="match-time">{{ fixture.match.kickoff|date:"H:i" }}</td>
             <td>
                 <div class="league-cell">
@@ -48,11 +47,6 @@
                 <a href="{% url 'match_tips' tip_type fixture.match.id %}" class="more-tips-link">+{{ fixture.tips_count|add:"-1" }} more</a>
                 {% endif %}
             </td>
-            {% if tip_type == 'free' and not user.is_authenticated %}
-            <td colspan="5" class="center">
-                <span class="locked-inline">🔒 <a href="{% url 'login' %}?next={{ request.path }}">Login to view</a></span>
-            </td>
-            {% else %}
             <td>
                 <span class="prediction-tag {% if fixture.top_tip.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">
                     {{ fixture.top_tip.prediction }}
@@ -65,7 +59,6 @@
             <td class="center match-time">{{ fixture.top_tip.markets.score.most_likely|default:"—" }}</td>
             <td class="center match-time">{% if fixture.top_tip.markets.btts.prob_yes %}{{ fixture.top_tip.markets.btts.prob_yes|floatformat:0 }}%{% else %}—{% endif %}</td>
             <td class="center match-time">{% if fixture.top_tip.markets.over_under.prob_over_25 %}{{ fixture.top_tip.markets.over_under.prob_over_25|floatformat:0 }}%{% else %}—{% endif %}</td>
-            {% endif %}
         </tr>
         {% empty %}
             <tr>
