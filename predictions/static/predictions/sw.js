@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matchday-v2';
+const CACHE_NAME = 'matchday-v3';
 // '/' is intentionally excluded: it renders per-user content (login
 // state, VIP badge), so it must never be served from a stale cache.
 const urlsToCache = [
@@ -50,12 +50,24 @@ self.addEventListener('fetch', function(event) {
         return;
     }
     event.respondWith(
-        caches.match(event.request).then(function(response) {
-            return response || fetch(event.request).catch(function() {
-                // Static asset unavailable from cache or network -- let the
-                // browser handle the missing resource rather than throwing
-                // an uncaught rejection inside the service worker.
-                return new Response('', { status: 504, statusText: 'Network error' });
+        caches.open(CACHE_NAME).then(function(cache) {
+            return cache.match(event.request).then(function(cached) {
+                // Always refresh the cache in the background, even when we
+                // have a cached copy to serve immediately. This is what
+                // keeps static assets from going permanently stale after a
+                // deploy -- previously, a cache hit meant the network was
+                // never touched again until CACHE_NAME changed by hand.
+                var networkUpdate = fetch(event.request).then(function(response) {
+                    if (response && response.ok) {
+                        cache.put(event.request, response.clone());
+                    }
+                    return response;
+                }).catch(function() {
+                    // Network unavailable -- fall back to whatever's cached,
+                    // or a clean 504 rather than an uncaught rejection.
+                    return cached || new Response('', { status: 504, statusText: 'Network error' });
+                });
+                return cached || networkUpdate;
             });
         })
     );
