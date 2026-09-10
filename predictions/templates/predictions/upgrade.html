@@ -33,6 +33,10 @@
             <div class="alert alert-success" style="justify-content:center;font-weight:700;">
                 ✓ You are already a VIP member until {{ user.profile.vip_expires_at|date:"F d, Y" }}.
             </div>
+        {% elif user.is_staff %}
+            <div class="alert alert-success" style="justify-content:center;font-weight:700;">
+                ✓ You have full VIP access as an admin.
+            </div>
         {% else %}
             {% if whatsapp_url %}
                 <a href="{{ whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-gold" style="padding:0.9rem 2.5rem;font-size:1rem;">

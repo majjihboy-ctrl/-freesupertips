@@ -146,6 +146,8 @@ def cron_import_bzzoiro(request):
 def _vip_status(request):
     if not request.user.is_authenticated:
         return False
+    if request.user.is_staff:
+        return True
     try:
         return request.user.profile.is_vip_active
     except Profile.DoesNotExist:

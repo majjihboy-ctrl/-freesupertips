@@ -46,7 +46,7 @@
             <a href="{% url 'tips_list' 'free' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'free' %}active{% endif %}">Free Tips</a>
             <a href="{% url 'results' %}" class="{% if request.resolver_match.url_name == 'results' %}active{% endif %}">Results</a>
             <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %} vip-link">Accumulator</a>
-            {% if user.is_authenticated and user.profile.is_vip_active %}
+            {% if user.is_authenticated and user.profile.is_vip_active or user.is_staff %}
                 <a href="{% url 'tips_list' 'vip' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'vip' %}active{% endif %}">VIP</a>
             {% else %}
                 <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
@@ -64,7 +64,7 @@
                 <a href="/admin/" style="color:var(--gold);font-size:0.85rem;font-weight:600;">Admin</a>
             {% endif %}
             {% if user.is_authenticated %}
-                {% if user.profile.is_vip_active %}<span class="badge-vip">VIP</span>{% endif %}
+                {% if user.profile.is_vip_active or user.is_staff %}<span class="badge-vip">VIP</span>{% endif %}
                 <span>{{ user.username }}</span>
                 <a href="{% url 'password_change' %}" style="color:rgba(255,255,255,0.6);font-size:0.8rem;">Change Password</a>
                 <form method="post" action="{% url 'logout' %}" style="display:inline;">
@@ -81,7 +81,7 @@
         <a href="{% url 'tips_list' 'free' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'free' %}active{% endif %}">Free Tips</a>
         <a href="{% url 'results' %}" class="{% if request.resolver_match.url_name == 'results' %}active{% endif %}">Results</a>
         <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %} vip-link">Accumulator</a>
-        {% if user.is_authenticated and user.profile.is_vip_active %}
+        {% if user.is_authenticated and user.profile.is_vip_active or user.is_staff %}
             <a href="{% url 'tips_list' 'vip' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'vip' %}active{% endif %}">VIP</a>
         {% else %}
             <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
