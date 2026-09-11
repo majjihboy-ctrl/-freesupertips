@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from django_ratelimit.decorators import ratelimit
 
 from .models import Prediction, Profile, Match, VIPCode
+from .market_picks import extract_market_candidates
 from .forms import CustomUserCreationForm
 
 import logging
@@ -166,54 +167,10 @@ def _acca_candidates_for_match(prediction):
     """Given a Prediction with a populated `markets` JSON blob (from the
     Bzzoiro import), return every market on that match that clears the
     confidence floor, as (market_type, label, probability) tuples."""
-    markets = prediction.markets or {}
-    match = prediction.match
-    candidates = []
-
-    mr = markets.get("match_result") or {}
-    probs = {"H": mr.get("prob_home"), "D": mr.get("prob_draw"), "A": mr.get("prob_away")}
-    probs = {k: v for k, v in probs.items() if v is not None}
-    if probs:
-        side, prob = max(probs.items(), key=lambda kv: kv[1])
-        if prob >= ACCA_MIN_CONFIDENCE:
-            label = {"H": "Home Win", "D": "Draw", "A": "Away Win"}[side]
-            candidates.append(("match_result", label, prob))
-
-    btts = (markets.get("btts") or {}).get("prob_yes")
-    if btts is not None:
-        if btts >= ACCA_MIN_CONFIDENCE:
-            candidates.append(("btts", "BTTS: Yes", btts))
-        elif (100 - btts) >= ACCA_MIN_CONFIDENCE:
-            candidates.append(("btts", "BTTS: No", 100 - btts))
-
-    ou = markets.get("over_under") or {}
-    best_ou = None
-    for key, line in (("prob_over_15", "1.5"), ("prob_over_25", "2.5"), ("prob_over_35", "3.5")):
-        prob = ou.get(key)
-        if prob is not None and prob >= ACCA_MIN_CONFIDENCE:
-            if best_ou is None or prob > best_ou[2]:
-                best_ou = ("over_under", f"Over {line} Goals", prob)
-    if best_ou:
-        candidates.append(best_ou)
-
-    corners = markets.get("corners") or {}
-    best_corners = None
-    for key, line in (("prob_over_85", "8.5"), ("prob_over_95", "9.5"), ("prob_over_105", "10.5")):
-        prob = corners.get(key)
-        if prob is not None and prob >= ACCA_MIN_CONFIDENCE:
-            if best_corners is None or prob > best_corners[2]:
-                best_corners = ("corners", f"Corners Over {line}", prob)
-    if best_corners:
-        candidates.append(best_corners)
-
-    dnb = (markets.get("draw_no_bet") or {}).get("prob_home")
-    if dnb is not None:
-        if dnb >= ACCA_MIN_CONFIDENCE:
-            candidates.append(("draw_no_bet", f"Draw No Bet: {match.home_team}", dnb))
-        elif (100 - dnb) >= ACCA_MIN_CONFIDENCE:
-            candidates.append(("draw_no_bet", f"Draw No Bet: {match.away_team}", 100 - dnb))
-
-    return candidates
+    candidates = extract_market_candidates(
+        prediction.markets, prediction.match.home_team, prediction.match.away_team
+    )
+    return [c for c in candidates if c[2] >= ACCA_MIN_CONFIDENCE]
 
 
 def _build_accumulator(leg_count=5):

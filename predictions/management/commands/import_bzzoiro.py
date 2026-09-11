@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from predictions.models import League, Team, Match, Prediction
+from predictions.market_picks import best_market_candidate
 
 API_BASE = "https://sports.bzzoiro.com/api/v2"
 
@@ -26,8 +27,6 @@ STATUS_MAP = {
 # these -- but the Match itself (status, and later its score) still needs
 # to stay in sync, for the results/accuracy history page.
 SKIP_PREDICTION_STATUSES = {"finished", "cancelled"}
-
-PICK_LABELS = {"H": "Home Win", "D": "Draw", "A": "Away Win"}
 
 
 def _short_name(name):
@@ -273,28 +272,25 @@ class Command(BaseCommand):
                 continue
 
             markets = row.get("markets") or {}
-            match_result = markets.get("match_result") or {}
-            model_info = row.get("model") or {}
-            predicted = match_result.get("predicted")
-            if not predicted or model_info.get("confidence") is None:
+            best = best_market_candidate(markets, event.get("home_team", ""), event.get("away_team", ""))
+            if best is None:
                 continue
+            market_type, prediction_text, probability = best
 
             match = match_by_event_id[eid]
             if not match.id:
                 continue
 
-            confidence_pct = int(
-                (Decimal(str(model_info["confidence"])) * 100).to_integral_value(ROUND_HALF_UP)
-            )
-            prob_for_pick = {"H": match_result.get("prob_home"),
-                              "D": match_result.get("prob_draw"),
-                              "A": match_result.get("prob_away")}.get(predicted)
-            implied_odds = Decimal("1.01")
-            if prob_for_pick:
-                implied_odds = (Decimal("100") / Decimal(str(prob_for_pick))).quantize(Decimal("0.01"))
+            # Market probabilities from Bzzoiro are already 0-100 (e.g.
+            # prob_home: 65.0), unlike the old match_result-only code path
+            # which multiplied a separate 0-1 "model.confidence" field by
+            # 100. Using the winning candidate's own probability keeps the
+            # displayed confidence and the free/VIP split consistent with
+            # whichever market actually got picked.
+            confidence_pct = int(Decimal(str(probability)).to_integral_value(ROUND_HALF_UP))
+            implied_odds = (Decimal("100") / Decimal(str(probability))).quantize(Decimal("0.01")) if probability else Decimal("1.01")
 
             tip_type = "vip" if confidence_pct >= vip_threshold else "free"
-            prediction_text = PICK_LABELS.get(predicted, predicted)
 
             existing = existing_predictions.get(match.id)
             if existing:
