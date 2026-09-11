@@ -1,4 +1,5 @@
 from urllib.parse import quote
+import re
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -427,11 +428,56 @@ def tip_detail(request, pk):
     })
 
 
+def _grade_prediction(prediction, home_score, away_score):
+    """Returns (actual_result_label, was_hit) for a finished match, graded
+    according to the prediction's own market_type -- a BTTS pick and a
+    match_result pick need different logic to know what "correct" means."""
+    market_type = prediction.market_type or "match_result"
+    home_team = prediction.match.home_team
+    away_team = prediction.match.away_team
+
+    if market_type == "btts":
+        actual = "BTTS: Yes" if (home_score > 0 and away_score > 0) else "BTTS: No"
+        return actual, prediction.prediction == actual
+
+    if market_type == "over_under":
+        # prediction text is always "Over X Goals" (see market_picks.py --
+        # we only ever generate Over candidates, never Under).
+        match_line = re.search(r"Over ([\d.]+) Goals", prediction.prediction)
+        if not match_line:
+            return "—", None
+        line = float(match_line.group(1))
+        total_goals = home_score + away_score
+        actual = f"{total_goals} goals"
+        return actual, total_goals > line
+
+    if market_type == "draw_no_bet":
+        if home_score == away_score:
+            return "Draw (push)", None  # neither a hit nor a miss -- stake refunded in real DNB betting
+        winner = str(home_team) if home_score > away_score else str(away_team)
+        actual = f"Draw No Bet: {winner}"
+        return actual, prediction.prediction == actual
+
+    if market_type == "corners":
+        # We don't store final corner counts anywhere, so there's no ground
+        # truth to grade this against.
+        return "Not tracked", None
+
+    # match_result (the default/fallback)
+    if home_score > away_score:
+        actual = "Home Win"
+    elif home_score < away_score:
+        actual = "Away Win"
+    else:
+        actual = "Draw"
+    return actual, prediction.prediction == actual
+
+
 def results(request):
     """Public accuracy history: our last N days of model-sourced picks on
-    finished matches, marked hit/miss. Manual predictions aren't included
-    since we don't have a structured way to score arbitrary tip text
-    against a final score."""
+    finished matches, marked hit/miss according to each pick's own market
+    type. Manual predictions aren't included since we don't have a
+    structured way to score arbitrary tip text against a final score."""
     lookback_days = 14
     since = timezone.now() - timedelta(days=lookback_days)
 
@@ -443,23 +489,21 @@ def results(request):
             match__home_score__isnull=False,
             match__away_score__isnull=False,
         )
+        .exclude(market_type="corners")  # no stored ground truth to grade against
         .select_related("match", "match__league", "match__home_team", "match__away_team")
         .order_by("-match__kickoff")[:200]
     )
 
     for p in predictions:
-        home, away = p.match.home_score, p.match.away_score
-        if home > away:
-            actual = "Home Win"
-        elif home < away:
-            actual = "Away Win"
-        else:
-            actual = "Draw"
+        actual, was_hit = _grade_prediction(p, p.match.home_score, p.match.away_score)
         p.actual_result = actual
-        p.was_hit = (p.prediction == actual)
+        p.was_hit = was_hit
 
-    hits = sum(1 for p in predictions if p.was_hit)
-    total = len(predictions)
+    # "push" results (was_hit is None, e.g. a Draw No Bet on an actual draw)
+    # don't count toward the hit rate either way.
+    gradeable = [p for p in predictions if p.was_hit is not None]
+    hits = sum(1 for p in gradeable if p.was_hit)
+    total = len(gradeable)
     hit_rate = round((hits / total) * 100) if total else None
 
     return render(request, "predictions/results.html", {

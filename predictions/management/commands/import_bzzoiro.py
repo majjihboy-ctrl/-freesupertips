@@ -299,11 +299,12 @@ class Command(BaseCommand):
                 existing.odds = implied_odds
                 existing.confidence = confidence_pct
                 existing.markets = markets
+                existing.market_type = market_type
                 preds_to_update.append(existing)
             else:
                 preds_to_create.append(Prediction(
                     match=match, source="bzzoiro", tip_type=tip_type, prediction=prediction_text,
-                    odds=implied_odds, confidence=confidence_pct, markets=markets,
+                    odds=implied_odds, confidence=confidence_pct, markets=markets, market_type=market_type,
                 ))
 
         created_predictions = len(preds_to_create)
@@ -312,7 +313,7 @@ class Command(BaseCommand):
             Prediction.objects.bulk_create(preds_to_create, ignore_conflicts=True)
         if preds_to_update:
             Prediction.objects.bulk_update(
-                preds_to_update, ["tip_type", "prediction", "odds", "confidence", "markets"]
+                preds_to_update, ["tip_type", "prediction", "odds", "confidence", "markets", "market_type"]
             )
 
         # ---- Pass 4: refresh richer per-fixture detail + finished scores ----

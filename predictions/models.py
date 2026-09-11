@@ -154,6 +154,11 @@ class Prediction(models.Model):
         help_text="Model win-probability percentage (0-100), only set for auto-imported picks.",
     )
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default="manual")
+    market_type = models.CharField(
+        max_length=20, blank=True, default="match_result",
+        help_text="Which market this pick is from (match_result, btts, over_under, corners, "
+                   "draw_no_bet) -- used to grade hit/miss correctly on the Results page.",
+    )
     markets = models.JSONField(
         null=True, blank=True,
         help_text="Extra market breakdown (BTTS %, over/under %, correct score, expected goals) "

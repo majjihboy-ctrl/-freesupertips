@@ -43,10 +43,12 @@
             <td>{{ prediction.prediction }}</td>
             <td class="match-time">{{ prediction.match.home_score }}–{{ prediction.match.away_score }}</td>
             <td class="center">
-                {% if prediction.was_hit %}
+                {% if prediction.was_hit == True %}
                     <span class="result-badge hit">HIT</span>
-                {% else %}
+                {% elif prediction.was_hit == False %}
                     <span class="result-badge miss">MISS</span>
+                {% else %}
+                    <span class="result-badge">PUSH</span>
                 {% endif %}
             </td>
         </tr>
