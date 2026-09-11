@@ -60,11 +60,6 @@ class Command(BaseCommand):
             "--results-days-back", type=int, default=2,
             help="How many days back to check for finished-match scores. Default 2.",
         )
-        parser.add_argument(
-            "--vip-threshold", type=int, default=60,
-            help="Model confidence %% (0-100) at or above which a pick is tagged VIP "
-                 "instead of Free. Default 60.",
-        )
 
     def _paginated_get(self, session, url, params):
         while url:
@@ -179,7 +174,6 @@ class Command(BaseCommand):
         today = timezone.localtime().date()
         date_from = today
         date_to = today + timedelta(days=options["days"])
-        vip_threshold = options["vip_threshold"]
 
         session = requests.Session()
         session.headers.update({"Authorization": f"Token {api_key}"})
@@ -290,7 +284,9 @@ class Command(BaseCommand):
             confidence_pct = int(Decimal(str(probability)).to_integral_value(ROUND_HALF_UP))
             implied_odds = (Decimal("100") / Decimal(str(probability))).quantize(Decimal("0.01")) if probability else Decimal("1.01")
 
-            tip_type = "vip" if confidence_pct >= vip_threshold else "free"
+            # All single-match tips are free now -- VIP is exclusively the
+            # Accumulator feature, not a tier of individual picks.
+            tip_type = "free"
 
             existing = existing_predictions.get(match.id)
             if existing:

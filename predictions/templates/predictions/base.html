@@ -46,9 +46,7 @@
             <a href="{% url 'tips_list' 'free' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'free' %}active{% endif %}">Free Tips</a>
             <a href="{% url 'results' %}" class="{% if request.resolver_match.url_name == 'results' %}active{% endif %}">Results</a>
             <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %} vip-link">Accumulator</a>
-            {% if user.is_authenticated and user.profile.is_vip_active or user.is_staff %}
-                <a href="{% url 'tips_list' 'vip' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'vip' %}active{% endif %}">VIP</a>
-            {% else %}
+            {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
                 <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
             {% endif %}
         </nav>
@@ -81,9 +79,7 @@
         <a href="{% url 'tips_list' 'free' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'free' %}active{% endif %}">Free Tips</a>
         <a href="{% url 'results' %}" class="{% if request.resolver_match.url_name == 'results' %}active{% endif %}">Results</a>
         <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %} vip-link">Accumulator</a>
-        {% if user.is_authenticated and user.profile.is_vip_active or user.is_staff %}
-            <a href="{% url 'tips_list' 'vip' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'vip' %}active{% endif %}">VIP</a>
-        {% else %}
+        {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
             <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
         {% endif %}
         {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
