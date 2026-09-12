@@ -325,6 +325,37 @@ _DAY_OFFSETS = {"today": 0, "tomorrow": 1, "day_after": 2}
 _DAY_LABELS = {0: "Today", 1: "Tomorrow"}
 
 
+MARKET_TABS = [
+    ("all", "All Markets"),
+    ("match_result", "1X2"),
+    ("btts", "BTTS"),
+    ("over_under", "Over/Under"),
+    ("corners", "Corners"),
+    ("draw_no_bet", "Draw No Bet"),
+    ("score", "Correct Score"),
+]
+
+
+def _market_pick_for(prediction, market_type):
+    """Re-derives the pick for one specific market family from a
+    Prediction's stored `markets` JSON, instead of whichever market was
+    globally best for that match. Returns (label, probability, odds) or
+    None if that match has no data for this market."""
+    if market_type == "score":
+        line = (prediction.markets or {}).get("score", {}).get("most_likely")
+        return (f"Correct Score: {line}", None, None) if line else None
+
+    candidates = extract_market_candidates(
+        prediction.markets, prediction.match.home_team, prediction.match.away_team
+    )
+    match = next((c for c in candidates if c[0] == market_type), None)
+    if not match:
+        return None
+    _, label, probability = match
+    odds = round(100 / probability, 2) if probability else None
+    return (label, probability, odds)
+
+
 def tips_list(request, tip_type):
     if tip_type not in ("free", "vip"):
         return redirect("home")
@@ -338,20 +369,32 @@ def tips_list(request, tip_type):
         day_param = "today"
     offset = _DAY_OFFSETS[day_param]
 
+    market_param = request.GET.get("market", "all")
+    if market_param not in dict(MARKET_TABS):
+        market_param = "all"
+
     today = timezone.localdate()
     active_date = today + timedelta(days=offset)
     active_day_label = _DAY_LABELS.get(offset, active_date.strftime("%A"))
 
     day_tabs = [
         {
-            "url": f"{reverse('tips_list', args=[tip_type])}?day={key}",
+            "url": f"{reverse('tips_list', args=[tip_type])}?day={key}&market={market_param}",
             "label": _DAY_LABELS.get(off, (today + timedelta(days=off)).strftime("%a %d")),
             "active": key == day_param,
         }
         for key, off in _DAY_OFFSETS.items()
     ]
+    market_tabs = [
+        {
+            "url": f"{reverse('tips_list', args=[tip_type])}?day={day_param}&market={key}",
+            "label": label,
+            "active": key == market_param,
+        }
+        for key, label in MARKET_TABS
+    ]
 
-    cache_key = f"predictions_list_v2_{tip_type}_{day_param}"
+    cache_key = f"predictions_list_v3_{tip_type}_{day_param}_{market_param}"
     fixtures = cache.get(cache_key)
     if fixtures is None:
         day_start = timezone.make_aware(datetime.combine(active_date, datetime.min.time()))
@@ -373,8 +416,22 @@ def tips_list(request, tip_type):
         fixtures = []
         for match in matches:
             tips = match.matching_tips
-            if tips:
-                fixtures.append({"match": match, "top_tip": tips[0], "tips_count": len(tips)})
+            if not tips:
+                continue
+            top_tip = tips[0]
+            if market_param == "all":
+                fixtures.append({"match": match, "top_tip": top_tip, "tips_count": len(tips)})
+                continue
+            picked = _market_pick_for(top_tip, market_param)
+            if picked is None:
+                continue  # this match has no data for the selected market -- not a "low score" exclusion, just missing data
+            label, probability, odds = picked
+            fixtures.append({
+                "match": match,
+                "top_tip": top_tip,
+                "tips_count": len(tips),
+                "market_override": {"label": label, "probability": probability, "odds": odds},
+            })
 
         cache.set(cache_key, fixtures, 120)
 
@@ -382,6 +439,8 @@ def tips_list(request, tip_type):
         "fixtures": fixtures,
         "tip_type": tip_type,
         "day_tabs": day_tabs,
+        "market_tabs": market_tabs,
+        "market_param": market_param,
         "active_date": active_date,
         "active_day_label": active_day_label,
         "is_vip": _vip_status(request),

@@ -16,6 +16,17 @@
     </div>
 </div>
 
+<div class="day-tabs-wrap">
+    <div class="day-tabs" role="tablist" aria-label="Filter tips by market">
+        {% for tab in market_tabs %}
+        <a href="{{ tab.url }}"
+           class="day-tab{% if tab.active %} is-active{% endif %}"
+           role="tab"
+           aria-selected="{% if tab.active %}true{% else %}false{% endif %}">{{ tab.label }}</a>
+        {% endfor %}
+    </div>
+</div>
+
 <table class="data-table dense-tips-table">
     <thead>
         <tr>
@@ -47,6 +58,17 @@
                 <a href="{% url 'match_tips' tip_type fixture.match.id %}" class="more-tips-link">+{{ fixture.tips_count|add:"-1" }} more</a>
                 {% endif %}
             </td>
+            {% if fixture.market_override %}
+            <td>
+                <span class="prediction-tag {% if fixture.top_tip.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">
+                    {{ fixture.market_override.label }}
+                </span>
+                {% if fixture.market_override.probability %}
+                <div class="confidence-note">{{ fixture.market_override.probability|floatformat:0 }}%</div>
+                {% endif %}
+            </td>
+            <td class="center match-time">{{ fixture.market_override.odds|default:"—" }}</td>
+            {% else %}
             <td>
                 <span class="prediction-tag {% if fixture.top_tip.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">
                     {{ fixture.top_tip.prediction }}
@@ -56,6 +78,7 @@
                 {% endif %}
             </td>
             <td class="center match-time">{{ fixture.top_tip.odds }}</td>
+            {% endif %}
             <td class="center match-time">{{ fixture.top_tip.markets.score.most_likely|default:"—" }}</td>
             <td class="center match-time">{% if fixture.top_tip.markets.btts.prob_yes %}{{ fixture.top_tip.markets.btts.prob_yes|floatformat:0 }}%{% else %}—{% endif %}</td>
             <td class="center match-time">{% if fixture.top_tip.markets.over_under.prob_over_25 %}{{ fixture.top_tip.markets.over_under.prob_over_25|floatformat:0 }}%{% else %}—{% endif %}</td>
@@ -64,7 +87,13 @@
             <tr>
                 <td colspan="8" class="empty-cell">
                     <div class="empty-title">No {{ tip_type }} tips for {{ active_day_label|lower }}</div>
-                    <div class="empty-sub">Try another day using the tabs above, or check back once picks are posted.</div>
+                    <div class="empty-sub">
+                        {% if market_param != 'all' %}
+                            No matches have data for this market today — try "All Markets" or another day.
+                        {% else %}
+                            Try another day using the tabs above, or check back once picks are posted.
+                        {% endif %}
+                    </div>
                 </td>
             </tr>
         {% endfor %}
