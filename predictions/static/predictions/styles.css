@@ -142,7 +142,7 @@ input:focus-visible,
     letter-spacing: -0.01em;
 }
 .logo::before {
-    content: "MP";
+    content: "MD";
     width: 30px;
     height: 30px;
     border-radius: 8px;
@@ -154,12 +154,31 @@ input:focus-visible,
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0;
+    animation: logo-badge-pulse 3s ease-in-out infinite;
 }
 .logo span {
-    color: var(--green);
+    background: linear-gradient(90deg, var(--green) 0%, var(--gold) 25%, var(--green) 50%, var(--gold) 75%, var(--green) 100%);
+    background-size: 220% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--green); /* fallback for browsers without background-clip: text support */
+    animation: logo-shimmer 5s linear infinite;
 }
 .logo:hover {
     color: var(--text);
+}
+@keyframes logo-shimmer {
+    to { background-position: -220% center; }
+}
+@keyframes logo-badge-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--green-bg); }
+    50% { transform: scale(1.08); box-shadow: 0 0 0 4px var(--green-bg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .logo::before, .logo span {
+        animation: none;
+    }
 }
 
 .header-nav {
