@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Style Guide - Matchday Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #236b45 0%, #17352a 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #236b45;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            border-bottom: 3px solid #c19143;
+            padding-bottom: 0.5rem;
+        }
+
+        .section h3 {
+            color: #17352a;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* DEMO COMPONENTS */
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        /* Team Logo Demo */
+        .team-card {
+            background: linear-gradient(135deg, #f8f8f8 0%, #efefef 100%);
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(35, 107, 69, 0.2);
+            border-color: #236b45;
+        }
+
+        .team-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #236b45, #2e8a5a);
+            border-radius: 8px;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            box-shadow: 0 4px 12px rgba(35, 107, 69, 0.3);
+        }
+
+        .team-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #17352a;
+            margin-bottom: 0.3rem;
+        }
+
+        .team-badge {
+            display: inline-block;
+            background: #e8f4ed;
+            color: #236b45;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Match Card Demo */
+        .match-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .match-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            border-color: #c19143;
+        }
+
+        .match-banner {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #236b45 0%, #2e8a5a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            color: white;
+            font-size: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .match-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(193,145,67,0.1), transparent 50%);
+            pointer-events: none;
+        }
+
+        .match-banner .team {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .match-banner .vs {
+            position: relative;
+            z-index: 1;
+            font-size: 1rem;
+            opacity: 0.8;
+            font-weight: 600;
+        }
+
+        .match-content {
+            padding: 1.5rem;
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .match-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .match-time {
+            background: #f0f0f0;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #17352a;
+        }
+
+        /* Prediction Badge Styles */
+        .badges-demo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .prediction-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .badge-green {
+            background: #e8f4ed;
+            color: #236b45;
+            border-left: 4px solid #2e8a5a;
+        }
+
+        .badge-amber {
+            background: #fef3e6;
+            color: #c19143;
+            border-left: 4px solid #a97a2c;
+        }
+
+        .badge-red {
+            background: #ffe8e8;
+            color: #c23030;
+            border-left: 4px solid #e03131;
+        }
+
+        .badge-confidence {
+            display: inline-block;
+            background: rgba(0,0,0,0.05);
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            margin-left: 0.3rem;
+            opacity: 0.8;
+        }
+
+        /* Table Demo */
+        .table-demo {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .table-demo table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .table-demo thead {
+            background: #f8f8f8;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .table-demo th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #17352a;
+            font-size: 0.9rem;
+        }
+
+        .table-demo td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95rem;
+        }
+
+        .table-demo tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .flag-icon {
+            display: inline-block;
+            width: 24px;
+            height: 16px;
+            margin-right: 0.5rem;
+            border-radius: 2px;
+            background: linear-gradient(135deg, #236b45, #2e8a5a);
+            color: white;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Hero Banner Demo */
+        .hero-demo {
+            background: linear-gradient(135deg, #236b45 0%, #17352a 100%);
+            border: 2px solid #c19143;
+            border-radius: 8px;
+            padding: 2rem;
+            color: white;
+            margin: 1.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-demo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -100px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(193,145,67,0.2), transparent);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-eyebrow {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.05rem;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-button {
+            display: inline-block;
+            background: #c19143;
+            color: white;
+            padding: 0.8rem 1.6rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .hero-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+
+        /* Responsive Grid */
+        .responsive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .code-block code {
+            color: #d4d4d4;
+        }
+
+        /* Tips for Section */
+        .tips-section {
+            background: #fffbf0;
+            border-left: 4px solid #c19143;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .tips-section strong {
+            color: #c19143;
+        }
+
+        .color-swatch {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            border-radius: 4px;
+            margin-right: 1rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            vertical-align: middle;
+        }
+
+        .color-info {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        footer {
+            background: #17352a;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🎨 Image & Visual Style Guide</h1>
+    <p>Matchday Pro Design System</p>
+</div>
+
+<div class="container">
+
+    <!-- Color Palette Section -->
+    <div class="section">
+        <h2>🎯 Color Palette</h2>
+        <p>Our primary colors create a premium, sports-forward aesthetic:</p>
+        
+        <div style="margin: 2rem 0;">
+            <div class="color-row">
+                <div class="color-swatch" style="background: #236b45;"></div>
+                <div class="color-info">
+                    <strong>Primary Green</strong><br>
+                    #236b45 — Used for main buttons, badges, accents
+                </div>
+            </div>
+            <div class="color-row">
+                <div class="color-swatch" style="background: #2e8a5a;"></div>
+                <div class="color-info">
+                    <strong>Bright Green</strong><br>
+                    #2e8a5a — Hover states, confidence indicators
+                </div>
+            </div>
+            <div class="color-row">
+                <div class="color-swatch" style="background: #c19143;"></div>
+                <div class="color-info">
+                    <strong>Gold</strong><br>
+                    #c19143 — Premium features, VIP badges
+                </div>
+            </div>
+            <div class="color-row">
+                <div class="color-swatch" style="background: #17352a;"></div>
+                <div class="color-info">
+                    <strong>Dark Navy</strong><br>
+                    #17352a — Backgrounds, text contrast
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Logos Section -->
+    <div class="section">
+        <h2>⚽ Team Logos & Badges</h2>
+        <p>How team logos should appear across the site:</p>
+        
+        <div class="demo-grid">
+            <div class="team-card">
+                <div class="team-logo">🏴󠁧󠁢󠁥󠁮󠁧󠁿</div>
+                <div class="team-name">Manchester United</div>
+                <div class="team-badge">Premier League</div>
+            </div>
+            <div class="team-card">
+                <div class="team-logo">⚪</div>
+                <div class="team-name">Real Madrid</div>
+                <div class="team-badge">La Liga</div>
+            </div>
+            <div class="team-card">
+                <div class="team-logo">🔵</div>
+                <div class="team-name">Liverpool</div>
+                <div class="team-badge">Premier League</div>
+            </div>
+        </div>
+
+        <div class="tips-section">
+            <strong>💡 Best Practices:</strong>
+            <ul>
+                <li>Logo size: 80px for cards, 24px for tables</li>
+                <li>Use border-radius: 8px for card logos, 3px for table icons</li>
+                <li>Add subtle box-shadow for depth: 0 4px 12px rgba(35, 107, 69, 0.3)</li>
+                <li>Ensure 1:1 aspect ratio for consistent display</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Match Cards Section -->
+    <div class="section">
+        <h2>🎫 Match Cards</h2>
+        <p>Premium match display with integrated imagery:</p>
+        
+        <div class="responsive-grid">
+            <div class="match-card">
+                <div class="match-banner">
+                    <div class="team">🔴</div>
+                    <div class="vs">vs</div>
+                    <div class="team">⚪</div>
+                </div>
+                <div class="match-content">
+                    <div class="match-header">
+                        <div class="match-meta">
+                            <span class="flag-icon">ES</span> La Liga
+                        </div>
+                        <div class="match-time">20:45</div>
+                    </div>
+                    <p style="margin-bottom: 1rem; color: #333; font-weight: 600;">
+                        Barcelona vs Real Madrid
+                    </p>
+                    <div class="prediction-badge badge-green">
+                        Over 2.5
+                        <span class="badge-confidence">74%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="match-card">
+                <div class="match-banner">
+                    <div class="team">🔵</div>
+                    <div class="vs">vs</div>
+                    <div class="team">🟢</div>
+                </div>
+                <div class="match-content">
+                    <div class="match-header">
+                        <div class="match-meta">
+                            <span class="flag-icon">EN</span> Premier League
+                        </div>
+                        <div class="match-time">15:00</div>
+                    </div>
+                    <p style="margin-bottom: 1rem; color: #333; font-weight: 600;">
+                        Chelsea vs Man United
+                    </p>
+                    <div class="prediction-badge badge-amber">
+                        1X2
+                        <span class="badge-confidence">68%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tips-section">
+            <strong>💡 Match Banner Guidelines:</strong>
+            <ul>
+                <li>Height: 180px on desktop, 140px on mobile</li>
+                <li>Use gradient: linear-gradient(135deg, #236b45 0%, #2e8a5a 100%)</li>
+                <li>Add overlay pattern for visual depth</li>
+                <li>Font size for teams: 2rem, centered with flexbox</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Prediction Badges Section -->
+    <div class="section">
+        <h2>🏆 Prediction Badges</h2>
+        <p>Visual hierarchy for different prediction types:</p>
+        
+        <h3>FREE Tips (Green)</h3>
+        <div class="badges-demo">
+            <div class="prediction-badge badge-green">1X2 <span class="badge-confidence">78%</span></div>
+            <div class="prediction-badge badge-green">Over 2.5 <span class="badge-confidence">65%</span></div>
+            <div class="prediction-badge badge-green">BTTS <span class="badge-confidence">72%</span></div>
+            <div class="prediction-badge badge-green">Draw No Bet <span class="badge-confidence">81%</span></div>
+        </div>
+
+        <h3>VIP Tips (Amber/Gold)</h3>
+        <div class="badges-demo">
+            <div class="prediction-badge badge-amber">Accumulator 🔥 <span class="badge-confidence">55%+</span></div>
+            <div class="prediction-badge badge-amber">VIP Exclusive <span class="badge-confidence">Premium</span></div>
+        </div>
+
+        <h3>Results (Red/Neutral)</h3>
+        <div class="badges-demo">
+            <div class="prediction-badge badge-red">Lost <span class="badge-confidence">✗</span></div>
+            <div class="prediction-badge badge-green">Won <span class="badge-confidence">✓</span></div>
+        </div>
+
+        <div class="tips-section">
+            <strong>💡 Badge Styling:</strong>
+            <ul>
+                <li><strong>Padding:</strong> 0.6rem 1rem</li>
+                <li><strong>Font:</strong> 0.9rem, uppercase, letter-spacing: 0.3px</li>
+                <li><strong>Border-left:</strong> 4px solid (matches color)</li>
+                <li><strong>Shadow:</strong> 0 2px 8px rgba(0,0,0,0.1)</li>
+                <li><strong>Confidence:</strong> Semi-transparent background inside badge</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Data Table Section -->
+    <div class="section">
+        <h2>📊 Data Tables with Images</h2>
+        <p>How images integrate into tips listing tables:</p>
+        
+        <div class="table-demo">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>League</th>
+                        <th>Fixture</th>
+                        <th>Tip</th>
+                        <th style="text-align: center;">Odds</th>
+                        <th style="text-align: center;">Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>15:00</td>
+                        <td>
+                            <span class="flag-icon">ES</span>
+                            La Liga
+                        </td>
+                        <td><strong>Barcelona vs Real Madrid</strong></td>
+                        <td>
+                            <div class="prediction-badge badge-green">
+                                Over 2.5
+                            </div>
+                        </td>
+                        <td style="text-align: center; font-weight: 600;">1.95</td>
+                        <td style="text-align: center;">74%</td>
+                    </tr>
+                    <tr>
+                        <td>20:45</td>
+                        <td>
+                            <span class="flag-icon">EN</span>
+                            Premier League
+                        </td>
+                        <td><strong>Chelsea vs Man City</strong></td>
+                        <td>
+                            <div class="prediction-badge badge-green">
+                                BTTS
+                            </div>
+                        </td>
+                        <td style="text-align: center; font-weight: 600;">2.10</td>
+                        <td style="text-align: center;">68%</td>
+                    </tr>
+                    <tr>
+                        <td>19:30</td>
+                        <td>
+                            <span class="flag-icon">IT</span>
+                            Serie A
+                        </td>
+                        <td><strong>AC Milan vs Juventus</strong></td>
+                        <td>
+                            <div class="prediction-badge badge-amber">
+                                1X2
+                            </div>
+                        </td>
+                        <td style="text-align: center; font-weight: 600;">2.45</td>
+                        <td style="text-align: center;">55%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tips-section">
+            <strong>💡 Table Image Guidelines:</strong>
+            <ul>
+                <li>Flag icons: 24px × 16px with border-radius: 2px</li>
+                <li>Row height: Auto with 1rem padding top/bottom</li>
+                <li>Hover state: Background #fafafa, subtle lift effect</li>
+                <li>League logo + name format: Logo left, text right</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="section">
+        <h2>🌟 Hero Section</h2>
+        <p>Premium banner for featured predictions:</p>
+        
+        <div class="hero-demo">
+            <div class="hero-content">
+                <div class="hero-eyebrow">Today · Friday, 12 Sep</div>
+                <h1 class="hero-title">Today's Football Predictions</h1>
+                <p class="hero-subtitle">Expert tips across 8 leagues, 24 fixtures, every market</p>
+                <a href="#" class="hero-button">Go VIP — Accumulator →</a>
+            </div>
+        </div>
+
+        <div class="tips-section">
+            <strong>💡 Hero Banner Styling:</strong>
+            <ul>
+                <li><strong>Background:</strong> linear-gradient(135deg, #236b45 0%, #17352a 100%)</li>
+                <li><strong>Border:</strong> 2px solid #c19143</li>
+                <li><strong>Padding:</strong> 2rem</li>
+                <li><strong>Overlay pattern:</strong> Radial gradient at 20% for depth</li>
+                <li><strong>CTA Button:</strong> #c19143 with hover transform</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Responsive Images -->
+    <div class="section">
+        <h2>📱 Responsive Image Containers</h2>
+        <p>Image sizing across breakpoints:</p>
+        
+        <div class="tips-section">
+            <strong>Desktop (1200px+):</strong>
+            <ul>
+                <li>Team logos: 80px × 80px</li>
+                <li>Match banners: Full width, 200px height</li>
+                <li>Table icons: 24px × 24px</li>
+                <li>Flag badges: 24px × 16px</li>
+            </ul>
+        </div>
+
+        <div class="tips-section">
+            <strong>Tablet (768px - 1199px):</strong>
+            <ul>
+                <li>Team logos: 60px × 60px</li>
+                <li>Match banners: Full width, 160px height</li>
+                <li>Table icons: 20px × 20px</li>
+            </ul>
+        </div>
+
+        <div class="tips-section">
+            <strong>Mobile (< 768px):</strong>
+            <ul>
+                <li>Team logos: 50px × 50px</li>
+                <li>Match banners: Full width, 120px height</li>
+                <li>Table icons: 18px × 18px</li>
+                <li>Stack layout: Single column, full-width cards</li>
+            </ul>
+        </div>
+
+        <h3>CSS Media Query Example:</h3>
+        <div class="code-block"><code>@media (max-width: 768px) {
+    .team-logo {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    .match-banner {
+        height: 120px;
+        font-size: 1.5rem;
+    }
+    .match-card {
+        margin-bottom: 1rem;
+    }
+}</code></div>
+    </div>
+
+    <!-- Image Optimization -->
+    <div class="section">
+        <h2>⚡ Image Optimization</h2>
+        
+        <h3>File Formats</h3>
+        <div class="tips-section">
+            <ul>
+                <li><strong>SVG:</strong> Team logos, icons, badges (scalable, small filesize)</li>
+                <li><strong>WebP:</strong> Match banners, photos (modern compression)</li>
+                <li><strong>PNG:</strong> Fallback for WebP (transparency support)</li>
+                <li><strong>JPEG:</strong> Only for complex photo content</li>
+            </ul>
+        </div>
+
+        <h3>Performance Checklist</h3>
+        <div class="tips-section">
+            <ul>
+                <li>✓ Use <code>&lt;picture&gt;</code> element for format switching</li>
+                <li>✓ Add <code>loading="lazy"</code> to images below fold</li>
+                <li>✓ Set explicit width/height to prevent layout shift</li>
+                <li>✓ Compress images: ImageOptim or TinyPNG</li>
+                <li>✓ Cache headers: 30 days for static logos</li>
+                <li>✓ Srcset for responsive images: 1x, 2x variants</li>
+            </ul>
+        </div>
+
+        <h3>HTML Example:</h3>
+        <div class="code-block"><code>&lt;picture&gt;
+    &lt;source srcset="logo.webp" type="image/webp"&gt;
+    &lt;source srcset="logo.png" type="image/png"&gt;
+    &lt;img src="logo.png" 
+         alt="Team logo"
+         width="80" 
+         height="80"
+         loading="lazy"&gt;
+&lt;/picture&gt;</code></div>
+    </div>
+
+    <!-- Accessibility -->
+    <div class="section">
+        <h2>♿ Accessibility Guidelines</h2>
+        
+        <div class="tips-section">
+            <strong>Alt Text Examples:</strong>
+            <ul>
+                <li>Team logo: "Manchester United logo"</li>
+                <li>Prediction badge: "Over 2.5 goals prediction, 74% confidence"</li>
+                <li>Match banner: "Barcelona vs Real Madrid"</li>
+                <li>Flag icon: "Spain - La Liga"</li>
+            </ul>
+        </div>
+
+        <div class="tips-section">
+            <strong>Color Contrast:</strong>
+            <ul>
+                <li>Text on badge backgrounds: WCAG AA compliant (4.5:1 ratio minimum)</li>
+                <li>Green #236b45 on white: 7.2:1 ✓ Excellent</li>
+                <li>Gold #c19143 on white: 4.8:1 ✓ Good</li>
+                <li>Avoid color alone: Always pair with icons or text</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Dark Mode -->
+    <div class="section">
+        <h2>🌙 Dark Mode Images</h2>
+        
+        <div class="tips-section">
+            <strong>Adjustments for dark theme:</strong>
+            <ul>
+                <li>Increase opacity of shadow effects: 0.4 instead of 0.1</li>
+                <li>Border colors: Use gold with 0.2 opacity</li>
+                <li>Badge backgrounds: Slightly more saturated</li>
+                <li>Match banner: Keep gradient consistent</li>
+                <li>Test contrast: Ensure readability on dark surfaces</li>
+            </ul>
+        </div>
+
+        <h3>CSS Dark Mode Override:</h3>
+        <div class="code-block"><code>[data-theme="dark"] {
+    --img-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    --img-border: rgba(193,145,67,0.2);
+    --badge-bg-green: rgba(35, 107, 69, 0.25);
+}
+
+[data-theme="dark"] .team-card {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(193,145,67,0.2);
+}</code></div>
+    </div>
+
+</div>
+
+<footer>
+    <p>📚 Image Style Guide v1.0 — Matchday Pro Design System</p>
+    <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 1rem;">
+        Ready to implement? Follow these guidelines for consistent, professional imagery across the platform.
+    </p>
+</footer>
+
+</body>
+</html>
