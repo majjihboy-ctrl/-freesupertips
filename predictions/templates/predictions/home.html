@@ -1,19 +1,17 @@
 {% extends "predictions/base.html" %}
 
 {% block title %}Football Predictions & Tips — Matchday Pro{% endblock %}
-{% block meta_desc %}Football predictions and match win probabilities for today's fixtures — free tips and VIP accumulators.{% endblock %}
+{% block meta_desc %}Football predictions and match win probabilities — free tips across every market: 1X2, BTTS, Over/Under, Corners, Draw No Bet.{% endblock %}
 
 {% block content %}
-{% regroup todays_matches by league as league_groups %}
 
 <div class="hero-band">
     <div class="hero-copy">
-        <div class="hero-eyebrow">{% now "l, F j" %}</div>
+        <div class="hero-eyebrow">{{ active_day_label }} · {{ active_date|date:"D, M j" }}</div>
         <h1 class="hero-title">Today's Football Predictions</h1>
-        <p class="hero-sub">Data-driven tips across {{ league_groups|length }} league{{ league_groups|length|pluralize }} — {{ todays_matches|length }} fixture{{ todays_matches|length|pluralize }} today.</p>
+        <p class="hero-sub">Data-driven tips across {{ league_counts|length }} league{{ league_counts|length|pluralize }} — {{ fixtures|length }} fixture{{ fixtures|length|pluralize }}, every market, always free.</p>
         <div class="hero-actions">
-            <a href="{% url 'tips_list' 'free' %}" class="btn btn-green">Free Tips</a>
-            <a href="{% url 'upgrade' %}" class="btn btn-outline-light">Go VIP</a>
+            <a href="{% url 'upgrade' %}" class="btn btn-outline-light">Go VIP — Accumulator</a>
         </div>
     </div>
 
@@ -33,26 +31,41 @@
 
 <div class="dash-grid">
 
-    <!-- Left: leagues appearing in today's fixture list, with real counts -->
+    <!-- Left: leagues appearing in the currently selected day/market, with real counts -->
     <aside>
         <div class="side-panel sticky-side">
-            <h3>🏆 Today's Leagues</h3>
-            {% for group in league_groups %}
-                <a href="#league-{{ group.grouper.id }}" style="display:flex;justify-content:space-between;padding:0.4rem 0;color:var(--text-muted);font-size:0.85rem;">
-                    <span>{{ group.grouper.name }}</span>
-                    <span style="font-family:var(--font-mono);color:var(--text-faint);">{{ group.list|length }}</span>
-                </a>
+            <h3>🏆 Leagues</h3>
+            {% for league, count in league_counts %}
+                <div style="display:flex;justify-content:space-between;padding:0.4rem 0;color:var(--text-muted);font-size:0.85rem;">
+                    <span>{{ league.name }}</span>
+                    <span style="font-family:var(--font-mono);color:var(--text-faint);">{{ count }}</span>
+                </div>
             {% empty %}
-                <span style="color:var(--text-faint);font-size:0.85rem;">No fixtures today.</span>
+                <span style="color:var(--text-faint);font-size:0.85rem;">No fixtures for this selection.</span>
             {% endfor %}
         </div>
     </aside>
 
-    <!-- Center: dense match table -->
+    <!-- Center: full free-tips browser, day + market tabs -->
     <div>
         <div class="section-header">
-            <h2>⚽ Today's Matches</h2>
-            <span style="font-size:0.78rem;color:var(--text-faint);">{{ todays_matches|length }} fixtures</span>
+            <h2>⚽ Free Tips</h2>
+            <span style="font-size:0.78rem;color:var(--text-faint);">{{ fixtures|length }} fixtures</span>
+        </div>
+
+        <div class="day-tabs-wrap">
+            <div class="day-tabs" role="tablist" aria-label="Filter tips by day">
+                {% for tab in day_tabs %}
+                <a href="{{ tab.url }}" class="day-tab{% if tab.active %} is-active{% endif %}" role="tab" aria-selected="{% if tab.active %}true{% else %}false{% endif %}">{{ tab.label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="day-tabs-wrap">
+            <div class="day-tabs" role="tablist" aria-label="Filter tips by market">
+                {% for tab in market_tabs %}
+                <a href="{{ tab.url }}" class="day-tab{% if tab.active %} is-active{% endif %}" role="tab" aria-selected="{% if tab.active %}true{% else %}false{% endif %}">{{ tab.label }}</a>
+                {% endfor %}
+            </div>
         </div>
 
         <table class="data-table dense-tips-table">
@@ -61,48 +74,63 @@
                     <th>Time</th>
                     <th>League</th>
                     <th>Fixture</th>
-                    <th>Free Tip</th>
-                    <th class="center">VIP Tip</th>
+                    <th>Tip</th>
+                    <th class="center">Odds</th>
+                    <th class="center">Score</th>
+                    <th class="center">BTTS</th>
+                    <th class="center">O2.5</th>
                 </tr>
             </thead>
             <tbody>
-                {% for group in league_groups %}
-                    <tr id="league-{{ group.grouper.id }}">
-                        <td colspan="5" style="background:var(--bg-inset);font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:var(--text-muted);">
-                            {{ group.grouper.name }}
-                        </td>
-                    </tr>
-                    {% for match in group.list %}
-                    <tr>
-                        <td class="match-time">{{ match.kickoff|date:"H:i" }}</td>
-                        <td>{{ match.league.name }}</td>
-                        <td class="match-teams">{{ match.home_team }} <span style="color:var(--text-muted);font-weight:600;">vs</span> {{ match.away_team }}</td>
-                        <td>
-                            {% for tip in match.free_tips %}
-                                <a href="{% url 'match_tips' 'free' match.id %}" class="prediction-tag tag-green" style="text-decoration:none;">{{ tip.prediction }}</a>
-                                <span style="font-family:var(--font-mono);font-size:0.78rem;">@ {{ tip.odds }}</span>
-                            {% empty %}
-                                <span style="color:var(--text-faint);font-size:0.8rem;">—</span>
-                            {% endfor %}
-                        </td>
-                        <td class="center">
-                            {% if match.vip_tips_count %}
-                                {% if is_vip %}
-                                    <a href="{% url 'match_tips' 'vip' match.id %}" class="prediction-tag tag-amber" style="text-decoration:none;">View</a>
-                                {% else %}
-                                    <a href="{% url 'upgrade' %}" class="locked-inline">🔒 Unlock</a>
-                                {% endif %}
-                            {% else %}
-                                <span style="color:var(--text-faint);font-size:0.8rem;">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
+                {% for fixture in fixtures %}
+                <tr>
+                    <td class="match-time">{{ fixture.match.kickoff|date:"H:i" }}</td>
+                    <td>
+                        <div class="league-cell">
+                            <span class="flag">{{ fixture.match.league.name|slice:":2"|upper }}</span>
+                            {{ fixture.match.league.name }}
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'match_tips' 'free' fixture.match.id %}" class="match-teams" style="color:var(--text);">
+                            {{ fixture.match.home_team }} <span style="color:var(--text-muted);font-weight:600;">vs</span> {{ fixture.match.away_team }}
+                        </a>
+                        {% if fixture.tips_count > 1 %}
+                        <a href="{% url 'match_tips' 'free' fixture.match.id %}" class="more-tips-link">+{{ fixture.tips_count|add:"-1" }} more</a>
+                        {% endif %}
+                    </td>
+                    {% if fixture.market_override %}
+                    <td>
+                        <span class="prediction-tag tag-green">{{ fixture.market_override.label }}</span>
+                        {% if fixture.market_override.probability %}
+                        <div class="confidence-note">{{ fixture.market_override.probability|floatformat:0 }}%</div>
+                        {% endif %}
+                    </td>
+                    <td class="center match-time">{{ fixture.market_override.odds|default:"—" }}</td>
+                    {% else %}
+                    <td>
+                        <span class="prediction-tag tag-green">{{ fixture.top_tip.prediction }}</span>
+                        {% if fixture.top_tip.confidence %}
+                        <div class="confidence-note">{{ fixture.top_tip.confidence }}%</div>
+                        {% endif %}
+                    </td>
+                    <td class="center match-time">{{ fixture.top_tip.odds }}</td>
+                    {% endif %}
+                    <td class="center match-time">{{ fixture.top_tip.markets.score.most_likely|default:"—" }}</td>
+                    <td class="center match-time">{% if fixture.top_tip.markets.btts.prob_yes %}{{ fixture.top_tip.markets.btts.prob_yes|floatformat:0 }}%{% else %}—{% endif %}</td>
+                    <td class="center match-time">{% if fixture.top_tip.markets.over_under.prob_over_25 %}{{ fixture.top_tip.markets.over_under.prob_over_25|floatformat:0 }}%{% else %}—{% endif %}</td>
+                </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="empty-cell">
-                            <div class="empty-title">No matches scheduled today</div>
-                            <div class="empty-sub">Check back once today's fixtures are posted, or browse free tips for what's coming up next.</div>
+                        <td colspan="8" class="empty-cell">
+                            <div class="empty-title">No tips for {{ active_day_label|lower }}</div>
+                            <div class="empty-sub">
+                                {% if market_param != 'all' %}
+                                    No matches have data for this market — try "All Markets" or another day.
+                                {% else %}
+                                    Try another day using the tabs above, or check back once picks are posted.
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}
@@ -115,17 +143,9 @@
         <div class="side-panel">
             <h3>🔒 Get VIP Access</h3>
             <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
-                Unlock every VIP pick, including higher-confidence singles and accumulators.
+                Unlock the VIP Accumulator — a 5-leg multi-market parlay built fresh daily, every leg at 55%+ model confidence.
             </p>
             <a href="{% url 'upgrade' %}" class="btn btn-green" style="display:block;text-align:center;">Upgrade Now</a>
-        </div>
-
-        <div class="side-panel">
-            <h3>🎯 Free Tips</h3>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
-                Today's curated free picks, posted separately from the raw model table above.
-            </p>
-            <a href="{% url 'tips_list' 'free' %}" class="btn btn-outline-light" style="display:block;text-align:center;">View Free Tips</a>
         </div>
 
         <div class="side-panel">

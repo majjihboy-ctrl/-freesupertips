@@ -1,5 +1,6 @@
 from urllib.parse import quote
 import re
+from collections import Counter
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -260,44 +261,10 @@ def accumulator(request):
 
 @never_cache
 def home(request):
-    cache_key = "home_page_data"
-    data = cache.get(cache_key)
-    if not data:
-        featured_free = list(
-            Prediction.objects.filter(tip_type="free")
-            .select_related("match", "match__league", "match__home_team", "match__away_team")
-            .order_by("-created_at")[:5]
-        )
-        vip_teaser = list(
-            Prediction.objects.filter(tip_type="vip")
-            .select_related("match", "match__league", "match__home_team", "match__away_team")
-            .order_by("-created_at")[:3]
-        )
-
-        data = {
-            "featured_free": featured_free,
-            "vip_teaser": vip_teaser,
-        }
-        cache.set(cache_key, data, 300)
+    data = _fixtures_context(request, "free", "home")
 
     today_start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
-    data["todays_matches"] = Match.objects.filter(
-        kickoff__gte=today_start,
-        kickoff__lt=today_end,
-        status="scheduled",
-    ).select_related("league", "home_team", "away_team").prefetch_related(
-        Prefetch(
-            "predictions",
-            queryset=Prediction.objects.filter(tip_type="free").order_by("-created_at"),
-            to_attr="free_tips",
-        )
-    ).annotate(
-        # Count only -- never prefetch the actual VIP Prediction objects
-        # into this public view, so there's no way for the VIP market/odds
-        # to leak into the page source for a non-VIP visitor.
-        vip_tips_count=Count("predictions", filter=Q(predictions__tip_type="vip")),
-    ).order_by("league__name", "kickoff")[:20]
 
     data["live_matches"] = Match.objects.filter(
         status="live",
@@ -356,13 +323,12 @@ def _market_pick_for(prediction, market_type):
     return (label, probability, odds)
 
 
-def tips_list(request, tip_type):
-    if tip_type not in ("free", "vip"):
-        return redirect("home")
-
-    if tip_type == "vip" and not _vip_status(request):
-        messages.info(request, "VIP access is required to view these tips.")
-        return redirect("upgrade")
+def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
+    """Builds the day-tabs + market-tabs + fixtures list shared by the
+    homepage and (for VIP, if ever reinstated) tips_list. tabs_url_name/
+    tabs_url_args control which URL the tab links point back to, since the
+    homepage and tips_list use different routes."""
+    tabs_url_args = tabs_url_args or []
 
     day_param = request.GET.get("day", "today")
     if day_param not in _DAY_OFFSETS:
@@ -377,9 +343,10 @@ def tips_list(request, tip_type):
     active_date = today + timedelta(days=offset)
     active_day_label = _DAY_LABELS.get(offset, active_date.strftime("%A"))
 
+    base_url = reverse(tabs_url_name, args=tabs_url_args)
     day_tabs = [
         {
-            "url": f"{reverse('tips_list', args=[tip_type])}?day={key}&market={market_param}",
+            "url": f"{base_url}?day={key}&market={market_param}",
             "label": _DAY_LABELS.get(off, (today + timedelta(days=off)).strftime("%a %d")),
             "active": key == day_param,
         }
@@ -387,7 +354,7 @@ def tips_list(request, tip_type):
     ]
     market_tabs = [
         {
-            "url": f"{reverse('tips_list', args=[tip_type])}?day={day_param}&market={key}",
+            "url": f"{base_url}?day={day_param}&market={key}",
             "label": label,
             "active": key == market_param,
         }
@@ -435,7 +402,12 @@ def tips_list(request, tip_type):
 
         cache.set(cache_key, fixtures, 120)
 
-    return render(request, "predictions/tips_list.html", {
+    league_counts = sorted(
+        Counter(f["match"].league for f in fixtures).items(),
+        key=lambda kv: kv[0].name,
+    )
+
+    return {
         "fixtures": fixtures,
         "tip_type": tip_type,
         "day_tabs": day_tabs,
@@ -443,8 +415,28 @@ def tips_list(request, tip_type):
         "market_param": market_param,
         "active_date": active_date,
         "active_day_label": active_day_label,
-        "is_vip": _vip_status(request),
-    })
+        "league_counts": league_counts,
+    }
+
+
+def tips_list(request, tip_type):
+    if tip_type not in ("free", "vip"):
+        return redirect("home")
+
+    if tip_type == "free":
+        # Free tips now live on the homepage itself (with the same day and
+        # market tabs) -- redirect rather than maintain two copies of the
+        # same browsing experience.
+        query = request.META.get("QUERY_STRING", "")
+        return redirect(f"{reverse('home')}{'?' + query if query else ''}")
+
+    if not _vip_status(request):
+        messages.info(request, "VIP access is required to view these tips.")
+        return redirect("upgrade")
+
+    context = _fixtures_context(request, "vip", "tips_list", tabs_url_args=["vip"])
+    context["is_vip"] = _vip_status(request)
+    return render(request, "predictions/tips_list.html", context)
 
 
 def match_tips(request, tip_type, match_id):
