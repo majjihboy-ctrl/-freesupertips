@@ -1,5 +1,6 @@
 from urllib.parse import quote
 import re
+import random
 from collections import Counter
 
 from django.shortcuts import render, get_object_or_404, redirect
@@ -385,10 +386,19 @@ def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
             tips = match.matching_tips
             if not tips:
                 continue
-            top_tip = tips[0]
             if market_param == "all":
+                # All Markets is meant to show variety, not always the single
+                # "best" pick -- anyone wanting a guaranteed specific market
+                # already has the 1X2 / Over-Under / etc. tabs for that.
+                # Seeded by the actual prediction IDs for this match so the
+                # pick is stable across requests/cache refreshes, and only
+                # re-rolls once the set of picks for this match actually
+                # changes (e.g. tomorrow's fresh fixtures/picks land).
+                seed = tuple(t.id for t in tips)
+                top_tip = random.Random(seed).choice(tips)
                 fixtures.append({"match": match, "top_tip": top_tip, "tips_count": len(tips)})
                 continue
+            top_tip = tips[0]
             picked = _market_pick_for(top_tip, market_param)
             if picked is None:
                 continue  # this match has no data for the selected market -- not a "low score" exclusion, just missing data
