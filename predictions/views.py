@@ -280,7 +280,7 @@ def home(request):
         }
         cache.set(cache_key, data, 300)
 
-    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
     data["todays_matches"] = Match.objects.filter(
         kickoff__gte=today_start,
