@@ -368,6 +368,33 @@ input:focus-visible,
 .alert-error   { background: var(--red-bg);   border-color: rgba(240,85,74,0.3); color: var(--alert-error-text); }
 .alert-info    { background: var(--blue-bg);  border-color: rgba(77,159,239,0.3); color: var(--alert-info-text); }
 
+.promo-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.15rem;
+    border-radius: var(--radius-sm);
+    margin: 1rem auto 0;
+    max-width: 1100px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: var(--gold-bg);
+    border: 1px solid rgba(217, 143, 43, 0.3);
+}
+.promo-banner a { color: var(--gold); text-decoration: none; }
+.promo-banner a:hover { color: var(--gold-hover); }
+.promo-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-pill);
+    padding: 0.1rem 0.5rem;
+}
+
 /* ---------- Layout ---------- */
 .container {
     max-width: 1280px;
