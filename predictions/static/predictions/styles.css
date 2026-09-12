@@ -85,6 +85,20 @@ body {
     background: var(--bg);
 }
 
+/* iOS Safari auto-zooms the page when a focused input's computed font-size
+   is under 16px. Force real text inputs to 16px regardless of the 15px
+   root, so tapping into any form on a phone doesn't jump the viewport. */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="search"],
+input[type="number"],
+textarea,
+select {
+    font-size: 16px;
+}
+
 a {
     color: var(--green);
     text-decoration: none;
@@ -898,6 +912,10 @@ input:focus-visible,
 }
 
 /* ---------- Data table (tips_list / tip_detail) ---------- */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 .data-table {
     width: 100%;
     border-collapse: separate;
@@ -1507,6 +1525,9 @@ input:focus-visible,
     .section-header h2 { font-size: 0.95rem; }
     .sticky-side { position: static; }
     .side-panel { padding: 0.9rem; }
+    .data-table th { padding: 0.55rem 0.5rem; }
+    .data-table td { padding: 0.65rem 0.5rem; }
+    .day-tab { padding: 0.6rem 0.9rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
