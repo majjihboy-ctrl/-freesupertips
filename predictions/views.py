@@ -394,7 +394,7 @@ def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
                 # pick is stable across requests/cache refreshes, and only
                 # re-rolls once the set of picks for this match actually
                 # changes (e.g. tomorrow's fresh fixtures/picks land).
-                seed = tuple(t.id for t in tips)
+                seed = ",".join(str(t.id) for t in tips)
                 top_tip = random.Random(seed).choice(tips)
                 fixtures.append({"match": match, "top_tip": top_tip, "tips_count": len(tips)})
                 continue
