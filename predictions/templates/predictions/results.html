@@ -24,25 +24,9 @@
 
 <div class="match-list results-list">
 {% for prediction in predictions %}
-<div class="match-card result-card">
-    <div class="match-card-teams">
-        <div class="match-card-meta">
-            {{ prediction.match.kickoff|date:"M j" }}
-            &middot;
-            <strong class="result-score">{{ prediction.match.home_score }}–{{ prediction.match.away_score }}</strong>
-        </div>
-        <div class="team-row">
-            {% if prediction.match.home_team|team_logo_url %}
-            <img class="team-logo" src="{{ prediction.match.home_team|team_logo_url }}" alt="" width="24" height="24" loading="lazy"
-                 onerror="this.style.display='none'">
-            {% endif %}
-            <span class="team-name">{{ prediction.match.home_team }} vs {{ prediction.match.away_team }}</span>
-        </div>
-        <div class="result-pick-line">
-            <span class="prediction-tag {% if prediction.was_hit %}tag-green{% endif %}">{{ prediction.prediction|short_pick }}</span>
-        </div>
-    </div>
-    <div class="match-card-odds">
+<article class="fx-card result-fx">
+    <div class="fx-meta">
+        <span>{{ prediction.match.kickoff|date:"M j" }} · <strong class="result-score">{{ prediction.match.home_score }}–{{ prediction.match.away_score }}</strong></span>
         {% if prediction.was_hit == True %}
             <span class="result-badge hit">WIN</span>
         {% elif prediction.was_hit == False %}
@@ -51,7 +35,19 @@
             <span class="result-badge push">PUSH</span>
         {% endif %}
     </div>
-</div>
+    <div class="fx-team">
+        {% if prediction.match.home_team|team_logo_url %}
+        <img class="fx-logo" src="{{ prediction.match.home_team|team_logo_url }}" alt="" width="24" height="24" loading="lazy"
+             onerror="this.style.display='none'">
+        {% endif %}
+        <span class="fx-name">{{ prediction.match.home_team }} vs {{ prediction.match.away_team }}</span>
+    </div>
+    <div class="fx-footer">
+        <div class="fx-pick-block">
+            <span class="fx-chip">{{ prediction.prediction|short_pick }}</span>
+        </div>
+    </div>
+</article>
 {% empty %}
 <div class="empty-cell">
     <div class="empty-title">No finished picks yet</div>
