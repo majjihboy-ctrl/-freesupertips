@@ -1,4 +1,5 @@
 {% extends "predictions/base.html" %}
+{% load predictions_extras %}
 
 {% block title %}Results & Accuracy — Matchday Pro{% endblock %}
 {% block meta_desc %}Our track record — model-generated picks from the last {{ lookback_days }} days, marked hit or miss against the final score.{% endblock %}
@@ -21,25 +22,33 @@
     </div>
 </div>
 
-<div class="match-list">
+<div class="match-list results-list">
 {% for prediction in predictions %}
-<div class="match-card">
+<div class="match-card result-card">
     <div class="match-card-teams">
-        <div class="match-card-meta">{{ prediction.match.kickoff|date:"M j" }} &middot; {{ prediction.match.home_score }}–{{ prediction.match.away_score }}</div>
+        <div class="match-card-meta">
+            {{ prediction.match.kickoff|date:"M j" }}
+            &middot;
+            <strong class="result-score">{{ prediction.match.home_score }}–{{ prediction.match.away_score }}</strong>
+        </div>
         <div class="team-row">
+            {% if prediction.match.home_team|team_logo_url %}
+            <img class="team-logo" src="{{ prediction.match.home_team|team_logo_url }}" alt="" width="24" height="24" loading="lazy"
+                 onerror="this.style.display='none'">
+            {% endif %}
             <span class="team-name">{{ prediction.match.home_team }} vs {{ prediction.match.away_team }}</span>
         </div>
-    </div>
-    <div class="match-card-pick">
-        <span class="prediction-tag {% if prediction.was_hit %}tag-green{% endif %}">{{ prediction.prediction }}</span>
+        <div class="result-pick-line">
+            <span class="prediction-tag {% if prediction.was_hit %}tag-green{% endif %}">{{ prediction.prediction|short_pick }}</span>
+        </div>
     </div>
     <div class="match-card-odds">
         {% if prediction.was_hit == True %}
-            <span class="result-badge hit">HIT</span>
+            <span class="result-badge hit">WIN</span>
         {% elif prediction.was_hit == False %}
-            <span class="result-badge miss">MISS</span>
+            <span class="result-badge miss">LOSS</span>
         {% else %}
-            <span class="result-badge">PUSH</span>
+            <span class="result-badge push">PUSH</span>
         {% endif %}
     </div>
 </div>
@@ -52,8 +61,8 @@
 </div>
 
 <p class="disclaimer" style="margin-top:1.25rem;">
-    Results shown are for auto-generated model picks only. A "hit" means the model's
-    predicted outcome (Home Win / Draw / Away Win) matched the final result.
+    Results shown are for auto-generated model picks only. A hit means the model's
+    predicted market outcome matched the final score (graded per market type).
     Past accuracy is not a guarantee of future results. 18+ Gamble responsibly.
 </p>
 {% endblock %}
