@@ -21,48 +21,34 @@
     </div>
 </div>
 
-<div class="table-scroll">
-<table class="data-table results-table">
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Fixture</th>
-            <th>Pick</th>
-            <th>Final Score</th>
-            <th class="center">Result</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for prediction in predictions %}
-        <tr>
-            <td class="match-time">{{ prediction.match.kickoff|date:"M j" }}</td>
-            <td>
-                <span style="color:var(--text);">
-                    {{ prediction.match.home_team }} <span style="color:var(--text-muted);font-weight:600;">vs</span> {{ prediction.match.away_team }}
-                </span>
-            </td>
-            <td>{{ prediction.prediction }}</td>
-            <td class="match-time">{{ prediction.match.home_score }}–{{ prediction.match.away_score }}</td>
-            <td class="center">
-                {% if prediction.was_hit == True %}
-                    <span class="result-badge hit">HIT</span>
-                {% elif prediction.was_hit == False %}
-                    <span class="result-badge miss">MISS</span>
-                {% else %}
-                    <span class="result-badge">PUSH</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5" class="empty-cell">
-                <div class="empty-title">No finished picks yet</div>
-                <div class="empty-sub">Once matches with model-generated picks finish, results will show up here.</div>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="match-list">
+{% for prediction in predictions %}
+<div class="match-card">
+    <div class="match-card-teams">
+        <div class="match-card-meta">{{ prediction.match.kickoff|date:"M j" }} &middot; {{ prediction.match.home_score }}–{{ prediction.match.away_score }}</div>
+        <div class="team-row">
+            <span class="team-name">{{ prediction.match.home_team }} vs {{ prediction.match.away_team }}</span>
+        </div>
+    </div>
+    <div class="match-card-pick">
+        <span class="prediction-tag {% if prediction.was_hit %}tag-green{% endif %}">{{ prediction.prediction }}</span>
+    </div>
+    <div class="match-card-odds">
+        {% if prediction.was_hit == True %}
+            <span class="result-badge hit">HIT</span>
+        {% elif prediction.was_hit == False %}
+            <span class="result-badge miss">MISS</span>
+        {% else %}
+            <span class="result-badge">PUSH</span>
+        {% endif %}
+    </div>
+</div>
+{% empty %}
+<div class="empty-cell">
+    <div class="empty-title">No finished picks yet</div>
+    <div class="empty-sub">Once matches with model-generated picks finish, results will show up here.</div>
+</div>
+{% endfor %}
 </div>
 
 <p class="disclaimer" style="margin-top:1.25rem;">

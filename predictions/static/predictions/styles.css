@@ -1030,38 +1030,7 @@ img {
 }
 .locked-inline a { color: var(--green); font-weight: 600; }
 
-/* Dense predictz-style table: hide the least essential columns on small
-   screens rather than letting 8 columns squeeze into an unreadable mess. */
-@media (max-width: 900px) {
-    .dense-tips-table th:nth-child(6),
-    .dense-tips-table td:nth-child(6),
-    .dense-tips-table th:nth-child(7),
-    .dense-tips-table td:nth-child(7),
-    .dense-tips-table th:nth-child(8),
-    .dense-tips-table td:nth-child(8) {
-        display: none;
-    }
-}
 @media (max-width: 640px) {
-    .dense-tips-table th:nth-child(2),
-    .dense-tips-table td:nth-child(2) {
-        display: none;
-    }
-
-    /* Accumulator: keep Fixture/Pick/Confidence/Odds, drop the two least
-       essential columns (League, Market label -- inferable from the pick
-       text itself, e.g. "BTTS: Yes"). */
-    .acca-table th:nth-child(2), .acca-table td:nth-child(2),
-    .acca-table th:nth-child(3), .acca-table td:nth-child(3) {
-        display: none;
-    }
-
-    /* Results: Date is the least essential column on a narrow screen --
-       the fixture/pick/score/result already tell the story. */
-    .results-table th:nth-child(1), .results-table td:nth-child(1) {
-        display: none;
-    }
-
     .data-table { font-size: 0.82rem; }
     .data-table th, .data-table td { padding: 0.55rem 0.5rem; }
 }
