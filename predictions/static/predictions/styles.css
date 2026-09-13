@@ -1047,6 +1047,33 @@ img {
     .dense-tips-table td:nth-child(2) {
         display: none;
     }
+
+    /* Accumulator: keep Fixture/Pick/Confidence/Odds, drop the two least
+       essential columns (League, Market label -- inferable from the pick
+       text itself, e.g. "BTTS: Yes"). */
+    .acca-table th:nth-child(2), .acca-table td:nth-child(2),
+    .acca-table th:nth-child(3), .acca-table td:nth-child(3) {
+        display: none;
+    }
+
+    /* Results: Date is the least essential column on a narrow screen --
+       the fixture/pick/score/result already tell the story. */
+    .results-table th:nth-child(1), .results-table td:nth-child(1) {
+        display: none;
+    }
+
+    .data-table { font-size: 0.82rem; }
+    .data-table th, .data-table td { padding: 0.55rem 0.5rem; }
+}
+
+@media (max-width: 1023px) {
+    /* Below the dash-grid's 3-column breakpoint, the layout collapses to
+       one column; without an explicit order, the leagues sidebar would
+       render ABOVE the actual fixtures table just because it's first in
+       the DOM, burying the main content most people came for. */
+    .dash-col-main { order: 1; }
+    .dash-col-leagues { order: 2; }
+    .dash-col-upsell { order: 3; }
 }
 
 /* ---------- Tags / odds ---------- */

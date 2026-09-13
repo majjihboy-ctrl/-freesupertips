@@ -32,7 +32,7 @@
 <div class="dash-grid">
 
     <!-- Left: leagues appearing in the currently selected day/market, with real counts -->
-    <aside>
+    <aside class="dash-col-leagues">
         <div class="side-panel sticky-side">
             <h3>🏆 Leagues</h3>
             {% for league, count in league_counts %}
@@ -47,7 +47,7 @@
     </aside>
 
     <!-- Center: full free-tips browser, day + market tabs -->
-    <div>
+    <div class="dash-col-main">
         <div class="section-header">
             <h2>⚽ Free Tips</h2>
             <span style="font-size:0.78rem;color:var(--text-faint);">{{ fixtures|length }} fixtures</span>
@@ -141,7 +141,7 @@
     </div>
 
     <!-- Right: upsell + disclaimer -->
-    <aside>
+    <aside class="dash-col-upsell">
         <div class="side-panel">
             <h3>🔒 Get VIP Access</h3>
             <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
