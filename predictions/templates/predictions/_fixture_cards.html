@@ -1,59 +1,105 @@
 {% load predictions_extras %}
 {% for fixture in fixtures %}
 {% with match=fixture.match %}
-<div class="match-card {% if fixture.market_override.probability %}{{ fixture.market_override.probability|conf_tier }}{% elif fixture.top_tip.confidence %}{{ fixture.top_tip.confidence|conf_tier }}{% endif %}">
-    <a href="{% url 'match_tips' tip_type match.id %}" class="match-card-teams">
-        <div class="match-card-meta">
-            <span>{{ match.league.name }} &middot; {{ match.kickoff|date:"H:i" }}</span>
-            {% if match.is_local_derby %}
-            <span class="derby-chip">🔥 Derby</span>
-            {% endif %}
-        </div>
-        <div class="team-row">
-            {% if match.home_team|team_logo_url %}
-            <img class="team-logo" src="{{ match.home_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
-                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-            <span class="team-badge" style="background:{{ match.home_team.crest_color }};display:none;">{{ match.home_team.short_name|slice:":2" }}</span>
-            {% else %}
-            <span class="team-badge" style="background:{{ match.home_team.crest_color }}">{{ match.home_team.short_name|slice:":2" }}</span>
-            {% endif %}
-            <span class="team-name">{{ match.home_team }}</span>
-        </div>
-        <div class="team-row">
-            {% if match.away_team|team_logo_url %}
-            <img class="team-logo" src="{{ match.away_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
-                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-            <span class="team-badge" style="background:{{ match.away_team.crest_color }};display:none;">{{ match.away_team.short_name|slice:":2" }}</span>
-            {% else %}
-            <span class="team-badge" style="background:{{ match.away_team.crest_color }}">{{ match.away_team.short_name|slice:":2" }}</span>
-            {% endif %}
-            <span class="team-name">{{ match.away_team }}</span>
-        </div>
-    </a>
-
-    <div class="match-card-pick">
-        {% if fixture.market_override %}
-            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.market_override.label|short_pick }}</span>
-            {% if fixture.market_override.probability %}
-            <div class="confidence-note">{{ fixture.market_override.probability|floatformat:0 }}%</div>
-            {% endif %}
+{% if fixture.market_override %}
+  {% with label=fixture.market_override.label conf=fixture.market_override.probability odds=fixture.market_override.odds %}
+  <article class="fx-card {{ conf|conf_tier }}">
+    <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
+      <div class="fx-meta">
+        <span>{{ match.league.name }} · {{ match.kickoff|date:"H:i" }}</span>
+        {% if match.is_local_derby %}<span class="derby-chip">🔥 Derby</span>{% endif %}
+      </div>
+      <div class="fx-team">
+        {% if match.home_team|team_logo_url %}
+        <img class="fx-logo" src="{{ match.home_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="fx-badge" style="background:{{ match.home_team.crest_color }};display:none">{{ match.home_team.short_name|slice:":2" }}</span>
         {% else %}
-            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.top_tip.prediction|short_pick }}</span>
-            {% if fixture.top_tip.confidence %}
-            <div class="confidence-note">{{ fixture.top_tip.confidence }}%</div>
-            {% endif %}
+        <span class="fx-badge" style="background:{{ match.home_team.crest_color }}">{{ match.home_team.short_name|slice:":2" }}</span>
         {% endif %}
+        <span class="fx-name">{{ match.home_team }}</span>
+      </div>
+      <div class="fx-team">
+        {% if match.away_team|team_logo_url %}
+        <img class="fx-logo" src="{{ match.away_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="fx-badge" style="background:{{ match.away_team.crest_color }};display:none">{{ match.away_team.short_name|slice:":2" }}</span>
+        {% else %}
+        <span class="fx-badge" style="background:{{ match.away_team.crest_color }}">{{ match.away_team.short_name|slice:":2" }}</span>
+        {% endif %}
+        <span class="fx-name">{{ match.away_team }}</span>
+      </div>
+    </a>
+    <div class="fx-footer">
+      <div class="fx-pick-block">
+        <span class="fx-chip {% if tip_type == 'vip' %}fx-chip-vip{% endif %}">{{ label|short_pick }}</span>
+        {% if conf %}
+        <div class="fx-conf">
+          <span class="fx-conf-label">Confidence</span>
+          <span class="fx-conf-value">{{ conf|floatformat:0 }}%</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="fx-odds-block">
+        <span class="fx-odds-label">Odds</span>
+        <span class="fx-odds-value">{{ odds|default:"—" }}</span>
+      </div>
     </div>
-
-    <div class="match-card-odds">
-        <span class="odds-label">Odds</span>
-        <span class="odds-value">{% if fixture.market_override %}{{ fixture.market_override.odds|default:"—" }}{% else %}{{ fixture.top_tip.odds }}{% endif %}</span>
-    </div>
-
     {% if fixture.tips_count > 1 %}
-    <a href="{% url 'match_tips' tip_type match.id %}" class="more-tips-link">+{{ fixture.tips_count|add:"-1" }} more markets</a>
+    <a class="fx-more" href="{% url 'match_tips' tip_type match.id %}">+{{ fixture.tips_count|add:"-1" }} more markets</a>
     {% endif %}
-</div>
+  </article>
+  {% endwith %}
+{% else %}
+  {% with label=fixture.top_tip.prediction conf=fixture.top_tip.confidence odds=fixture.top_tip.odds %}
+  <article class="fx-card {{ conf|conf_tier }}">
+    <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
+      <div class="fx-meta">
+        <span>{{ match.league.name }} · {{ match.kickoff|date:"H:i" }}</span>
+        {% if match.is_local_derby %}<span class="derby-chip">🔥 Derby</span>{% endif %}
+      </div>
+      <div class="fx-team">
+        {% if match.home_team|team_logo_url %}
+        <img class="fx-logo" src="{{ match.home_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="fx-badge" style="background:{{ match.home_team.crest_color }};display:none">{{ match.home_team.short_name|slice:":2" }}</span>
+        {% else %}
+        <span class="fx-badge" style="background:{{ match.home_team.crest_color }}">{{ match.home_team.short_name|slice:":2" }}</span>
+        {% endif %}
+        <span class="fx-name">{{ match.home_team }}</span>
+      </div>
+      <div class="fx-team">
+        {% if match.away_team|team_logo_url %}
+        <img class="fx-logo" src="{{ match.away_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="fx-badge" style="background:{{ match.away_team.crest_color }};display:none">{{ match.away_team.short_name|slice:":2" }}</span>
+        {% else %}
+        <span class="fx-badge" style="background:{{ match.away_team.crest_color }}">{{ match.away_team.short_name|slice:":2" }}</span>
+        {% endif %}
+        <span class="fx-name">{{ match.away_team }}</span>
+      </div>
+    </a>
+    <div class="fx-footer">
+      <div class="fx-pick-block">
+        <span class="fx-chip {% if tip_type == 'vip' %}fx-chip-vip{% endif %}">{{ label|short_pick }}</span>
+        {% if conf %}
+        <div class="fx-conf">
+          <span class="fx-conf-label">Confidence</span>
+          <span class="fx-conf-value">{{ conf }}%</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="fx-odds-block">
+        <span class="fx-odds-label">Odds</span>
+        <span class="fx-odds-value">{{ odds|default:"—" }}</span>
+      </div>
+    </div>
+    {% if fixture.tips_count > 1 %}
+    <a class="fx-more" href="{% url 'match_tips' tip_type match.id %}">+{{ fixture.tips_count|add:"-1" }} more markets</a>
+    {% endif %}
+  </article>
+  {% endwith %}
+{% endif %}
 {% endwith %}
 {% empty %}
 <div class="empty-cell">
