@@ -1,37 +1,60 @@
+{% load predictions_extras %}
 {% for fixture in fixtures %}
-<div class="match-card">
-    <a href="{% url 'match_tips' tip_type fixture.match.id %}" class="match-card-teams">
-        <div class="match-card-meta">{{ fixture.match.league.name }} &middot; {{ fixture.match.kickoff|date:"H:i" }}</div>
-        <div class="team-row">
-            <span class="team-badge" style="background:{{ fixture.match.home_team.crest_color }}">{{ fixture.match.home_team.short_name|slice:":2" }}</span>
-            <span class="team-name">{{ fixture.match.home_team }}</span>
+{% with match=fixture.match %}
+<div class="match-card {% if fixture.market_override.probability %}{{ fixture.market_override.probability|conf_tier }}{% elif fixture.top_tip.confidence %}{{ fixture.top_tip.confidence|conf_tier }}{% endif %}">
+    <a href="{% url 'match_tips' tip_type match.id %}" class="match-card-teams">
+        <div class="match-card-meta">
+            <span>{{ match.league.name }} &middot; {{ match.kickoff|date:"H:i" }}</span>
+            {% if match.is_local_derby %}
+            <span class="derby-chip">🔥 Derby</span>
+            {% endif %}
         </div>
         <div class="team-row">
-            <span class="team-badge" style="background:{{ fixture.match.away_team.crest_color }}">{{ fixture.match.away_team.short_name|slice:":2" }}</span>
-            <span class="team-name">{{ fixture.match.away_team }}</span>
+            {% if match.home_team|team_logo_url %}
+            <img class="team-logo" src="{{ match.home_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <span class="team-badge" style="background:{{ match.home_team.crest_color }};display:none;">{{ match.home_team.short_name|slice:":2" }}</span>
+            {% else %}
+            <span class="team-badge" style="background:{{ match.home_team.crest_color }}">{{ match.home_team.short_name|slice:":2" }}</span>
+            {% endif %}
+            <span class="team-name">{{ match.home_team }}</span>
+        </div>
+        <div class="team-row">
+            {% if match.away_team|team_logo_url %}
+            <img class="team-logo" src="{{ match.away_team|team_logo_url }}" alt="" width="28" height="28" loading="lazy"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <span class="team-badge" style="background:{{ match.away_team.crest_color }};display:none;">{{ match.away_team.short_name|slice:":2" }}</span>
+            {% else %}
+            <span class="team-badge" style="background:{{ match.away_team.crest_color }}">{{ match.away_team.short_name|slice:":2" }}</span>
+            {% endif %}
+            <span class="team-name">{{ match.away_team }}</span>
         </div>
     </a>
+
     <div class="match-card-pick">
         {% if fixture.market_override %}
-            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.market_override.label }}</span>
+            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.market_override.label|short_pick }}</span>
             {% if fixture.market_override.probability %}
             <div class="confidence-note">{{ fixture.market_override.probability|floatformat:0 }}%</div>
             {% endif %}
         {% else %}
-            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.top_tip.prediction }}</span>
+            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.top_tip.prediction|short_pick }}</span>
             {% if fixture.top_tip.confidence %}
             <div class="confidence-note">{{ fixture.top_tip.confidence }}%</div>
             {% endif %}
         {% endif %}
     </div>
+
     <div class="match-card-odds">
         <span class="odds-label">Odds</span>
         <span class="odds-value">{% if fixture.market_override %}{{ fixture.market_override.odds|default:"—" }}{% else %}{{ fixture.top_tip.odds }}{% endif %}</span>
     </div>
+
     {% if fixture.tips_count > 1 %}
-    <a href="{% url 'match_tips' tip_type fixture.match.id %}" class="more-tips-link">+{{ fixture.tips_count|add:"-1" }} more markets</a>
+    <a href="{% url 'match_tips' tip_type match.id %}" class="more-tips-link">+{{ fixture.tips_count|add:"-1" }} more markets</a>
     {% endif %}
 </div>
+{% endwith %}
 {% empty %}
 <div class="empty-cell">
     <div class="empty-title">No {{ tip_type }} tips for {{ active_day_label|lower }}</div>
