@@ -1,4 +1,5 @@
 {% extends "predictions/base.html" %}
+{% load predictions_extras %}
 
 {% block title %}Football Predictions & Tips — Matchday Pro{% endblock %}
 {% block meta_desc %}Football predictions and match win probabilities — free tips across every market: 1X2, BTTS, Over/Under, Corners, Draw No Bet.{% endblock %}
@@ -31,14 +32,20 @@
 
 <div class="dash-grid">
 
-    <!-- Left: leagues appearing in the currently selected day/market, with real counts -->
-    <aside class="dash-col-leagues">
+    <!-- Desktop only: leagues sidebar -->
+    <aside class="dash-col-leagues desktop-only">
         <div class="side-panel sticky-side">
             <h3>🏆 Leagues</h3>
             {% for league, count in league_counts %}
-                <div style="display:flex;justify-content:space-between;padding:0.4rem 0;color:var(--text-muted);font-size:0.85rem;">
-                    <span>{{ league.name }}</span>
-                    <span style="font-family:var(--font-mono);color:var(--text-faint);">{{ count }}</span>
+                <div class="league-row">
+                    <span class="league-row-name">
+                        {% if league|league_logo_url %}
+                        <img class="league-logo-sm" src="{{ league|league_logo_url }}" alt="" width="16" height="16" loading="lazy"
+                             onerror="this.style.display='none'">
+                        {% endif %}
+                        {{ league.name }}
+                    </span>
+                    <span class="league-row-count">{{ count }}</span>
                 </div>
             {% empty %}
                 <span style="color:var(--text-faint);font-size:0.85rem;">No fixtures for this selection.</span>
@@ -46,7 +53,7 @@
         </div>
     </aside>
 
-    <!-- Center: full free-tips browser, day + market tabs -->
+    <!-- Center: free-tips browser -->
     <div class="dash-col-main">
         <div class="section-header">
             <h2>⚽ Free Tips</h2>
@@ -68,13 +75,30 @@
             </div>
         </div>
 
+        <!-- Mobile: horizontal league chips (replaces stacked sidebar) -->
+        {% if league_counts %}
+        <div class="league-chips-wrap mobile-only">
+            <div class="league-chips" role="list" aria-label="Leagues in this selection">
+                {% for league, count in league_counts %}
+                <span class="league-chip" role="listitem">
+                    {% if league|league_logo_url %}
+                    <img src="{{ league|league_logo_url }}" alt="" width="14" height="14" loading="lazy"
+                         onerror="this.style.display='none'">
+                    {% endif %}
+                    {{ league.name }}
+                    <em>{{ count }}</em>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="match-list">
         {% include "predictions/_fixture_cards.html" %}
         </div>
     </div>
 
-    <!-- Right: upsell + disclaimer -->
-    <aside class="dash-col-upsell">
+    <aside class="dash-col-upsell desktop-only">
         <div class="side-panel">
             <h3>🔒 Get VIP Access</h3>
             <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
@@ -85,8 +109,7 @@
 
         <div class="side-panel">
             <p style="font-size:0.78rem;color:var(--text-faint);line-height:1.5;">
-                Win probabilities and projected scores are our editorial predictions, not
-                outputs of an automated model. They are estimates, not guarantees.
+                Win probabilities and projected scores are model estimates, not guarantees.
                 18+ Gamble responsibly.
             </p>
         </div>
