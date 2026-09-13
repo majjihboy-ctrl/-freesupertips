@@ -1202,6 +1202,80 @@ img {
     padding: 0 0.25rem;
 }
 
+/* ---------- Match cards (fixture list — replaces the old dense table) ---------- */
+.match-list {
+    display: flex;
+    flex-direction: column;
+}
+.match-card {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas: "teams pick odds" "more more more";
+    column-gap: 1rem;
+    row-gap: 0.35rem;
+    align-items: center;
+    padding: 0.9rem 0.25rem;
+    border-bottom: 1px solid var(--border);
+}
+.match-card:last-child { border-bottom: none; }
+.match-card-teams {
+    grid-area: teams;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    color: var(--text);
+}
+.match-card-meta {
+    font-size: 0.72rem;
+    color: var(--text-faint);
+}
+.team-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.team-badge {
+    flex-shrink: 0;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+}
+.team-name {
+    font-size: 0.92rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.match-card-pick { grid-area: pick; text-align: center; }
+.match-card-odds {
+    grid-area: odds;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+}
+.odds-label { font-size: 0.68rem; color: var(--text-faint); }
+.odds-value { font-family: var(--font-mono); font-weight: 700; font-size: 0.95rem; color: var(--text); }
+.match-card .more-tips-link { grid-area: more; font-size: 0.75rem; }
+
+@media (max-width: 640px) {
+    .match-card {
+        grid-template-columns: 1fr auto;
+        grid-template-areas: "teams teams" "pick odds" "more more";
+        row-gap: 0.5rem;
+    }
+}
+
 /* ---------- Data table (tips_list / tip_detail) ---------- */
 .table-scroll {
     overflow-x: auto;

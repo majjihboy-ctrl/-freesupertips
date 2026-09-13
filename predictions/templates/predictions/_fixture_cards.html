@@ -1,0 +1,46 @@
+{% for fixture in fixtures %}
+<div class="match-card">
+    <a href="{% url 'match_tips' tip_type fixture.match.id %}" class="match-card-teams">
+        <div class="match-card-meta">{{ fixture.match.league.name }} &middot; {{ fixture.match.kickoff|date:"H:i" }}</div>
+        <div class="team-row">
+            <span class="team-badge" style="background:{{ fixture.match.home_team.crest_color }}">{{ fixture.match.home_team.short_name|slice:":2" }}</span>
+            <span class="team-name">{{ fixture.match.home_team }}</span>
+        </div>
+        <div class="team-row">
+            <span class="team-badge" style="background:{{ fixture.match.away_team.crest_color }}">{{ fixture.match.away_team.short_name|slice:":2" }}</span>
+            <span class="team-name">{{ fixture.match.away_team }}</span>
+        </div>
+    </a>
+    <div class="match-card-pick">
+        {% if fixture.market_override %}
+            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.market_override.label }}</span>
+            {% if fixture.market_override.probability %}
+            <div class="confidence-note">{{ fixture.market_override.probability|floatformat:0 }}%</div>
+            {% endif %}
+        {% else %}
+            <span class="prediction-tag {% if tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">{{ fixture.top_tip.prediction }}</span>
+            {% if fixture.top_tip.confidence %}
+            <div class="confidence-note">{{ fixture.top_tip.confidence }}%</div>
+            {% endif %}
+        {% endif %}
+    </div>
+    <div class="match-card-odds">
+        <span class="odds-label">Odds</span>
+        <span class="odds-value">{% if fixture.market_override %}{{ fixture.market_override.odds|default:"—" }}{% else %}{{ fixture.top_tip.odds }}{% endif %}</span>
+    </div>
+    {% if fixture.tips_count > 1 %}
+    <a href="{% url 'match_tips' tip_type fixture.match.id %}" class="more-tips-link">+{{ fixture.tips_count|add:"-1" }} more markets</a>
+    {% endif %}
+</div>
+{% empty %}
+<div class="empty-cell">
+    <div class="empty-title">No {{ tip_type }} tips for {{ active_day_label|lower }}</div>
+    <div class="empty-sub">
+        {% if market_param != 'all' %}
+            No matches have data for this market — try "All Markets" or another day.
+        {% else %}
+            Try another day using the tabs above, or check back once picks are posted.
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
