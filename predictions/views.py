@@ -292,13 +292,16 @@ def _build_accumulator(leg_count=5):
 
 
 def accumulator(request):
+    """Daily 4-fold accumulator — free to view (built for sharing).
+    Legs are diversified across markets, each at or above the confidence floor.
+    """
     is_vip = _vip_status(request)
-    if not is_vip:
-        messages.info(request, "The VIP Accumulator is a VIP-only feature. Upgrade to unlock it.")
-        return redirect("upgrade")
-
-    acca = _build_accumulator(leg_count=5)
-    return render(request, "predictions/accumulator.html", {**acca, "is_vip": is_vip})
+    acca = _build_accumulator(leg_count=4)
+    return render(request, "predictions/accumulator.html", {
+        **acca,
+        "is_vip": is_vip,
+        "leg_target": 4,
+    })
 
 
 @never_cache

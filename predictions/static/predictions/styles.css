@@ -3047,3 +3047,135 @@ img {
     color: var(--text-faint);
     margin-top: 0.15rem;
 }
+
+
+/* ---------- Daily Acca (4-fold) ---------- */
+.acca-fold-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.5rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: #0f5132;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+}
+.acca-sub {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin: -0.5rem 0 1.25rem;
+}
+.acca-board {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+[data-theme="light"] .acca-board {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 6px 16px rgba(15, 81, 50, 0.06);
+}
+.acca-leg {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.95rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+}
+.acca-leg:last-of-type {
+    border-bottom: 1px solid var(--border);
+}
+.acca-leg:hover {
+    background: var(--row-hover);
+    color: inherit;
+}
+.acca-leg-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+.acca-leg-time {
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+}
+.acca-leg-match {
+    font-size: 0.92rem;
+    font-weight: 650;
+    color: var(--text);
+}
+.acca-leg-pick {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.acca-chip {
+    display: inline-flex;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    background: #0f5132;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+[data-theme="dark"] .acca-chip {
+    background: var(--green);
+    color: #06210f;
+}
+.acca-conf {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--green);
+    min-width: 2.6rem;
+    text-align: right;
+}
+.acca-combined {
+    padding: 1.35rem 1.1rem 1.5rem;
+    text-align: center;
+    background: var(--bg-inset);
+}
+.acca-combined-value {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: #0f5132;
+    line-height: 1.1;
+}
+[data-theme="dark"] .acca-combined-value {
+    color: var(--green);
+}
+.acca-combined-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+.acca-combined-prob {
+    font-size: 0.78rem;
+    color: var(--text-faint);
+    margin-top: 0.35rem;
+}
+@media (max-width: 480px) {
+    .acca-leg {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .acca-leg-pick {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
