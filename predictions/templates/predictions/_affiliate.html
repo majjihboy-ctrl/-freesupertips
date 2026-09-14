@@ -1,44 +1,84 @@
-{# Reusable affiliate units for BigCat Partners #}
-{# Usage: {% include "predictions/_affiliate.html" with variant="banner" %} #}
-{#        {% include "predictions/_affiliate.html" with variant="button" %} #}
-{#        {% include "predictions/_affiliate.html" with variant="sidebar" %} #}
-{#        {% include "predictions/_affiliate.html" with variant="footer" %} #}
+{# Reusable modern animated affiliate cards – BigCat Partners #}
+{# Variants: banner | button | sidebar | footer #}
 
 {% if variant == "banner" or variant == "top" %}
-<div class="promo-banner affiliate-banner">
-    <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
-       target="_blank" rel="nofollow sponsored noopener">
-        Ready to bet on today's tips? Claim your offer &rarr;
-    </a>
-    <span class="promo-tag">Ad</span>
-</div>
+<a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
+   target="_blank" rel="nofollow sponsored noopener"
+   class="aff-card aff-card--banner">
+    <div class="aff-card__glow"></div>
+    <div class="aff-card__inner">
+        <div class="aff-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                <circle cx="12" cy="12" r="4"/>
+            </svg>
+        </div>
+        <div class="aff-card__body">
+            <span class="aff-card__eyebrow">Exclusive Offer</span>
+            <span class="aff-card__title">Ready to back today's tips?</span>
+            <span class="aff-card__sub">Claim your bookie welcome bonus now</span>
+        </div>
+        <span class="aff-card__cta">
+            Claim Offer
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+    </div>
+    <span class="aff-card__ad">Ad</span>
+</a>
+
 {% elif variant == "button" or variant == "mid" %}
-<div class="affiliate-mid">
-    <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
-       target="_blank" rel="nofollow sponsored noopener"
-       class="affiliate-btn">
-        Claim Bookie Offer
-    </a>
-    <span class="promo-tag">Ad</span>
-</div>
+<a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
+   target="_blank" rel="nofollow sponsored noopener"
+   class="aff-card aff-card--mid">
+    <div class="aff-card__glow"></div>
+    <div class="aff-card__inner">
+        <div class="aff-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <path d="M2 10h20"/>
+            </svg>
+        </div>
+        <div class="aff-card__body">
+            <span class="aff-card__title">Got your picks ready?</span>
+            <span class="aff-card__sub">Unlock a welcome offer & place your bets</span>
+        </div>
+        <span class="aff-card__cta">
+            Claim Offer
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+    </div>
+    <span class="aff-card__ad">Ad</span>
+</a>
+
 {% elif variant == "sidebar" %}
-<div class="side-panel affiliate-sidebar">
-    <h3>Bookie Offer</h3>
-    <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.45;margin-bottom:0.9rem;">
-        Back today's free tips with a welcome offer.
-    </p>
-    <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
-       target="_blank" rel="nofollow sponsored noopener"
-       class="affiliate-btn affiliate-btn-block">
-        Claim Offer
-    </a>
-    <p style="font-size:0.72rem;color:var(--text-faint);margin-top:0.75rem;">18+ · Gamble responsibly</p>
-</div>
+<a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
+   target="_blank" rel="nofollow sponsored noopener"
+   class="aff-card aff-card--sidebar">
+    <div class="aff-card__glow"></div>
+    <div class="aff-card__inner">
+        <div class="aff-card__icon aff-card__icon--lg" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                <circle cx="12" cy="12" r="4"/>
+            </svg>
+        </div>
+        <span class="aff-card__eyebrow">Bookie Offer</span>
+        <span class="aff-card__title">Back today's free tips</span>
+        <span class="aff-card__sub">Welcome bonus available for new players</span>
+        <span class="aff-card__cta aff-card__cta--block">
+            Claim Offer
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+        <span class="aff-card__legal">18+ · Gamble responsibly</span>
+    </div>
+    <span class="aff-card__ad">Ad</span>
+</a>
+
 {% elif variant == "footer" %}
-<div class="affiliate-footer">
+<div class="aff-footer">
     <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
        target="_blank" rel="nofollow sponsored noopener">
-        Sponsored: Claim your betting offer here
+        Sponsored · Claim your betting offer
     </a>
 </div>
 {% endif %}
