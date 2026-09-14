@@ -99,46 +99,65 @@
             </div>
             {% endif %}
 
-            {% for prediction in predictions %}
-            <div class="leg-row">
-                <div class="leg-info">
-                    <div class="leg-fixture-name">
-                        {{ prediction.match.home_team }} vs {{ prediction.match.away_team }}
+            {% if predictions %}
+            {% with prediction=predictions.0 %}
+            <div class="primary-pick-card">
+                <div class="primary-pick-label">Primary Pick</div>
+                <div class="primary-pick-value">{{ prediction.prediction }}</div>
+                <div class="primary-pick-meta">
+                    <div style="flex:1;">
+                        <div style="font-size:0.72rem;color:var(--text-faint);margin-bottom:0.25rem;">
+                            Confidence {% if prediction.confidence %}{{ prediction.confidence }}%{% else %}—{% endif %}
+                        </div>
+                        <div class="primary-conf-bar">
+                            <div class="primary-conf-fill" style="width:{% if prediction.confidence %}{{ prediction.confidence }}{% else %}0{% endif %}%;"></div>
+                        </div>
                     </div>
-                    {% if prediction.markets %}
-                    <div class="extra-markets">
-                        {% if prediction.markets.btts.prob_yes %}
-                        <span class="market-chip">BTTS <strong>{{ prediction.markets.btts.prob_yes|floatformat:0 }}%</strong></span>
-                        {% endif %}
-                        {% if prediction.markets.over_under.prob_over_25 %}
-                        <span class="market-chip">Over 2.5 <strong>{{ prediction.markets.over_under.prob_over_25|floatformat:0 }}%</strong></span>
-                        {% endif %}
-                        {% if prediction.markets.score.most_likely %}
-                        <span class="market-chip">Correct Score <strong>{{ prediction.markets.score.most_likely }}</strong></span>
-                        {% endif %}
-                        {% if prediction.markets.expected_goals.home %}
-                        <span class="market-chip">xG <strong>{{ prediction.markets.expected_goals.home|floatformat:2 }} – {{ prediction.markets.expected_goals.away|floatformat:2 }}</strong></span>
-                        {% endif %}
-                        {% if prediction.markets.corners.prob_over_95 %}
-                        <span class="market-chip">Corners O9.5 <strong>{{ prediction.markets.corners.prob_over_95|floatformat:0 }}%</strong></span>
-                        {% endif %}
-                    </div>
+                    <div class="primary-odds">@ {{ prediction.odds }}</div>
+                </div>
+                {% if prediction.markets %}
+                <div style="margin-top:0.9rem;display:flex;flex-wrap:wrap;">
+                    {% if prediction.markets.btts.prob_yes %}
+                    <span class="market-chip">BTTS Yes <strong>{{ prediction.markets.btts.prob_yes|floatformat:0 }}%</strong></span>
+                    {% endif %}
+                    {% if prediction.markets.over_under.prob_over_25 %}
+                    <span class="market-chip">O2.5 <strong>{{ prediction.markets.over_under.prob_over_25|floatformat:0 }}%</strong></span>
+                    {% endif %}
+                    {% if prediction.markets.score.most_likely %}
+                    <span class="market-chip">CS <strong>{{ prediction.markets.score.most_likely }}</strong></span>
+                    {% endif %}
+                    {% if prediction.markets.expected_goals.home %}
+                    <span class="market-chip">xG <strong>{{ prediction.markets.expected_goals.home|floatformat:2 }}–{{ prediction.markets.expected_goals.away|floatformat:2 }}</strong></span>
+                    {% endif %}
+                    {% if prediction.markets.corners.prob_over_95 %}
+                    <span class="market-chip">Corners O9.5 <strong>{{ prediction.markets.corners.prob_over_95|floatformat:0 }}%</strong></span>
                     {% endif %}
                 </div>
+                {% endif %}
+            </div>
+            {% endwith %}
 
-                <div class="leg-odds" style="font-size:1.3rem;">
-                    <span class="prediction-tag {% if prediction.tip_type == 'vip' %}tag-amber{% else %}tag-green{% endif %}">
-                        {{ prediction.prediction }}
-                    </span>
-                    <span style="margin-left:0.5rem;">@ {{ prediction.odds }}</span>
+            {% if predictions|length > 1 %}
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.5rem;">Other Markets</div>
+            {% for prediction in predictions %}
+            {% if not forloop.first %}
+            <div class="leg-row">
+                <div class="leg-info">
+                    <span class="fx-chip {% if prediction.tip_type == 'vip' %}fx-chip-vip{% endif %}">{{ prediction.prediction }}</span>
+                </div>
+                <div class="leg-odds">
+                    <span class="fx-odds-value">@ {{ prediction.odds }}</span>
                     {% if prediction.confidence %}
-                    <div class="confidence-note">{{ prediction.confidence }}% model confidence</div>
+                    <div class="confidence-note">{{ prediction.confidence }}%</div>
                     {% endif %}
                 </div>
             </div>
-            {% empty %}
-            <p class="empty-cell">No predictions are available for this match.</p>
+            {% endif %}
             {% endfor %}
+            {% endif %}
+            {% else %}
+            <p class="empty-cell">No predictions are available for this match.</p>
+            {% endif %}
 
             <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
                 <button

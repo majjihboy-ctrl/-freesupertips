@@ -30,24 +30,37 @@
 
 <div class="match-list">
 {% for leg in legs %}
-<div class="match-card">
-    <a href="{% url 'match_tips' leg.prediction.tip_type leg.prediction.match.id %}" class="match-card-teams">
-        <div class="match-card-meta">{{ leg.prediction.match.league.name }} &middot; {{ leg.prediction.match.kickoff|date:"D, H:i" }}</div>
-        <div class="team-row">
-            <span class="team-name">{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }}</span>
+<article class="fx-card">
+    <a class="fx-card-link" href="{% url 'match_tips' leg.prediction.tip_type leg.prediction.match.id %}">
+        <div class="fx-meta">
+            <span>{{ leg.prediction.match.league.name }} · {{ leg.prediction.match.kickoff|date:"D, H:i" }}</span>
+        </div>
+        <div class="fx-team">
+            <span class="fx-name">{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }}</span>
         </div>
     </a>
-    <div class="match-card-pick">
-        <span class="market-chip">{{ leg.market_type|upper }}</span>
-        <span class="prediction-tag tag-amber">{{ leg.label }}</span>
-        <div class="confidence-note">{{ leg.probability|floatformat:0 }}% confidence</div>
+    <div class="fx-footer">
+        <div class="fx-pick-block">
+            <span class="fx-chip fx-chip-vip">{{ leg.label }}</span>
+            <div class="fx-conf">
+                <span class="fx-conf-label">Confidence</span>
+                <span class="fx-conf-value">{{ leg.probability|floatformat:0 }}%</span>
+            </div>
+        </div>
+        <div class="fx-odds-block">
+            <span class="fx-odds-label">Odds</span>
+            <span class="fx-odds-value">{{ leg.odds }}</span>
+        </div>
     </div>
-    <div class="match-card-odds">
-        <span class="odds-label">Odds</span>
-        <span class="odds-value">{{ leg.odds }}</span>
-    </div>
-</div>
+</article>
 {% endfor %}
+</div>
+
+<div class="home-vip-bar" style="margin-top:1.5rem;">
+    <a href="{% url 'upgrade' %}" class="home-vip-primary">
+        <span class="home-vip-icon">👑</span>
+        <span>Get VIP Access</span>
+    </a>
 </div>
 
 <p class="disclaimer" style="margin-top:1.25rem;">

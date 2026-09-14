@@ -644,11 +644,15 @@ img {
 }
 .day-tab {
     padding: 0.45rem 1rem;
-    border-radius: var(--radius-pill);
+    border-radius: 999px;
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-muted);
     white-space: nowrap;
+}
+[data-theme="light"] .day-tab.is-active {
+    background: #0f5132;
+    color: #fff;
 }
 .day-tab:hover {
     color: var(--text);
@@ -2334,4 +2338,162 @@ img {
     padding: 0.2rem 0.7rem;
     border-radius: 999px;
     letter-spacing: 0.02em;
+}
+
+
+/* ---------- Match Detail — Primary Pick (mockup style) ---------- */
+.detail-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+[data-theme="light"] .detail-panel {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 6px 16px rgba(15, 81, 50, 0.05);
+}
+.panel-header {
+    padding: 1.25rem 1.25rem 0.75rem;
+}
+.panel-header h1 {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+.panel-body {
+    padding: 0 1.25rem 1.5rem;
+}
+.detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+}
+.detail-meta svg {
+    vertical-align: -2px;
+    margin-right: 0.25rem;
+    opacity: 0.7;
+}
+
+/* Primary pick card */
+.primary-pick-card {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.15rem 1.2rem;
+    margin-bottom: 1.25rem;
+}
+[data-theme="light"] .primary-pick-card {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+.primary-pick-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--green);
+    margin-bottom: 0.35rem;
+}
+.primary-pick-value {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+.primary-pick-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+.primary-conf-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.primary-conf-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #166534, #22c55e);
+    border-radius: 999px;
+}
+.primary-odds {
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--green);
+}
+
+/* Insight panels */
+.insight-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.insight-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    margin-bottom: 0.4rem;
+}
+.h2h-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+.h2h-seg.h2h-home { background: #166534; }
+.h2h-seg.h2h-draw { background: #94a3b8; }
+.h2h-seg.h2h-away { background: #b91c1c; }
+.h2h-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+}
+.dot-home { background: #166534; }
+.dot-draw { background: #94a3b8; }
+.dot-away { background: #b91c1c; }
+
+.market-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.7rem;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0.2rem 0.25rem 0.2rem 0;
+}
+.market-chip strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.leg-row {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+}
+.leg-row:last-of-type {
+    border-bottom: none;
 }
