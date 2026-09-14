@@ -116,6 +116,17 @@
                     </div>
                     <div class="primary-odds">@ {{ prediction.odds }}</div>
                 </div>
+                {% if model_odds or market_odds %}
+                <div class="model-vs-market">
+                    {% if model_odds %}<span>Model fair <strong>{{ model_odds }}</strong></span>{% endif %}
+                    {% if market_odds %}<span>Market <strong>{{ market_odds }}</strong></span>{% endif %}
+                    {% if value_edge is not None and value_edge > 0 %}
+                    <span class="value-badge">Value +{{ value_edge }}</span>
+                    {% elif is_value %}
+                    <span class="value-badge">High confidence</span>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
             {% endwith %}
 

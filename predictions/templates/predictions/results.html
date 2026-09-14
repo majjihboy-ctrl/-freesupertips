@@ -22,6 +22,21 @@
     </div>
 </div>
 
+{% if market_stats %}
+<div class="market-stats">
+    <div class="market-stats-title">By market (last {{ lookback_days }} days)</div>
+    <div class="market-stats-grid">
+        {% for m in market_stats %}
+        <div class="market-stat-card">
+            <div class="market-stat-label">{{ m.label }}</div>
+            <div class="market-stat-rate">{% if m.hit_rate is not None %}{{ m.hit_rate }}%{% else %}—{% endif %}</div>
+            <div class="market-stat-n">{{ m.hits }}/{{ m.total }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="match-list results-list">
 {% for prediction in predictions %}
 <article class="fx-card result-fx">

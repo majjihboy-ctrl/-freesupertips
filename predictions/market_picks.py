@@ -213,3 +213,61 @@ def board_rows(markets, home_name="Home", away_name="Away"):
         groups.append({"group": "Model Extras", "rows": summary_rows})
 
     return groups
+
+
+# ---- Model vs market / value helpers ----
+
+def model_implied_odds(probability):
+    """probability is 0-100. Returns decimal odds or None."""
+    p = _f(probability)
+    if p is None or p <= 0:
+        return None
+    return round(100.0 / p, 2)
+
+
+def is_value_pick(confidence, min_conf=70):
+    """Simple value flag until book odds are compared."""
+    c = _f(confidence)
+    return c is not None and c >= min_conf
+
+
+def map_pick_to_odds_query(market_type, prediction_label, home_name, away_name):
+    """Map our tip to Bzzoiro /odds/ market + outcome params.
+    Returns (market, outcome) or (None, None).
+    """
+    label = (prediction_label or "").lower()
+    mt = (market_type or "").lower()
+
+    if mt == "match_result" or label in ("home win", "away win", "draw"):
+        if "home" in label:
+            return "1x2", "HOME"
+        if "away" in label:
+            return "1x2", "AWAY"
+        if "draw" in label:
+            return "1x2", "DRAW"
+        return "1x2", None
+
+    if mt == "btts" or "btts" in label:
+        if "no" in label:
+            return "btts", "no"
+        return "btts", "yes"
+
+    if mt == "over_under" or "goals" in label:
+        if "1.5" in label:
+            return "over_under_15", "over" if "over" in label else "under"
+        if "3.5" in label:
+            return "over_under_35", "over" if "over" in label else "under"
+        return "over_under_25", "over" if "over" in label else "under"
+
+    if mt == "draw_no_bet" or "draw no bet" in label:
+        # outcome is home/away relative — API uses HOME/AWAY for DNB
+        if home_name and home_name.lower() in label:
+            return "draw_no_bet", "HOME"
+        if away_name and away_name.lower() in label:
+            return "draw_no_bet", "AWAY"
+        return "draw_no_bet", "HOME"
+
+    if mt == "corners" or "corners" in label:
+        return "total_corners", "over"
+
+    return None, None

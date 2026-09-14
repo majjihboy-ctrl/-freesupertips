@@ -33,6 +33,46 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _fetch_consensus_odds(event_external_id, market, outcome, timeout=4):
+    """Best-effort consensus decimal odds from Bzzoiro. Returns float or None."""
+    if not event_external_id or not market or not outcome:
+        return None
+    api_key = getattr(settings, "BZZOIRO_API_KEY", "") or ""
+    if not api_key:
+        return None
+    try:
+        import requests
+        resp = requests.get(
+            "https://sports.bzzoiro.com/api/v2/odds/",
+            headers={"Authorization": f"Token {api_key}"},
+            params={
+                "event_id": event_external_id,
+                "market": market,
+                "outcome": outcome,
+                "limit": 5,
+            },
+            timeout=timeout,
+        )
+        if resp.status_code != 200:
+            return None
+        rows = (resp.json() or {}).get("results") or []
+        prices = []
+        for row in rows:
+            price = row.get("decimal_odds")
+            if price is not None:
+                try:
+                    prices.append(float(price))
+                except (TypeError, ValueError):
+                    pass
+        if not prices:
+            return None
+        return round(sum(prices) / len(prices), 2)
+    except Exception:
+        logger.debug("consensus odds fetch failed", exc_info=True)
+        return None
+
+
+
 from django.contrib.auth.views import LoginView, PasswordResetView
 from django.utils.decorators import method_decorator
 
@@ -371,7 +411,7 @@ def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
         for key, label in MARKET_TABS
     ]
 
-    cache_key = f"predictions_list_v3_{tip_type}_{day_param}_{market_param}"
+    cache_key = f"predictions_list_v4_{tip_type}_{day_param}_{market_param}"
     fixtures = cache.get(cache_key)
     if fixtures is None:
         day_start = timezone.make_aware(datetime.combine(active_date, datetime.min.time()))
@@ -396,15 +436,11 @@ def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
             if not tips:
                 continue
             if market_param == "all":
-                # All Markets is meant to show variety, not always the single
-                # "best" pick -- anyone wanting a guaranteed specific market
-                # already has the 1X2 / Over-Under / etc. tabs for that.
-                # Seeded by the actual prediction IDs for this match so the
-                # pick is stable across requests/cache refreshes, and only
-                # re-rolls once the set of picks for this match actually
-                # changes (e.g. tomorrow's fresh fixtures/picks land).
-                seed = ",".join(str(t.id) for t in tips)
-                top_tip = random.Random(seed).choice(tips)
+                # Always surface the highest-confidence tip for the match.
+                top_tip = tips[0]  # queryset already ordered by -confidence
+                # Value filter: skip weak picks on the free list
+                if top_tip.confidence is not None and top_tip.confidence < 58:
+                    continue
                 fixtures.append({"match": match, "top_tip": top_tip, "tips_count": len(tips)})
                 continue
             top_tip = tips[0]
@@ -421,10 +457,19 @@ def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
 
         cache.set(cache_key, fixtures, 120)
 
+    def _conf(f):
+        if f.get("market_override") and f["market_override"].get("probability") is not None:
+            return f["market_override"]["probability"]
+        tip = f.get("top_tip")
+        return (tip.confidence if tip and tip.confidence is not None else 0)
+
+    # Strongest tips first within each league
+    fixtures.sort(key=lambda f: (-_conf(f), f["match"].kickoff))
+
     fixtures_by_league = [
         {"league": league, "fixtures": list(group)}
         for league, group in groupby(
-            sorted(fixtures, key=lambda f: f["match"].league.name),
+            sorted(fixtures, key=lambda f: (f["match"].league.name, -_conf(f))),
             key=lambda f: f["match"].league,
         )
     ]
@@ -480,13 +525,32 @@ def match_tips(request, tip_type, match_id):
         raise Http404("No tips for this match.")
 
     board = []
-    if predictions and predictions[0].markets:
+    primary = predictions[0] if predictions else None
+    if primary and primary.markets:
         from .market_picks import board_rows
         board = board_rows(
-            predictions[0].markets,
+            primary.markets,
             str(match.home_team),
             str(match.away_team),
         )
+
+    # Model vs market comparison for the primary pick
+    market_odds = None
+    model_odds = None
+    value_edge = None
+    if primary:
+        from .market_picks import model_implied_odds, map_pick_to_odds_query, is_value_pick
+        model_odds = model_implied_odds(primary.confidence)
+        mkt, outcome = map_pick_to_odds_query(
+            primary.market_type,
+            primary.prediction,
+            str(match.home_team),
+            str(match.away_team),
+        )
+        market_odds = _fetch_consensus_odds(match.external_id, mkt, outcome)
+        if market_odds and model_odds and market_odds > 1 and model_odds > 1:
+            # Positive edge when book pays more than model-implied fair price
+            value_edge = round(market_odds - model_odds, 2)
 
     return render(request, "predictions/match_tips.html", {
         "match": match,
@@ -494,6 +558,10 @@ def match_tips(request, tip_type, match_id):
         "tip_type": tip_type,
         "is_vip": _vip_status(request),
         "market_board": board,
+        "model_odds": model_odds,
+        "market_odds": market_odds,
+        "value_edge": value_edge,
+        "is_value": bool(primary and primary.confidence and primary.confidence >= 70),
     })
 
 
@@ -592,12 +660,42 @@ def results(request):
     total = len(gradeable)
     hit_rate = round((hits / total) * 100) if total else None
 
+    # Breakdown by market type
+    by_market = {}
+    for p in gradeable:
+        key = p.market_type or "other"
+        bucket = by_market.setdefault(key, {"hits": 0, "total": 0})
+        bucket["total"] += 1
+        if p.was_hit:
+            bucket["hits"] += 1
+    market_stats = []
+    labels = {
+        "match_result": "1X2",
+        "btts": "BTTS",
+        "over_under": "Over/Under",
+        "draw_no_bet": "Draw No Bet",
+        "corners": "Corners",
+        "score": "Correct Score",
+        "other": "Other",
+    }
+    for key, bucket in sorted(by_market.items(), key=lambda kv: -kv[1]["total"]):
+        t = bucket["total"]
+        h = bucket["hits"]
+        market_stats.append({
+            "key": key,
+            "label": labels.get(key, key.replace("_", " ").title()),
+            "hits": h,
+            "total": t,
+            "hit_rate": round((h / t) * 100) if t else None,
+        })
+
     return render(request, "predictions/results.html", {
         "predictions": predictions,
         "hits": hits,
         "total": total,
         "hit_rate": hit_rate,
         "lookback_days": lookback_days,
+        "market_stats": market_stats,
     })
 
 

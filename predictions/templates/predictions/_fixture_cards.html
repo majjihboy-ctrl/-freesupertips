@@ -41,6 +41,7 @@
           <span class="fx-conf-label">Confidence</span>
           <span class="fx-conf-value">{{ conf|floatformat:0 }}%</span>
         </div>
+        {% if conf and conf >= 70 %}<span class="value-chip">Value</span>{% endif %}
         {% endif %}
       </div>
       <div class="fx-odds-block">
@@ -90,6 +91,7 @@
           <span class="fx-conf-label">Confidence</span>
           <span class="fx-conf-value">{{ conf }}%</span>
         </div>
+        {% if conf and conf >= 70 %}<span class="value-chip">Value</span>{% endif %}
         {% endif %}
       </div>
       <div class="fx-odds-block">
