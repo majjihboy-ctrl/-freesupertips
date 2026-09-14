@@ -2047,31 +2047,37 @@ img {
 .results-summary {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
 .results-stat {
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
     text-align: center;
-    padding: 1rem;
+    padding: 1.1rem 0.75rem;
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.stat-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
-.stat-label { font-size: 0.75rem; color: var(--text-faint); margin-top: 0.25rem; }
+[data-theme="light"] .results-stat {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 10px rgba(15, 81, 50, 0.05);
+}
+.stat-value { font-family: var(--font-display); font-size: 1.55rem; font-weight: 700; color: var(--green); }
+.stat-label { font-size: 0.72rem; color: var(--text-faint); margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.03em; }
 .result-badge {
     display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 0.25rem 0.6rem;
-    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
     background: var(--bg-inset);
     color: var(--text-muted);
+    letter-spacing: 0.02em;
 }
-.result-badge.hit { background: var(--green-bg); color: var(--alert-success-text); }
-.result-badge.miss { background: var(--red-bg); color: var(--alert-error-text); }
+.result-badge.hit { background: rgba(22, 101, 52, 0.12); color: #166534; }
+.result-badge.miss { background: rgba(185, 28, 28, 0.1); color: #b91c1c; }
+.result-badge.push { background: var(--bg-inset); color: var(--text-muted); }
 
 /* ---------- Match detail: prediction legs ---------- */
 .leg-row {
@@ -2222,4 +2228,110 @@ img {
     /* Tighter day/market tabs on phone */
     .day-tabs-wrap { margin-bottom: 0.65rem; }
     .day-tab { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+}
+
+
+/* ---------- Home VIP bar (mockup-matched) ---------- */
+.home-vip-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+.home-vip-primary {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1.25rem;
+    background: #0f5132;
+    color: #ffffff !important;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: 12px;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(15, 81, 50, 0.25);
+}
+.home-vip-primary:hover {
+    background: #14532d;
+    color: #ffffff !important;
+}
+.home-vip-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.9rem 1.25rem;
+    background: transparent;
+    color: var(--green);
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: 2px solid var(--green);
+    border-radius: 12px;
+    text-decoration: none;
+}
+.home-vip-secondary:hover {
+    background: var(--green-bg);
+}
+[data-theme="light"] .home-vip-primary {
+    background: #0f5132;
+}
+
+
+/* ---------- Upgrade page extras ---------- */
+.upgrade-page h1 {
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    margin-bottom: 0.35rem;
+}
+.upgrade-intro {
+    color: var(--text-muted);
+    margin-bottom: 1.75rem;
+    font-size: 0.95rem;
+}
+.price-card h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+.price-card .price {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 1rem;
+}
+.price-card .price span {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.price-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.price-card li {
+    padding: 0.35rem 0;
+}
+.price-card li::before {
+    content: "✓ ";
+    color: var(--green);
+    font-weight: 700;
+}
+.price-card.featured::before {
+    content: "Best value";
+    position: absolute;
+    top: -0.7rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
 }
