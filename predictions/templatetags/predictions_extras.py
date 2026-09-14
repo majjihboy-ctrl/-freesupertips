@@ -30,6 +30,10 @@ def short_pick(label):
     if m:
         return f"O{m.group(1)}"
 
+    m = re.match(r"^Under\s+([\d.]+)\s+Goals$", text, re.I)
+    if m:
+        return f"U{m.group(1)}"
+
     m = re.match(r"^Corners\s+Over\s+([\d.]+)$", text, re.I)
     if m:
         return f"Corners O{m.group(1)}"
@@ -83,3 +87,11 @@ def conf_tier(value):
     if v >= 70:
         return "is-strong"
     return ""
+
+
+
+@register.simple_tag
+def market_board(markets, home_name="Home", away_name="Away"):
+    """Full probability board groups for match detail."""
+    from predictions.market_picks import board_rows
+    return board_rows(markets, home_name, away_name)

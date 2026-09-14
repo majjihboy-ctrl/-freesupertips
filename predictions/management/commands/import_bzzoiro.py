@@ -53,8 +53,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--days", type=int, default=3,
-            help="How many days ahead (from today) to import fixtures for. Default 3.",
+            "--days", type=int, default=7,
+            help="How many days ahead (from today) to import fixtures for. Default 7.",
         )
         parser.add_argument(
             "--results-days-back", type=int, default=2,

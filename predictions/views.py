@@ -290,7 +290,15 @@ def home(request):
 
 # Day tabs shown above the tips list. Keys are what's passed on the
 # "?day=" query string; "today" is the default when it's absent/invalid.
-_DAY_OFFSETS = {"today": 0, "tomorrow": 1, "day_after": 2}
+_DAY_OFFSETS = {
+    "today": 0,
+    "tomorrow": 1,
+    "day2": 2,
+    "day3": 3,
+    "day4": 4,
+    "day5": 5,
+    "day6": 6,
+}
 _DAY_LABELS = {0: "Today", 1: "Tomorrow"}
 
 
@@ -474,11 +482,21 @@ def match_tips(request, tip_type, match_id):
     if not predictions:
         raise Http404("No tips for this match.")
 
+    board = []
+    if predictions and predictions[0].markets:
+        from .market_picks import board_rows
+        board = board_rows(
+            predictions[0].markets,
+            str(match.home_team),
+            str(match.away_team),
+        )
+
     return render(request, "predictions/match_tips.html", {
         "match": match,
         "predictions": predictions,
         "tip_type": tip_type,
         "is_vip": _vip_status(request),
+        "market_board": board,
     })
 
 

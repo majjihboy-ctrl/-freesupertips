@@ -2621,3 +2621,68 @@ img {
 [data-theme="light"] .mobile-tab.mobile-tab-accent {
     color: #b45309;
 }
+
+
+/* ---------- Full market probability board ---------- */
+.market-board {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+.market-board-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    margin-bottom: 0.85rem;
+}
+.market-group {
+    margin-bottom: 1.1rem;
+}
+.market-group-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.45rem;
+}
+.market-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.35rem;
+}
+.market-row-label {
+    flex: 0 0 38%;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.market-row-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-inset);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.market-row-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #166534, #22c55e);
+    border-radius: 999px;
+    min-width: 2px;
+}
+.market-row-pct {
+    flex: 0 0 2.6rem;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.market-row-text {
+    flex: 1;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--green);
+}

@@ -1,4 +1,5 @@
 {% extends "predictions/base.html" %}
+{% load predictions_extras %}
 
 {% block title %}{{ match }} — Matchday Pro{% endblock %}
 {% block meta_desc %}{{ tip_type|capfirst }} tips for {{ match }} — Matchday Pro.{% endblock %}
@@ -115,30 +116,36 @@
                     </div>
                     <div class="primary-odds">@ {{ prediction.odds }}</div>
                 </div>
-                {% if prediction.markets %}
-                <div style="margin-top:0.9rem;display:flex;flex-wrap:wrap;">
-                    {% if prediction.markets.btts.prob_yes %}
-                    <span class="market-chip">BTTS Yes <strong>{{ prediction.markets.btts.prob_yes|floatformat:0 }}%</strong></span>
-                    {% endif %}
-                    {% if prediction.markets.over_under.prob_over_25 %}
-                    <span class="market-chip">O2.5 <strong>{{ prediction.markets.over_under.prob_over_25|floatformat:0 }}%</strong></span>
-                    {% endif %}
-                    {% if prediction.markets.score.most_likely %}
-                    <span class="market-chip">CS <strong>{{ prediction.markets.score.most_likely }}</strong></span>
-                    {% endif %}
-                    {% if prediction.markets.expected_goals.home %}
-                    <span class="market-chip">xG <strong>{{ prediction.markets.expected_goals.home|floatformat:2 }}–{{ prediction.markets.expected_goals.away|floatformat:2 }}</strong></span>
-                    {% endif %}
-                    {% if prediction.markets.corners.prob_over_95 %}
-                    <span class="market-chip">Corners O9.5 <strong>{{ prediction.markets.corners.prob_over_95|floatformat:0 }}%</strong></span>
-                    {% endif %}
-                </div>
-                {% endif %}
             </div>
             {% endwith %}
 
+            {# Full probability board from API markets JSON #}
+            {% if market_board %}
+            <div class="market-board">
+                <div class="market-board-title">All Markets</div>
+                {% for group in market_board %}
+                <div class="market-group">
+                    <div class="market-group-label">{{ group.group }}</div>
+                    {% for row in group.rows %}
+                    <div class="market-row">
+                        <span class="market-row-label">{{ row.label }}</span>
+                        {% if row.text %}
+                        <span class="market-row-text">{{ row.text }}</span>
+                        {% else %}
+                        <div class="market-row-bar-wrap">
+                            <div class="market-row-bar" style="width:{{ row.bar }}%;"></div>
+                        </div>
+                        <span class="market-row-pct">{{ row.pct }}%</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             {% if predictions|length > 1 %}
-            <div style="font-size:0.78rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.5rem;">Other Markets</div>
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;margin:1rem 0 0.5rem;">Other Picks</div>
             {% for prediction in predictions %}
             {% if not forloop.first %}
             <div class="leg-row">
