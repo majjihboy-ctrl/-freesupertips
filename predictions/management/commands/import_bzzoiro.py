@@ -57,8 +57,8 @@ class Command(BaseCommand):
             help="How many days ahead (from today) to import fixtures for. Default 7.",
         )
         parser.add_argument(
-            "--results-days-back", type=int, default=2,
-            help="How many days back to check for finished-match scores. Default 2.",
+            "--results-days-back", type=int, default=14,
+            help="How many days back to check for finished-match scores. Default 14.",
         )
 
     def _paginated_get(self, session, url, params):

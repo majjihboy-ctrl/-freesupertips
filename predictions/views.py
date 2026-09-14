@@ -451,19 +451,16 @@ def tips_list(request, tip_type):
     if tip_type not in ("free", "vip"):
         return redirect("home")
 
-    if tip_type == "free":
-        # Free tips now live on the homepage itself (with the same day and
-        # market tabs) -- redirect rather than maintain two copies of the
-        # same browsing experience.
+    # VIP singles are retired — individual tips are free for everyone.
+    # The VIP product is the Accumulator only. Always serve free tips here
+    # so the bottom-nav "Tips" tab works for all users.
+    if tip_type == "vip":
         query = request.META.get("QUERY_STRING", "")
-        return redirect(f"{reverse('home')}{'?' + query if query else ''}")
+        return redirect(f"{reverse('tips_list', args=['free'])}{'?' + query if query else ''}")
 
-    if not _vip_status(request):
-        messages.info(request, "VIP access is required to view these tips.")
-        return redirect("upgrade")
-
-    context = _fixtures_context(request, "vip", "tips_list", tabs_url_args=["vip"])
+    context = _fixtures_context(request, "free", "tips_list", tabs_url_args=["free"])
     context["is_vip"] = _vip_status(request)
+    context["tip_type"] = "free"
     return render(request, "predictions/tips_list.html", context)
 
 
@@ -567,7 +564,7 @@ def results(request):
     finished matches, marked hit/miss according to each pick's own market
     type. Manual predictions aren't included since we don't have a
     structured way to score arbitrary tip text against a final score."""
-    lookback_days = 14
+    lookback_days = 30
     since = timezone.now() - timedelta(days=lookback_days)
 
     predictions = list(
