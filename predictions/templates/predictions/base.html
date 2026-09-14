@@ -74,14 +74,12 @@
         </div>
     </div>
     <nav id="mobile-nav" class="mobile-nav">
-        <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
-        <a href="{% url 'results' %}" class="{% if request.resolver_match.url_name == 'results' %}active{% endif %}">Results</a>
-        <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %} vip-link">Accumulator</a>
         {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
             <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
         {% endif %}
         {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
         {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}">Profile</a>
             <a href="{% url 'password_change' %}">Change Password</a>
             <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
@@ -89,6 +87,7 @@
             </form>
         {% else %}
             <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Create account</a>
         {% endif %}
     </nav>
 </header>
@@ -128,16 +127,34 @@
     {% block content %}{% endblock %}
 </main>
 
-{# Mobile sticky CTA — matches mockup thumb-zone VIP path #}
-<nav class="mobile-cta-bar" aria-label="Quick actions">
-    <a href="{% url 'accumulator' %}" class="mobile-cta-primary">
-        <span class="mobile-cta-icon">👑</span>
-        VIP Accumulator
+{# Mobile bottom tab bar — primary navigation on phones #}
+<nav class="mobile-cta-bar" aria-label="Primary">
+    <a href="{% url 'home' %}" class="mobile-tab {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H10v-5.5h4V20h3.5a1 1 0 0 0 1-1v-9"/></svg>
+        Home
     </a>
-    {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
-    <a href="{% url 'upgrade' %}" class="mobile-cta-secondary">Upgrade</a>
+    <a href="{% url 'tips_list' 'vip' %}" class="mobile-tab {% if request.resolver_match.url_name == 'tips_list' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.9 6.3.8-4.7 4.4 1.2 6.3L12 17.3l-5.5 3.1 1.2-6.3-4.7-4.4 6.3-.8L12 3Z"/></svg>
+        Tips
+    </a>
+    <a href="{% url 'accumulator' %}" class="mobile-tab mobile-tab-accent {% if request.resolver_match.url_name == 'accumulator' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4"/><path d="m4 16 8 4 8-4"/></svg>
+        Acca
+    </a>
+    <a href="{% url 'results' %}" class="mobile-tab {% if request.resolver_match.url_name == 'results' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+        Stats
+    </a>
+    {% if user.is_authenticated %}
+    <a href="{% url 'profile' %}" class="mobile-tab {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.8 4-5.5 7-5.5s5.8 1.7 7 5.5"/></svg>
+        Profile
+    </a>
     {% else %}
-    <a href="{% url 'results' %}" class="mobile-cta-secondary">Results</a>
+    <a href="{% url 'login' %}" class="mobile-tab {% if request.resolver_match.url_name == 'login' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.8 4-5.5 7-5.5s5.8 1.7 7 5.5"/></svg>
+        Login
+    </a>
     {% endif %}
 </nav>
 

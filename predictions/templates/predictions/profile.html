@@ -1,0 +1,41 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Your Profile — Matchday Pro{% endblock %}
+
+{% block content %}
+<div class="page-title">Profile</div>
+
+<div class="side-panel" style="max-width:480px;">
+    <h3 style="display:flex;align-items:center;gap:0.5rem;">
+        {{ user.username }}
+        {% if user.profile.is_vip_active or user.is_staff %}<span class="badge-vip">VIP</span>{% endif %}
+    </h3>
+    <p style="color:var(--text-muted);font-size:0.88rem;margin-top:0.35rem;">{{ user.email }}</p>
+
+    {% if user.profile.is_vip_active %}
+        <p style="margin-top:1rem;font-size:0.9rem;">
+            VIP access active until <strong>{{ user.profile.vip_expires_at|date:"F d, Y" }}</strong>.
+        </p>
+    {% elif user.is_staff %}
+        <p style="margin-top:1rem;font-size:0.9rem;">Full VIP access as an admin.</p>
+    {% else %}
+        <p style="margin-top:1rem;font-size:0.9rem;color:var(--text-muted);">No active VIP pass.</p>
+        <a href="{% url 'upgrade' %}" class="btn btn-gold" style="margin-top:0.75rem;display:inline-block;">Upgrade to VIP</a>
+    {% endif %}
+</div>
+
+<div class="side-panel" style="max-width:480px;margin-top:1rem;">
+    <h3>Account</h3>
+    <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.75rem;">
+        <a href="{% url 'password_change' %}" class="btn btn-outline" style="text-align:center;">Change Password</a>
+        <a href="{% url 'results' %}" class="btn btn-outline" style="text-align:center;">Results &amp; Accuracy</a>
+        {% if user.is_staff %}
+        <a href="/admin/" class="btn btn-outline" style="text-align:center;">Admin</a>
+        {% endif %}
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline" style="width:100%;">Logout</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

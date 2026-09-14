@@ -601,6 +601,11 @@ def upgrade(request):
 
 
 @login_required
+def profile_view(request):
+    return render(request, "predictions/profile.html", {})
+
+
+@login_required
 @ratelimit(key="user", rate="10/h", block=True)
 def redeem_vip_code(request):
     if request.method != "POST":

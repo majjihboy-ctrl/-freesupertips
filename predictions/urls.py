@@ -9,6 +9,7 @@ urlpatterns = [
     path("results/", views.results, name="results"),
     path("accumulator/", views.accumulator, name="accumulator"),
     path("upgrade/", views.upgrade, name="upgrade"),
+    path("profile/", views.profile_view, name="profile"),
     path("upgrade/redeem/", views.redeem_vip_code, name="redeem_vip_code"),
     path("register/", views.register, name="register"),
     path("check-email/", views.check_email, name="check_email"),
