@@ -1,12 +1,15 @@
 {% load predictions_extras %}
-{% for fixture in fixtures %}
-{% with match=fixture.match %}
+{% for group in fixtures_by_league %}
+<section class="league-section">
+  <h3 class="league-heading">{{ group.league.name }}</h3>
+  {% for fixture in group.fixtures %}
+  {% with match=fixture.match %}
 {% if fixture.market_override %}
   {% with label=fixture.market_override.label conf=fixture.market_override.probability odds=fixture.market_override.odds %}
   <article class="fx-card {{ conf|conf_tier }}">
     <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
       <div class="fx-meta">
-        <span>{{ match.league.name }} · {{ match.kickoff|date:"H:i" }}</span>
+        <span>{{ match.kickoff|date:"H:i" }}</span>
         {% if match.is_local_derby %}<span class="derby-chip">🔥 Derby</span>{% endif %}
       </div>
       <div class="fx-team">
@@ -55,7 +58,7 @@
   <article class="fx-card {{ conf|conf_tier }}">
     <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
       <div class="fx-meta">
-        <span>{{ match.league.name }} · {{ match.kickoff|date:"H:i" }}</span>
+        <span>{{ match.kickoff|date:"H:i" }}</span>
         {% if match.is_local_derby %}<span class="derby-chip">🔥 Derby</span>{% endif %}
       </div>
       <div class="fx-team">
@@ -101,6 +104,8 @@
   {% endwith %}
 {% endif %}
 {% endwith %}
+{% endfor %}
+</section>
 {% empty %}
 <div class="empty-cell">
     <div class="empty-title">No {{ tip_type }} tips for {{ active_day_label|lower }}</div>

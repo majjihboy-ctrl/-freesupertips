@@ -1242,6 +1242,21 @@ img {
     gap: 0.75rem;
 }
 
+/* League grouping wrapper around fx-card sections */
+.league-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+}
+.league-heading {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 0 0.1rem;
+}
+
 /* New fx-card system (home / free tips) */
 .fx-card {
     background: var(--bg-panel);
@@ -1375,18 +1390,20 @@ img {
     line-height: 1.15;
     flex-shrink: 0;
 }
-.fx-odds-label {
+.fx-odds-label, .odds-label {
     font-size: 0.62rem;
     color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
-.fx-odds-value {
+.fx-odds-value, .odds-value {
     font-family: var(--font-mono);
     font-size: 1.15rem;
     font-weight: 800;
     color: var(--text);
 }
+.mobile-cta-icon { font-size: 1rem; line-height: 1; }
+.result-fx .fx-team { margin-top: 0.5rem; }
 .fx-more {
     display: inline-block;
     margin-top: 0.45rem;

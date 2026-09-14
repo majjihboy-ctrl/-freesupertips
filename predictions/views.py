@@ -2,6 +2,7 @@ from urllib.parse import quote
 import re
 import random
 from collections import Counter
+from itertools import groupby
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -412,6 +413,14 @@ def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
 
         cache.set(cache_key, fixtures, 120)
 
+    fixtures_by_league = [
+        {"league": league, "fixtures": list(group)}
+        for league, group in groupby(
+            sorted(fixtures, key=lambda f: f["match"].league.name),
+            key=lambda f: f["match"].league,
+        )
+    ]
+
     league_counts = sorted(
         Counter(f["match"].league for f in fixtures).items(),
         key=lambda kv: kv[0].name,
@@ -419,6 +428,7 @@ def _fixtures_context(request, tip_type, tabs_url_name, tabs_url_args=None):
 
     return {
         "fixtures": fixtures,
+        "fixtures_by_league": fixtures_by_league,
         "tip_type": tip_type,
         "day_tabs": day_tabs,
         "market_tabs": market_tabs,
