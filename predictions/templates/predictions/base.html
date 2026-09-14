@@ -40,47 +40,52 @@
 
 <header class="site-header">
     <div class="header-top">
-        <a href="{% url 'home' %}" class="logo">MAJJIBOY<span>DEVELOPERS</span></a>
-        <nav class="header-nav">
+        <a href="{% url 'home' %}" class="logo" aria-label="Home">
+            <span class="logo-mark">MD</span>
+            <span class="logo-text">Match<span>Pro</span></span>
+        </a>
+
+        <nav class="header-nav" aria-label="Main">
             <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
             <a href="{% url 'results' %}" class="{% if request.resolver_match.url_name == 'results' %}active{% endif %}">Results</a>
-            <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %} vip-link">Accumulator</a>
+            <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %}">Acca</a>
             {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
-                <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
+                <a href="{% url 'upgrade' %}">VIP</a>
             {% endif %}
         </nav>
-        <div class="header-user">
-            <button type="button" id="nav-toggle" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-            </button>
-            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch between light and dark mode" title="Switch theme">
+
+        <div class="header-actions">
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
                 <svg class="theme-toggle-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg>
                 <svg class="theme-toggle-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5a8.5 8.5 0 1 1-9.5-11.9 7 7 0 0 0 9.5 11.9z"/></svg>
             </button>
-            {% if user.is_staff %}
-                <a href="/admin/" style="color:var(--gold);font-size:0.85rem;font-weight:600;">Admin</a>
-            {% endif %}
+
             {% if user.is_authenticated %}
-                {% if user.profile.is_vip_active or user.is_staff %}<span class="badge-vip">VIP</span>{% endif %}
-                <span>{{ user.username }}</span>
-                <a href="{% url 'password_change' %}" style="color:rgba(255,255,255,0.6);font-size:0.8rem;">Change Password</a>
-                <form method="post" action="{% url 'logout' %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" style="color:rgba(255,255,255,0.6);font-size:0.8rem;background:none;border:none;cursor:pointer;">Logout</button>
-                </form>
+                <a href="{% url 'profile' %}" class="header-profile desktop-only" title="Profile">
+                    {% if user.profile.is_vip_active or user.is_staff %}<span class="badge-vip">VIP</span>{% endif %}
+                    <span class="header-avatar">{{ user.username|slice:":1"|upper }}</span>
+                </a>
             {% else %}
-                <a href="{% url 'login' %}" style="color:#fff;font-size:0.85rem;">Login</a>
+                <a href="{% url 'login' %}" class="header-login desktop-only">Login</a>
             {% endif %}
+
+            <button type="button" id="nav-toggle" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
         </div>
     </div>
+
     <nav id="mobile-nav" class="mobile-nav">
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'results' %}">Results</a>
+        <a href="{% url 'accumulator' %}">Accumulator</a>
         {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
-            <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
+            <a href="{% url 'upgrade' %}" class="vip-link">Upgrade to VIP</a>
         {% endif %}
-        {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
         {% if user.is_authenticated %}
             <a href="{% url 'profile' %}">Profile</a>
             <a href="{% url 'password_change' %}">Change Password</a>
+            {% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
             <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="mobile-nav-logout">Logout</button>
