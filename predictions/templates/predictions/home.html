@@ -73,6 +73,9 @@
         {% include "predictions/_fixture_cards.html" %}
         </div>
 
+        {# Mid-content affiliate - after users scanned free tips #}
+        {% include "predictions/_affiliate.html" with variant="button" %}
+
         <div class="home-vip-bar">
             <a href="{% url 'accumulator' %}" class="home-vip-primary">
                 <span>Daily Acca</span>
@@ -83,9 +86,10 @@
         </div>
     </div>
 
-    <!-- Desktop: minimal disclaimer only -->
+    <!-- Desktop sidebar: affiliate + disclaimer -->
     <aside class="dash-col-upsell desktop-only">
-        <div class="side-panel">
+        {% include "predictions/_affiliate.html" with variant="sidebar" %}
+        <div class="side-panel" style="margin-top:1.25rem;">
             <p style="font-size:0.78rem;color:var(--text-faint);line-height:1.5;">
                 Probabilities are model estimates, not guarantees. 18+ Gamble responsibly.
             </p>

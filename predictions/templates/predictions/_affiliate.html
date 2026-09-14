@@ -1,0 +1,44 @@
+{# Reusable affiliate units for BigCat Partners #}
+{# Usage: {% include "predictions/_affiliate.html" with variant="banner" %} #}
+{#        {% include "predictions/_affiliate.html" with variant="button" %} #}
+{#        {% include "predictions/_affiliate.html" with variant="sidebar" %} #}
+{#        {% include "predictions/_affiliate.html" with variant="footer" %} #}
+
+{% if variant == "banner" or variant == "top" %}
+<div class="promo-banner affiliate-banner">
+    <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
+       target="_blank" rel="nofollow sponsored noopener">
+        Ready to bet on today's tips? Claim your offer &rarr;
+    </a>
+    <span class="promo-tag">Ad</span>
+</div>
+{% elif variant == "button" or variant == "mid" %}
+<div class="affiliate-mid">
+    <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
+       target="_blank" rel="nofollow sponsored noopener"
+       class="affiliate-btn">
+        Claim Bookie Offer
+    </a>
+    <span class="promo-tag">Ad</span>
+</div>
+{% elif variant == "sidebar" %}
+<div class="side-panel affiliate-sidebar">
+    <h3>Bookie Offer</h3>
+    <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.45;margin-bottom:0.9rem;">
+        Back today's free tips with a welcome offer.
+    </p>
+    <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
+       target="_blank" rel="nofollow sponsored noopener"
+       class="affiliate-btn affiliate-btn-block">
+        Claim Offer
+    </a>
+    <p style="font-size:0.72rem;color:var(--text-faint);margin-top:0.75rem;">18+ · Gamble responsibly</p>
+</div>
+{% elif variant == "footer" %}
+<div class="affiliate-footer">
+    <a href="https://record.bigcatpartners.com/_yhmiE0nN3Kvk9mx2SfmU_WNd7ZgqdRLk/1/"
+       target="_blank" rel="nofollow sponsored noopener">
+        Sponsored: Claim your betting offer here
+    </a>
+</div>
+{% endif %}

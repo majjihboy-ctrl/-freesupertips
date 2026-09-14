@@ -121,10 +121,8 @@
 </div>
 {% endif %}
 
-<div class="promo-banner">
-    <a href="https://che.fluxbrox.com/redirect.aspx?pid=194766&amp;bid=1490&amp;lpid=36" target="_blank" rel="nofollow sponsored noopener">Ready to back today's picks? Bet with 22bet &rarr;</a>
-    <span class="promo-tag">Ad</span>
-</div>
+{# Top affiliate banner - high visibility #}
+{% include "predictions/_affiliate.html" with variant="banner" %}
 
 {% block subnav %}{% endblock %}
 
@@ -164,7 +162,8 @@
 </nav>
 
 <footer class="site-footer">
-    Matchday Pro — Data-driven football predictions &amp; betting tips.
+    {% include "predictions/_affiliate.html" with variant="footer" %}
+    <p>Matchday Pro — Data-driven football predictions &amp; betting tips.</p>
 </footer>
 
 <div id="page-loader">
