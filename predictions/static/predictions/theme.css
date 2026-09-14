@@ -49,37 +49,39 @@
 }
 
 [data-theme="light"] {
-    --bg: #e9ece4;
-    --bg-panel: #f5f6f0;
-    --bg-raised: #dfe3d7;
-    --bg-inset: #dfe3d7;
-    --border: #cdd2c2;
-    --border-bright: #b7bda8;
+    /* Clean cream / off-white matching the approved mockups */
+    --bg: #f7f5f0;
+    --bg-panel: #ffffff;
+    --bg-raised: #ffffff;
+    --bg-inset: #f0eee8;
+    --border: #e5e2d9;
+    --border-bright: #d4d0c4;
 
-    --text: #14201a;
-    --text-muted: #565f56;
-    --text-faint: #7a8177;
+    --text: #1a2e24;
+    --text-muted: #5c6b62;
+    --text-faint: #8a948c;
 
-    --green: #4c7f63;
-    --green-dim: #3a6a4f;
-    --green-bg: rgba(76, 127, 99, 0.1);
-    --gold: #a3661f;
-    --gold-bg: rgba(163, 102, 31, 0.1);
-    --blue: #3f6893;
-    --blue-bg: rgba(63, 104, 147, 0.1);
-    --red: #963f2d;
-    --red-bg: rgba(150, 63, 45, 0.1);
+    /* Deep forest green from the mockups */
+    --green: #166534;
+    --green-dim: #14532d;
+    --green-bg: rgba(22, 101, 52, 0.08);
+    --gold: #b45309;
+    --gold-bg: rgba(180, 83, 9, 0.1);
+    --blue: #1e40af;
+    --blue-bg: rgba(30, 64, 175, 0.08);
+    --red: #b91c1c;
+    --red-bg: rgba(185, 28, 28, 0.08);
 
-    --row-hover: #dfe3d7;
+    --row-hover: #f0eee8;
 
-    --link-hover: #3a6a4f;
-    --gold-hover: #7d4e17;
-    --overlay-bg: rgba(251, 250, 245, 0.85);
-    --scrim-bg: rgba(251, 250, 245, 0.6);
+    --link-hover: #14532d;
+    --gold-hover: #92400e;
+    --overlay-bg: rgba(247, 245, 240, 0.9);
+    --scrim-bg: rgba(247, 245, 240, 0.65);
 
-    --alert-success-text: #3a6a4f;
-    --alert-error-text: #7d3121;
-    --alert-info-text: #2e4f70;
+    --alert-success-text: #166534;
+    --alert-error-text: #b91c1c;
+    --alert-info-text: #1e40af;
 }
 
 /* Buttons that use dark-on-brand text (--green, --gold, etc. as a
