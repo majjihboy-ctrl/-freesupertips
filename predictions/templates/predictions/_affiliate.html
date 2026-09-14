@@ -1,24 +1,41 @@
-{# Official BigCat Partners banners (controlled size via their JS) #}
-{# Script: media=227  |  Tracking: _yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk #}
-{# Variants: banner | button | sidebar | footer #}
+{# Official BigCat Partners banners – EaglePredict-style popping frames #}
+{# Script media=227 | Tracking _yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk #}
 
 {% if variant == "banner" or variant == "top" %}
-<div class="aff-slot aff-slot--banner">
-    <script type="text/javascript"
-            src="https://js.bigcatpartners.com/javascript.php?prefix=yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk&amp;media=227&amp;campaign=1"></script>
+<div class="aff-frame aff-frame--banner aff-pop">
+    <div class="aff-frame__glow"></div>
+    <div class="aff-frame__inner">
+        <span class="aff-frame__tag">Ad</span>
+        <div class="aff-slot">
+            <script type="text/javascript"
+                    src="https://js.bigcatpartners.com/javascript.php?prefix=yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk&amp;media=227&amp;campaign=1"></script>
+        </div>
+    </div>
 </div>
 
 {% elif variant == "button" or variant == "mid" %}
-<div class="aff-slot aff-slot--mid">
-    <script type="text/javascript"
-            src="https://js.bigcatpartners.com/javascript.php?prefix=yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk&amp;media=227&amp;campaign=1"></script>
+<div class="aff-frame aff-frame--mid aff-pop">
+    <div class="aff-frame__glow"></div>
+    <div class="aff-frame__inner">
+        <span class="aff-frame__tag">Ad</span>
+        <div class="aff-slot">
+            <script type="text/javascript"
+                    src="https://js.bigcatpartners.com/javascript.php?prefix=yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk&amp;media=227&amp;campaign=1"></script>
+        </div>
+    </div>
 </div>
 
 {% elif variant == "sidebar" %}
-<div class="aff-slot aff-slot--sidebar">
-    <script type="text/javascript"
-            src="https://js.bigcatpartners.com/javascript.php?prefix=yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk&amp;media=227&amp;campaign=1"></script>
-    <p class="aff-legal">18+ · Gamble responsibly</p>
+<div class="aff-frame aff-frame--sidebar aff-pop">
+    <div class="aff-frame__glow"></div>
+    <div class="aff-frame__inner">
+        <span class="aff-frame__tag">Ad</span>
+        <div class="aff-slot">
+            <script type="text/javascript"
+                    src="https://js.bigcatpartners.com/javascript.php?prefix=yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk&amp;media=227&amp;campaign=1"></script>
+        </div>
+        <p class="aff-legal">18+ · Gamble responsibly</p>
+    </div>
 </div>
 
 {% elif variant == "footer" %}

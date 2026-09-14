@@ -3180,37 +3180,123 @@ img {
     }
 }
 
-/* ---------- BigCat Partners official banner slots ---------- */
+/* ---------- EaglePredict-style popping banner frames ---------- */
+@keyframes aff-pop-in {
+    0%   { opacity: 0; transform: translateY(14px) scale(0.96); }
+    60%  { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes aff-border-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 1px rgba(111, 169, 138, 0.35),
+            0 8px 28px rgba(0, 0, 0, 0.28),
+            0 0 0 0 rgba(217, 143, 43, 0.25);
+    }
+    50% {
+        box-shadow:
+            0 0 0 1px rgba(217, 143, 43, 0.55),
+            0 10px 32px rgba(0, 0, 0, 0.32),
+            0 0 18px 2px rgba(111, 169, 138, 0.2);
+    }
+}
+@keyframes aff-glow-breathe {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 0.75; }
+}
+
+.aff-frame {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    isolation: isolate;
+    background: var(--bg-panel, #131f1a);
+    animation:
+        aff-pop-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
+        aff-border-pulse 2.6s ease-in-out infinite;
+    transition: transform 0.2s ease;
+}
+.aff-frame:hover {
+    transform: translateY(-2px);
+}
+
+.aff-frame__glow {
+    position: absolute;
+    inset: -30%;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(111, 169, 138, 0.22), transparent 50%),
+        radial-gradient(circle at 85% 70%, rgba(217, 143, 43, 0.16), transparent 45%);
+    pointer-events: none;
+    z-index: 0;
+    animation: aff-glow-breathe 3.2s ease-in-out infinite;
+}
+
+.aff-frame__inner {
+    position: relative;
+    z-index: 1;
+    padding: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.aff-frame__tag {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 3;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint, #8a9a90);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 999px;
+    padding: 0.12rem 0.45rem;
+    pointer-events: none;
+}
+
 .aff-slot {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
     overflow: hidden;
-}
-.aff-slot--banner {
-    max-width: 1100px;
-    margin: 1rem auto 0;
-}
-.aff-slot--mid {
-    margin: 1.5rem 0 0.75rem;
-}
-.aff-slot--sidebar {
-    flex-direction: column;
-    gap: 0.5rem;
+    border-radius: 10px;
 }
 .aff-slot iframe,
 .aff-slot img,
-.aff-slot > div {
-    max-width: 100%;
-    height: auto;
+.aff-slot > div,
+.aff-slot > a {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 8px;
 }
+
+/* Placement variants */
+.aff-frame--banner {
+    max-width: 1100px;
+    margin: 1rem auto 0;
+}
+.aff-frame--mid {
+    margin: 1.5rem 0 0.85rem;
+}
+.aff-frame--sidebar {
+    margin-bottom: 0.25rem;
+}
+.aff-frame--sidebar .aff-frame__inner {
+    padding: 0.75rem 0.65rem 0.55rem;
+}
+
 .aff-legal {
     font-size: 0.68rem;
     color: var(--text-faint);
     text-align: center;
-    margin: 0.4rem 0 0;
+    margin: 0.15rem 0 0;
 }
+
 .aff-footer {
     text-align: center;
     margin-bottom: 0.55rem;
@@ -3225,3 +3311,23 @@ img {
     text-decoration: underline;
 }
 .site-footer p { margin: 0; }
+
+/* Stagger pop-in when several frames on page */
+.aff-frame--mid { animation-delay: 0.08s, 0s; }
+.aff-frame--sidebar { animation-delay: 0.14s, 0s; }
+
+@media (max-width: 640px) {
+    .aff-frame {
+        border-radius: 12px;
+    }
+    .aff-frame__inner {
+        padding: 0.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aff-frame,
+    .aff-frame__glow {
+        animation: none !important;
+    }
+}
