@@ -217,8 +217,8 @@ def _acca_candidates_for_match(prediction):
     return [c for c in candidates if c[2] >= ACCA_MIN_CONFIDENCE]
 
 
-def _build_accumulator(leg_count=5):
-    """Picks up to `leg_count` legs for today's VIP accumulator: one match
+def _build_accumulator(leg_count=7):
+    """Picks up to `leg_count` legs for today's accumulator: one match
     per leg, diversified across market types where possible, every leg at
     or above ACCA_MIN_CONFIDENCE. Returns a list of dicts ready for the
     template, plus combined odds/probability."""
@@ -292,15 +292,19 @@ def _build_accumulator(leg_count=5):
 
 
 def accumulator(request):
-    """Daily 4-fold accumulator — free to view (built for sharing).
-    Legs are diversified across markets, each at or above the confidence floor.
+    """Daily accumulator — free to view. Aims for up to 7 legs (minimum useful
+    set is 4 when enough high-confidence picks exist). Diversified markets.
     """
     is_vip = _vip_status(request)
-    acca = _build_accumulator(leg_count=4)
+    acca = _build_accumulator(leg_count=7)
+    # Treat 4+ legs as a solid daily board; more legs (up to 7) when available
+    n = len(acca.get("legs") or [])
+    acca["is_complete"] = n >= 4
     return render(request, "predictions/accumulator.html", {
         **acca,
         "is_vip": is_vip,
-        "leg_target": 4,
+        "leg_target": 7,
+        "leg_min": 4,
     })
 
 

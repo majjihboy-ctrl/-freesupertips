@@ -1,14 +1,16 @@
 {% extends "predictions/base.html" %}
 
-{% block title %}Daily Acca (4-Fold) — MatchPro{% endblock %}
-{% block meta_desc %}Today's free 4-leg accumulator — diversified markets, each leg at 55%+ model confidence.{% endblock %}
+{% block title %}Daily Acca — MatchPro{% endblock %}
+{% block meta_desc %}Today's free accumulator — 4 to 7 legs, diversified markets, each at 55%+ model confidence.{% endblock %}
 
 {% block content %}
 <div class="page-title">
     Daily Acca
-    <span class="acca-fold-badge">4-FOLD</span>
+    {% if legs %}
+    <span class="acca-fold-badge">{{ legs|length }}-FOLD</span>
+    {% endif %}
 </div>
-<p class="acca-sub">Today’s free 4-leg · mixed markets · 55%+ confidence each</p>
+<p class="acca-sub">Free daily acca · 4–7 legs · mixed markets · 55%+ confidence each</p>
 
 {% if legs %}
 <div class="acca-board">
@@ -36,7 +38,11 @@
 
 {% if not is_complete %}
 <p class="disclaimer" style="margin-top:1rem;">
-    Only {{ legs|length }} of 4 legs met the confidence floor so far — more may appear as today’s fixtures update.
+    Only {{ legs|length }} leg{{ legs|length|pluralize }} met the confidence floor so far (target 4–7). More may appear as today’s fixtures update.
+</p>
+{% elif legs|length < leg_target %}
+<p class="disclaimer" style="margin-top:1rem;">
+    {{ legs|length }} legs available today (up to {{ leg_target }} when more high-confidence picks exist).
 </p>
 {% endif %}
 
