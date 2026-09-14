@@ -1687,6 +1687,15 @@ img {
     background: #7ab899;
     transform: translateY(-1px);
 }
+[data-theme="light"] .btn-green {
+    background: #0f5132;
+    color: #ffffff;
+    border-color: #14532d;
+}
+[data-theme="light"] .btn-green:hover {
+    background: #14532d;
+    color: #ffffff;
+}
 
 .btn-outline {
     background: transparent;
@@ -1974,11 +1983,14 @@ img {
     max-width: 420px;
     width: 100%;
     margin: 2.5rem auto;
-    padding: 1.75rem;
+    padding: 1.85rem 1.6rem;
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+[data-theme="light"] .auth-box {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 6px 16px rgba(15, 81, 50, 0.06);
 }
 .auth-box h1 {
     font-family: var(--font-display);
@@ -2596,4 +2608,16 @@ img {
 }
 .profile-action-danger:hover {
     background: var(--red-bg);
+}
+
+[data-theme="light"] .mobile-cta-bar {
+    background: rgba(255,255,255,0.95);
+    border-top-color: #e5e2d9;
+    box-shadow: 0 -4px 20px rgba(15, 81, 50, 0.08);
+}
+[data-theme="light"] .mobile-tab.active {
+    color: #0f5132;
+}
+[data-theme="light"] .mobile-tab.mobile-tab-accent {
+    color: #b45309;
 }

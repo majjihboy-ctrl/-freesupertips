@@ -30,4 +30,14 @@
 <div class="match-list">
 {% include "predictions/_fixture_cards.html" %}
 </div>
+
+<div class="home-vip-bar">
+    <a href="{% url 'accumulator' %}" class="home-vip-primary">
+        <span class="home-vip-icon">👑</span>
+        <span>VIP Accumulator</span>
+    </a>
+    <a href="{% url 'upgrade' %}" class="home-vip-secondary">
+        <span>Upgrade</span>
+    </a>
+</div>
 {% endblock %}
