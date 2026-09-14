@@ -496,7 +496,7 @@ img {
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0;
-    animation: logo-badge-pulse 3s ease-in-out infinite;
+    /* animation removed */
 }
 .logo span {
     background: linear-gradient(90deg, var(--green) 0%, var(--gold) 25%, var(--green) 50%, var(--gold) 75%, var(--green) 100%);
@@ -505,7 +505,7 @@ img {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     color: var(--green); /* fallback for browsers without background-clip: text support */
-    animation: logo-shimmer 5s linear infinite;
+    /* animation removed */
 }
 .logo:hover {
     color: var(--text);

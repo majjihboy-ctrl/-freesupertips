@@ -10,7 +10,7 @@
     <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
       <div class="fx-meta">
         <span>{{ match.kickoff|date:"H:i" }}</span>
-        {% if match.is_local_derby %}<span class="derby-chip">🔥 Derby</span>{% endif %}
+        {% if match.is_local_derby %}<span class="derby-chip">Derby</span>{% endif %}
       </div>
       <div class="fx-team">
         {% if match.home_team|team_logo_url %}
@@ -59,7 +59,7 @@
     <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
       <div class="fx-meta">
         <span>{{ match.kickoff|date:"H:i" }}</span>
-        {% if match.is_local_derby %}<span class="derby-chip">🔥 Derby</span>{% endif %}
+        {% if match.is_local_derby %}<span class="derby-chip">Derby</span>{% endif %}
       </div>
       <div class="fx-team">
         {% if match.home_team|team_logo_url %}

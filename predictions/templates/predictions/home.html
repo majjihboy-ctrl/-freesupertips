@@ -6,36 +6,12 @@
 
 {% block content %}
 
-<div class="hero-band">
-    <div class="hero-copy">
-        <div class="hero-eyebrow">{{ active_day_label }} · {{ active_date|date:"D, M j" }}</div>
-        <h1 class="hero-title">Today's Football Predictions</h1>
-        <p class="hero-sub">Data-driven tips across {{ league_counts|length }} league{{ league_counts|length|pluralize }} — {{ fixtures|length }} fixture{{ fixtures|length|pluralize }}, every market, always free.</p>
-        <div class="hero-actions">
-            <a href="{% url 'upgrade' %}" class="btn btn-outline-light">Go VIP — Accumulator</a>
-        </div>
-    </div>
-
-    {% if banker %}
-    <a href="{% url 'match_tips' banker.tip_type banker.match.id %}" class="hero-banker">
-        <div class="hero-banker-tag">🔥 Banker of the Day</div>
-        <div class="hero-banker-fixture">{{ banker.match.home_team }} <span>vs</span> {{ banker.match.away_team }}</div>
-        <div class="hero-banker-meta">{{ banker.match.league.name }} · {{ banker.match.kickoff|date:"H:i" }}</div>
-        <div class="hero-banker-cta">
-            View the pick
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </div>
-        <div class="hero-banker-confidence">{{ banker.confidence }}% model confidence</div>
-    </a>
-    {% endif %}
-</div>
-
 <div class="dash-grid">
 
     <!-- Desktop only: leagues sidebar -->
     <aside class="dash-col-leagues desktop-only">
         <div class="side-panel sticky-side">
-            <h3>🏆 Leagues</h3>
+            <h3>Leagues</h3>
             {% for league, count in league_counts %}
                 <div class="league-row">
                     <span class="league-row-name">
@@ -56,8 +32,8 @@
     <!-- Center: free-tips browser -->
     <div class="dash-col-main">
         <div class="section-header">
-            <h2>⚽ Free Tips</h2>
-            <span style="font-size:0.78rem;color:var(--text-faint);">{{ fixtures|length }} fixtures</span>
+            <h2>Free Tips</h2>
+            <span style="font-size:0.78rem;color:var(--text-faint);">{{ fixtures|length }} fixtures · {{ active_day_label }}</span>
         </div>
 
         <div class="day-tabs-wrap">
@@ -75,7 +51,7 @@
             </div>
         </div>
 
-        <!-- Mobile: horizontal league chips (replaces stacked sidebar) -->
+        <!-- Mobile: horizontal league chips -->
         {% if league_counts %}
         <div class="league-chips-wrap mobile-only">
             <div class="league-chips" role="list" aria-label="Leagues in this selection">
@@ -97,31 +73,21 @@
         {% include "predictions/_fixture_cards.html" %}
         </div>
 
-        <!-- Mobile + desktop VIP bar matching mockups -->
         <div class="home-vip-bar">
-            <a href="{% url "accumulator" %}" class="home-vip-primary">
-                <span class="home-vip-icon">👑</span>
+            <a href="{% url 'accumulator' %}" class="home-vip-primary">
                 <span>VIP Accumulator</span>
             </a>
-            <a href="{% url "upgrade" %}" class="home-vip-secondary">
+            <a href="{% url 'upgrade' %}" class="home-vip-secondary">
                 <span>Upgrade</span>
             </a>
         </div>
     </div>
 
+    <!-- Desktop: minimal disclaimer only -->
     <aside class="dash-col-upsell desktop-only">
         <div class="side-panel">
-            <h3>🔒 Get VIP Access</h3>
-            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
-                Unlock the VIP Accumulator — a 5-leg multi-market parlay built fresh daily, every leg at 55%+ model confidence.
-            </p>
-            <a href="{% url 'upgrade' %}" class="btn btn-green" style="display:block;text-align:center;">Upgrade Now</a>
-        </div>
-
-        <div class="side-panel">
             <p style="font-size:0.78rem;color:var(--text-faint);line-height:1.5;">
-                Win probabilities and projected scores are model estimates, not guarantees.
-                18+ Gamble responsibly.
+                Probabilities are model estimates, not guarantees. 18+ Gamble responsibly.
             </p>
         </div>
     </aside>
