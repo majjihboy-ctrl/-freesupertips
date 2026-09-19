@@ -3331,3 +3331,273 @@ img {
         animation: none !important;
     }
 }
+
+/* ---------- Ready Betslip Card ---------- */
+.betslip-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+[data-theme="light"] .betslip-card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(15, 81, 50, 0.08);
+}
+.betslip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.15rem;
+    background: var(--bg-inset);
+    border-bottom: 1px solid var(--border);
+}
+.betslip-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+.betslip-title svg {
+    color: var(--green);
+    flex-shrink: 0;
+}
+.betslip-fold {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    background: var(--bg-raised);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+}
+.betslip-legs {
+    padding: 0.25rem 0;
+}
+.betslip-leg {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid var(--border);
+}
+.betslip-leg:last-child {
+    border-bottom: none;
+}
+.betslip-leg-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+    flex: 1;
+}
+.betslip-leg-time {
+    font-size: 0.7rem;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+}
+.betslip-leg-match {
+    font-size: 0.9rem;
+    font-weight: 650;
+    color: var(--text);
+}
+.betslip-leg-pick {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+.betslip-chip {
+    display: inline-flex;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    background: #0f5132;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+[data-theme="dark"] .betslip-chip {
+    background: var(--green);
+    color: #06210f;
+}
+.betslip-conf {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--green);
+    min-width: 2.4rem;
+    text-align: right;
+}
+.betslip-footer {
+    padding: 1.15rem 1.15rem 1.25rem;
+    background: var(--bg-inset);
+    border-top: 1px solid var(--border);
+}
+.betslip-odds-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+.betslip-odds-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+.betslip-odds-value {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0f5132;
+    line-height: 1;
+}
+[data-theme="dark"] .betslip-odds-value {
+    color: var(--green);
+}
+.betslip-prob {
+    font-size: 0.78rem;
+    color: var(--text-faint);
+    margin-bottom: 1rem;
+}
+.betslip-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+}
+.btn-copy-selections,
+.btn-place-mozzart,
+.btn-place-other {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-copy-selections {
+    background: var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.btn-copy-selections:hover {
+    background: var(--row-hover);
+}
+.btn-copy-selections.is-copied {
+    background: var(--green-bg);
+    color: var(--green);
+    border-color: rgba(111, 169, 138, 0.4);
+}
+.btn-place-mozzart {
+    background: #0f5132;
+    color: #fff;
+    flex: 1;
+    min-width: 140px;
+}
+.btn-place-mozzart:hover {
+    background: #0c4228;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 81, 50, 0.35);
+}
+[data-theme="dark"] .btn-place-mozzart {
+    background: var(--green);
+    color: #06210f;
+}
+[data-theme="dark"] .btn-place-mozzart:hover {
+    background: #7fbb9a;
+}
+.btn-place-other {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid rgba(217, 143, 43, 0.45);
+}
+.btn-place-other:hover {
+    background: var(--gold-bg);
+    color: var(--gold);
+}
+.betslip-legal {
+    font-size: 0.68rem;
+    color: var(--text-faint);
+    text-align: center;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Place Bet button on fixture cards */
+.fx-place-row {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0 0.75rem 0.7rem;
+}
+.fx-place-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: none;
+    background: #0f5132;
+    color: #fff;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.fx-place-btn:hover {
+    background: #0c4228;
+    color: #fff;
+    transform: translateY(-1px);
+}
+[data-theme="dark"] .fx-place-btn {
+    background: var(--green);
+    color: #06210f;
+}
+[data-theme="dark"] .fx-place-btn:hover {
+    background: #7fbb9a;
+}
+.fx-place-btn-alt {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid rgba(217, 143, 43, 0.4);
+}
+.fx-place-btn-alt:hover {
+    background: var(--gold-bg);
+    color: var(--gold);
+}
+
+@media (max-width: 480px) {
+    .betslip-leg {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.45rem;
+    }
+    .betslip-leg-pick {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .betslip-actions {
+        flex-direction: column;
+    }
+    .btn-place-mozzart,
+    .btn-place-other,
+    .btn-copy-selections {
+        width: 100%;
+    }
+    .fx-place-row {
+        flex-direction: column;
+    }
+}

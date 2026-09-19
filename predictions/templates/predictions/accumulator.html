@@ -1,7 +1,8 @@
 {% extends "predictions/base.html" %}
+{% load static %}
 
 {% block title %}Daily Acca — MatchPro{% endblock %}
-{% block meta_desc %}Today's free accumulator — 4 to 7 legs, diversified markets, each at 55%+ model confidence.{% endblock %}
+{% block meta_desc %}Today's free accumulator — 4 to 7 legs, diversified markets, each at 55%+ model confidence. Ready to place on Mozzart or your preferred bookie.{% endblock %}
 
 {% block content %}
 <div class="page-title">
@@ -13,7 +14,65 @@
 <p class="acca-sub">Free daily acca · 4–7 legs · mixed markets · 55%+ confidence each</p>
 
 {% if legs %}
-<div class="acca-board">
+{# ── Ready Betslip Card ── #}
+<div class="betslip-card" id="daily-betslip">
+    <div class="betslip-header">
+        <div class="betslip-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+            Ready Betslip
+        </div>
+        <span class="betslip-fold">{{ legs|length }} selections</span>
+    </div>
+
+    <div class="betslip-legs">
+        {% for leg in legs %}
+        <div class="betslip-leg">
+            <div class="betslip-leg-info">
+                <span class="betslip-leg-time">{{ leg.prediction.match.kickoff|date:"D H:i" }}</span>
+                <span class="betslip-leg-match">{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }}</span>
+            </div>
+            <div class="betslip-leg-pick">
+                <span class="betslip-chip">{{ leg.label }}</span>
+                <span class="betslip-conf">{{ leg.probability|floatformat:0 }}%</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="betslip-footer">
+        <div class="betslip-odds-row">
+            <span class="betslip-odds-label">Combined Odds</span>
+            <span class="betslip-odds-value">{{ combined_odds }}</span>
+        </div>
+        {% if combined_probability %}
+        <div class="betslip-prob">~{{ combined_probability }}% model probability</div>
+        {% endif %}
+
+        <div class="betslip-actions">
+            <button type="button" class="btn-copy-selections" id="copy-betslip-btn" data-text="{% for leg in legs %}{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ combined_odds }}{% if combined_probability %} · ~{{ combined_probability }}% model prob{% endif %}&#10;&#10;From Matchday Pro">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span>Copy selections</span>
+            </button>
+
+            <a href="https://record.mozzartaffiliates.com/_tmfJx4j5s0VPLtADCBD7VGNd7ZgqdRLk/1/"
+               target="_blank" rel="nofollow sponsored noopener"
+               class="btn-place-mozzart">
+                Place on Mozzart
+            </a>
+
+            <a href="https://record.bigcatpartners.com/_yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk/1/"
+               target="_blank" rel="nofollow sponsored noopener"
+               class="btn-place-other">
+                Place on Partner
+            </a>
+        </div>
+
+        <p class="betslip-legal">18+ · Gamble responsibly · T&amp;Cs apply · Odds may change</p>
+    </div>
+</div>
+
+{# Keep the original board for easy browsing #}
+<div class="acca-board" style="margin-top:1.5rem;">
     {% for leg in legs %}
     <a class="acca-leg" href="{% url 'match_tips' leg.prediction.tip_type leg.prediction.match.id %}">
         <div class="acca-leg-main">
@@ -56,4 +115,52 @@
     <div class="empty-sub">Not enough fixtures above 55% confidence right now. Check back after the next import.</div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var btn = document.getElementById('copy-betslip-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        var text = btn.getAttribute('data-text') || '';
+        // Convert HTML entities for newlines
+        text = text.replace(/&#10;/g, '\n');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+                var original = btn.querySelector('span').textContent;
+                btn.querySelector('span').textContent = 'Copied!';
+                btn.classList.add('is-copied');
+                setTimeout(function () {
+                    btn.querySelector('span').textContent = original;
+                    btn.classList.remove('is-copied');
+                }, 1800);
+            }).catch(function () {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    });
+    function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            var original = btn.querySelector('span').textContent;
+            btn.querySelector('span').textContent = 'Copied!';
+            btn.classList.add('is-copied');
+            setTimeout(function () {
+                btn.querySelector('span').textContent = original;
+                btn.classList.remove('is-copied');
+            }, 1800);
+        } catch (e) {}
+        document.body.removeChild(ta);
+    }
+})();
+</script>
 {% endblock %}
