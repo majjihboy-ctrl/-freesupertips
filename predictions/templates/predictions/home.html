@@ -73,8 +73,9 @@
         {% include "predictions/_fixture_cards.html" %}
         </div>
 
-        {# Mid-content affiliate - after users scanned free tips #}
+        {# Mid-content affiliates - after users scanned free tips #}
         {% include "predictions/_affiliate.html" with variant="button" %}
+        {% include "predictions/_affiliate.html" with variant="mozzart-mid" %}
 
         <div class="home-vip-bar">
             <a href="{% url 'accumulator' %}" class="home-vip-primary">
