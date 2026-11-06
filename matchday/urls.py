@@ -7,6 +7,7 @@ from predictions.views import (
     RateLimitedPasswordResetView,
     service_worker,
     web_manifest,
+    flyer_png,
     robots_txt,
     cron_cleanup_matches,
     cron_import_bzzoiro,
@@ -33,6 +34,8 @@ urlpatterns = [
     # Generated at request time so its icon URLs always match whatever
     # hashed filenames collectstatic actually produced.
     path("manifest.json", web_manifest, name="web_manifest"),
+    # Daily social-media flyer image of the top free tips.
+    path("flyer.png", flyer_png, name="flyer_png"),
     # Hit daily by Vercel Cron (see vercel.json "crons") to delete matches
     # once their day has ended.
     path("cron/cleanup-matches/", cron_cleanup_matches, name="cron_cleanup_matches"),

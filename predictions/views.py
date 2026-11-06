@@ -850,3 +850,52 @@ def resend_verification(request):
         )
         return redirect("check_email")
     return render(request, "predictions/resend_verification.html")
+
+
+def flyer_png(request):
+    """Public PNG flyer of the day's top free tips, for social posts
+    (e.g. Facebook). Always-fresh URL: https://<site>/flyer.png
+    Optional ?day=today|tomorrow|day2.. and ?n=1..3."""
+    from .flyer import render_flyer
+
+    day_param = request.GET.get("day", "today")
+    offset = _DAY_OFFSETS.get(day_param, 0)
+    try:
+        n = max(1, min(3, int(request.GET.get("n", 3))))
+    except ValueError:
+        n = 3
+
+    active_date = timezone.localdate() + timedelta(days=offset)
+    day_start = timezone.make_aware(datetime.combine(active_date, datetime.min.time()))
+    day_end = day_start + timedelta(days=1)
+
+    base = (
+        Prediction.objects.filter(
+            tip_type="free",
+            confidence__isnull=False,
+            match__kickoff__gte=day_start,
+            match__kickoff__lt=day_end,
+            match__status="scheduled",
+        )
+        .select_related("match", "match__home_team", "match__away_team")
+        .order_by("-confidence")
+    )
+    upcoming = list(base.filter(match__kickoff__gte=timezone.now())[:n])
+    preds = upcoming if len(upcoming) >= n else list(base[:n])
+
+    tips = [
+        (f"{p.match.home_team.name} vs {p.match.away_team.name}", p.prediction, p.confidence)
+        for p in preds
+    ]
+    if not tips:
+        return redirect(staticfiles_storage.url("predictions/og-image.png"))
+
+    label = "Today" if offset == 0 else ("Tomorrow" if offset == 1 else active_date.strftime("%a %d %b"))
+    png = render_flyer(
+        tips,
+        date_label=active_date.strftime("%a %d %b"),
+        title_bottom=label.upper() if offset else "TONIGHT" if timezone.localtime().hour >= 14 else "TODAY",
+    )
+    resp = HttpResponse(png, content_type="image/png")
+    resp["Cache-Control"] = "public, max-age=600"
+    return resp
