@@ -25,14 +25,14 @@ from datetime import datetime, timedelta
 from django_ratelimit.decorators import ratelimit
 
 from .models import Prediction, Profile, Match, VIPCode
-from .market_picks import extract_market_candidates, extract_family_selections
+from .market_picks import extract_market_candidates
 from .multibets import (
-    assemble_multibets,
     COUNT as MULTIBET_COUNT,
     MIN_ODDS as MULTIBET_MIN_ODDS,
     MAX_ODDS as MULTIBET_MAX_ODDS,
     MAX_LEGS as MULTIBET_MAX_LEGS,
 )
+from . import multibet_service as mbs
 from .forms import CustomUserCreationForm
 
 import logging
@@ -207,105 +207,54 @@ def _vip_status(request):
         return False
 
 
-ACCA_MIN_CONFIDENCE = 55
-
-
-def _acca_candidates_for_match(prediction):
-    """Given a Prediction with a populated `markets` JSON blob (from the
-    Bzzoiro import), return every market on that match that clears the
-    confidence floor, as (market_type, label, probability) tuples."""
-    candidates = extract_market_candidates(
-        prediction.markets, prediction.match.home_team, prediction.match.away_team
-    )
-    return [c for c in candidates if c[2] >= ACCA_MIN_CONFIDENCE]
-
-
-# Sub-tabs on the multibets page: (slug, label, market_type or None for mix)
-MULTIBET_TABS = [
-    ("mix", "Mix", None),
-    ("1x2", "1X2", "match_result"),
-    ("gg", "GG (BTTS)", "btts"),
-    ("goals", "Goals O/U", "over_under"),
-    ("corners", "Corners", "corners"),
-    ("dnb", "Draw No Bet", "draw_no_bet"),
-]
-_MULTIBET_TAB_MARKET = {slug: market for slug, _label, market in MULTIBET_TABS}
-
-
-def _build_multibets(market_type=None):
-    """Today's multibets: up to 10 distinct multibets, each with 2-5
-    selections and combined odds between 4.0 and 5.0, and no match used
-    twice anywhere (see predictions/multibets.py for the rules).
-
-    market_type=None -> the default MIX (best selection per market family,
-    different markets can sit in one multibet). Otherwise every leg of
-    every multibet is from that one market (1X2 only, BTTS only ...).
-    """
-    today = timezone.localtime().date()
-    day_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
-    day_end = day_start + timedelta(days=1)
-
-    predictions = (
-        Prediction.objects.filter(
-            source="bzzoiro",
-            match__kickoff__gte=day_start,
-            match__kickoff__lt=day_end,
-            match__status="scheduled",
-        )
-        .select_related("match", "match__league", "match__home_team", "match__away_team")
-    )
-
-    options = []
-    for prediction in predictions:
-        if market_type is None:
-            candidates = _acca_candidates_for_match(prediction)
-        else:
-            candidates = [
-                c for c in extract_family_selections(
-                    prediction.markets, prediction.match.home_team, prediction.match.away_team
-                )
-                if c[0] == market_type and c[2] >= ACCA_MIN_CONFIDENCE
-            ]
-        for mtype, label, prob in candidates:
-            options.append({
-                "match_id": prediction.match_id,
-                "prediction": prediction,
-                "market_type": mtype,
-                "label": label,
-                "probability": prob,
-                "kickoff": prediction.match.kickoff,
-            })
-    return assemble_multibets(options)
-
-
 def accumulator(request):
-    """Daily multibets page — free to view, with sub-tabs: Mix (default),
-    1X2 only, GG only, Goals O/U only, Corners only, Draw No Bet only.
+    """Multibets page, free to view.
+
+    Sub-tabs: Mix (default), 1X2, GG, Goals O/U, Corners, Draw No Bet.
     Every tab: up to 10 different multibets, 2-5 selections each, combined
-    odds 4-5, no match repeated within the tab."""
+    odds 4-5, no match repeated within the tab. `?date=YYYY-MM-DD` shows a
+    previous day with every leg and multibet graded against the final scores.
+    """
     tab = request.GET.get("tab", "mix")
-    if tab not in _MULTIBET_TAB_MARKET:
+    if tab not in mbs.TAB_MARKET:
         tab = "mix"
+    day = mbs.parse_day(request.GET.get("date"))
+    today = timezone.localdate()
     base = reverse("accumulator")
+
+    def link(tab_slug, day_value):
+        params = []
+        if tab_slug != "mix":
+            params.append(f"tab={tab_slug}")
+        if day_value != today:
+            params.append(f"date={day_value.isoformat()}")
+        return base + ("?" + "&".join(params) if params else "")
+
     tabs = [
-        {
-            "slug": slug,
-            "label": label,
-            "url": base if slug == "mix" else f"{base}?tab={slug}",
-            "active": slug == tab,
-        }
-        for slug, label, _market in MULTIBET_TABS
+        {"slug": slug, "label": label, "url": link(slug, day), "active": slug == tab}
+        for slug, label, _market in mbs.TABS
     ]
+    days = [
+        {"label": d["label"], "url": link(tab, d["day"]), "active": d["day"] == day}
+        for d in mbs.day_options(today)
+    ]
+    multibets = mbs.present(mbs.get_multibets(day, tab))
+
     return render(request, "predictions/accumulator.html", {
-        "multibets": _build_multibets(_MULTIBET_TAB_MARKET[tab]),
+        "multibets": multibets,
+        "summary": mbs.summarise(multibets),
         "multibet_target": MULTIBET_COUNT,
         "min_odds": MULTIBET_MIN_ODDS,
         "max_odds": MULTIBET_MAX_ODDS,
         "max_legs": MULTIBET_MAX_LEGS,
         "is_vip": _vip_status(request),
         "tabs": tabs,
+        "days": days,
         "active_tab": tab,
-        "active_tab_label": next(t["label"] for t in tabs if t["active"]),
+        "active_tab_label": mbs.TAB_LABEL[tab],
+        "day": day,
+        "is_today": day == today,
+        "is_past": day < today,
     })
 
 
@@ -603,14 +552,15 @@ def _grade_prediction(prediction, home_score, away_score):
         return actual, prediction.prediction == actual
 
     if market_type == "over_under":
-        # prediction text is always "Over X Goals" (see market_picks.py --
-        # we only ever generate Over candidates, never Under).
-        match_line = re.search(r"Over ([\d.]+) Goals", prediction.prediction)
+        # prediction text is "Over X Goals" or "Under X Goals".
+        match_line = re.search(r"(Over|Under) ([\d.]+) Goals", prediction.prediction)
         if not match_line:
             return "—", None
-        line = float(match_line.group(1))
+        line = float(match_line.group(2))
         total_goals = home_score + away_score
         actual = f"{total_goals} goals"
+        if match_line.group(1) == "Under":
+            return actual, total_goals < line
         return actual, total_goals > line
 
     if market_type == "draw_no_bet":
@@ -704,6 +654,8 @@ def results(request):
         "hit_rate": hit_rate,
         "lookback_days": lookback_days,
         "market_stats": market_stats,
+        "multibet_record": mbs.record_for_days(),
+        "multibet_record_days": mbs.HISTORY_DAYS,
     })
 
 

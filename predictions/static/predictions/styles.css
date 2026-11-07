@@ -3601,3 +3601,22 @@ img {
         flex-direction: column;
     }
 }
+
+
+/* ---------- Multibet results ---------- */
+.mb-summary {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem;
+    margin: 0.5rem 0 1rem; font-size: 0.85rem; color: var(--text-muted);
+}
+.mb-summary strong { color: var(--text); }
+.mb-pill {
+    display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px;
+    background: var(--bg-inset); font-size: 0.75rem; font-weight: 700;
+}
+.mb-pill.won { background: var(--green-bg); color: var(--green); }
+.mb-pill.lost { background: var(--red-bg); color: var(--red); }
+.mb-rate { font-size: 0.8rem; }
+.mb-mark { font-weight: 800; margin-left: 0.4rem; color: var(--text-muted); }
+.mb-mark.won { color: var(--green); }
+.mb-mark.lost { color: var(--red); }
+.betslip-fold .result-badge { margin-left: 0.5rem; }

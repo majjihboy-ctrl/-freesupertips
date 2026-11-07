@@ -37,6 +37,21 @@
 </div>
 {% endif %}
 
+{% if multibet_record %}
+<div class="market-stats">
+    <div class="market-stats-title">Multibets — won / lost (last {{ multibet_record_days }} days) · <a href="{% url 'accumulator' %}">see by day</a></div>
+    <div class="market-stats-grid">
+        {% for m in multibet_record %}
+        <div class="market-stat-card">
+            <div class="market-stat-label">{{ m.label }}</div>
+            <div class="market-stat-rate">{% if m.win_rate is not None %}{{ m.win_rate }}%{% else %}—{% endif %}</div>
+            <div class="market-stat-n">{{ m.won }} won · {{ m.lost }} lost</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="match-list results-list">
 {% for prediction in predictions %}
 <article class="fx-card result-fx">

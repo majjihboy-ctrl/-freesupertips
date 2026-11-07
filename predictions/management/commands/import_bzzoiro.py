@@ -355,3 +355,21 @@ class Command(BaseCommand):
             f"scores refreshed for {updated_scores} of those. "
             f"Skipped {skipped} rows with no model data."
         ))
+
+        # Save today's multibets (all tabs) now, before kickoffs, so the
+        # Multibets page has a stable snapshot to grade against later.
+        try:
+            from predictions import multibet_service as mbs
+            from django.utils import timezone
+            today = timezone.localdate()
+            day_start, _day_end = mbs._day_bounds(today)
+            # Only snapshot a day that hasn't kicked off yet, otherwise the
+            # pool would be just the games still to come.
+            if Match.objects.filter(kickoff__gte=day_start, kickoff__lte=timezone.now()).exists():
+                self.stdout.write("Multibet snapshot skipped: today's games already started.")
+            else:
+                for slug, _label, _market in mbs.TABS:
+                    mbs.get_multibets(today, slug)
+                self.stdout.write("Multibets snapshotted for today.")
+        except Exception as exc:  # never fail the import because of this
+            self.stdout.write(self.style.WARNING(f"Multibet snapshot skipped: {exc}"))

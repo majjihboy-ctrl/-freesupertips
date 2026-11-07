@@ -171,3 +171,47 @@ class Prediction(models.Model):
 
     def __str__(self):
         return f"{self.match} — {self.prediction} @ {self.odds}"
+
+class Multibet(models.Model):
+    """One multibet shown on the Multibets page, saved so it can be graded
+    against the final scores later and shown in the day-by-day history.
+
+    `source` is "live" when it was saved from the day's own pre-match
+    data, or "reconstructed" when it was rebuilt afterwards for a past day
+    (same pre-match model data and same rules, built after the games).
+    """
+
+    SOURCE_CHOICES = [("live", "Live"), ("reconstructed", "Reconstructed")]
+
+    day = models.DateField(db_index=True)
+    tab = models.CharField(max_length=10, default="mix")
+    number = models.PositiveSmallIntegerField()
+    combined_odds = models.DecimalField(max_digits=6, decimal_places=2)
+    combined_probability = models.PositiveSmallIntegerField(default=0)
+    source = models.CharField(max_length=14, choices=SOURCE_CHOICES, default="live")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["day", "tab", "number"]
+        constraints = [
+            models.UniqueConstraint(fields=["day", "tab", "number"], name="uniq_multibet_day_tab_number"),
+        ]
+
+    def __str__(self):
+        return f"{self.day} {self.tab} #{self.number} @ {self.combined_odds}"
+
+
+class MultibetLeg(models.Model):
+    multibet = models.ForeignKey(Multibet, on_delete=models.CASCADE, related_name="legs")
+    match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name="multibet_legs")
+    market_type = models.CharField(max_length=20)
+    label = models.CharField(max_length=100)
+    probability = models.FloatField()
+    odds = models.DecimalField(max_digits=6, decimal_places=2)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position"]
+
+    def __str__(self):
+        return f"{self.match} — {self.label}"
