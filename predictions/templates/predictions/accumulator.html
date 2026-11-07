@@ -13,13 +13,21 @@
 </div>
 <p class="acca-sub">Free daily multibets · up to {{ max_legs }} selections each · odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated</p>
 
+<div class="day-tabs-wrap">
+    <div class="day-tabs" role="tablist" aria-label="Multibet type">
+        {% for tab in tabs %}
+        <a href="{{ tab.url }}" class="day-tab{% if tab.active %} is-active{% endif %}" role="tab" aria-selected="{% if tab.active %}true{% else %}false{% endif %}">{{ tab.label }}</a>
+        {% endfor %}
+    </div>
+</div>
+
 {% if multibets %}
 {% for mb in multibets %}
 <div class="betslip-card" id="multibet-{{ mb.number }}" style="margin-bottom:1.25rem;">
     <div class="betslip-header">
         <div class="betslip-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-            Multibet #{{ mb.number }}
+            {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}Multibet #{{ mb.number }}
         </div>
         <span class="betslip-fold">{{ mb.legs|length }} selections</span>
     </div>
@@ -47,7 +55,7 @@
         <div class="betslip-prob">~{{ mb.combined_probability }}% model probability</div>
 
         <div class="betslip-actions">
-            <button type="button" class="btn-copy-selections" data-text="Multibet #{{ mb.number }}&#10;&#10;{% for leg in mb.legs %}{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ mb.combined_odds|floatformat:2 }} · ~{{ mb.combined_probability }}% model prob&#10;&#10;From Matchday Pro">
+            <button type="button" class="btn-copy-selections" data-text="{{ active_tab_label }} Multibet #{{ mb.number }}&#10;&#10;{% for leg in mb.legs %}{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ mb.combined_odds|floatformat:2 }} · ~{{ mb.combined_probability }}% model prob&#10;&#10;From Matchday Pro">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 <span>Copy selections</span>
             </button>
@@ -72,18 +80,18 @@
 
 {% if multibets|length < multibet_target %}
 <p class="disclaimer" style="margin-top:1rem;">
-    Only {{ multibets|length }} multibet{{ multibets|length|pluralize }} could be built today without repeating a match (target {{ multibet_target }}). More may appear as today’s fixtures update.
+    Only {{ multibets|length }} {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}multibet{{ multibets|length|pluralize }} could be built today without repeating a match (target {{ multibet_target }}). More may appear as today’s fixtures update.
 </p>
 {% endif %}
 
 <p class="disclaimer" style="margin-top:1.25rem;">
-    Every selection is at or above 55% model confidence and each match appears in one multibet only. Odds shown are model-implied and may differ from your bookmaker’s.
+    Every selection is at or above 55% model confidence and each match appears in one multibet only within a tab. Odds shown are model-implied and may differ from your bookmaker’s.
     Combined odds assume independence — multibets are higher risk than singles. 18+ Gamble responsibly.
 </p>
 {% else %}
 <div class="empty-cell" style="padding:3rem 1.5rem;">
-    <div class="empty-title">No multibets yet</div>
-    <div class="empty-sub">Not enough fixtures above 55% confidence right now. Check back after the next import.</div>
+    <div class="empty-title">No {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}multibets today</div>
+    <div class="empty-sub">Not enough selections above 55% confidence can reach odds of 4–5 right now. Try another tab or check back after the next import.</div>
 </div>
 {% endif %}
 {% endblock %}

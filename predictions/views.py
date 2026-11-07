@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 from django_ratelimit.decorators import ratelimit
 
 from .models import Prediction, Profile, Match, VIPCode
-from .market_picks import extract_market_candidates
+from .market_picks import extract_market_candidates, extract_family_selections
 from .multibets import (
     assemble_multibets,
     COUNT as MULTIBET_COUNT,
@@ -220,10 +220,27 @@ def _acca_candidates_for_match(prediction):
     return [c for c in candidates if c[2] >= ACCA_MIN_CONFIDENCE]
 
 
-def _build_multibets():
-    """Today's multibets: up to 10 distinct multibets, each
-    with 2-5 selections and combined odds between 4.0 and 5.0, and no match
-    used twice anywhere (see predictions/multibets.py for the rules)."""
+# Sub-tabs on the multibets page: (slug, label, market_type or None for mix)
+MULTIBET_TABS = [
+    ("mix", "Mix", None),
+    ("1x2", "1X2", "match_result"),
+    ("gg", "GG (BTTS)", "btts"),
+    ("goals", "Goals O/U", "over_under"),
+    ("corners", "Corners", "corners"),
+    ("dnb", "Draw No Bet", "draw_no_bet"),
+]
+_MULTIBET_TAB_MARKET = {slug: market for slug, _label, market in MULTIBET_TABS}
+
+
+def _build_multibets(market_type=None):
+    """Today's multibets: up to 10 distinct multibets, each with 2-5
+    selections and combined odds between 4.0 and 5.0, and no match used
+    twice anywhere (see predictions/multibets.py for the rules).
+
+    market_type=None -> the default MIX (best selection per market family,
+    different markets can sit in one multibet). Otherwise every leg of
+    every multibet is from that one market (1X2 only, BTTS only ...).
+    """
     today = timezone.localtime().date()
     day_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
     day_end = day_start + timedelta(days=1)
@@ -240,11 +257,20 @@ def _build_multibets():
 
     options = []
     for prediction in predictions:
-        for market_type, label, prob in _acca_candidates_for_match(prediction):
+        if market_type is None:
+            candidates = _acca_candidates_for_match(prediction)
+        else:
+            candidates = [
+                c for c in extract_family_selections(
+                    prediction.markets, prediction.match.home_team, prediction.match.away_team
+                )
+                if c[0] == market_type and c[2] >= ACCA_MIN_CONFIDENCE
+            ]
+        for mtype, label, prob in candidates:
             options.append({
                 "match_id": prediction.match_id,
                 "prediction": prediction,
-                "market_type": market_type,
+                "market_type": mtype,
                 "label": label,
                 "probability": prob,
                 "kickoff": prediction.match.kickoff,
@@ -253,15 +279,33 @@ def _build_multibets():
 
 
 def accumulator(request):
-    """Daily multibets page — free to view. Up to 10 different multibets
-    (2-5 selections each, combined odds 4-5), no match repeated across them."""
+    """Daily multibets page — free to view, with sub-tabs: Mix (default),
+    1X2 only, GG only, Goals O/U only, Corners only, Draw No Bet only.
+    Every tab: up to 10 different multibets, 2-5 selections each, combined
+    odds 4-5, no match repeated within the tab."""
+    tab = request.GET.get("tab", "mix")
+    if tab not in _MULTIBET_TAB_MARKET:
+        tab = "mix"
+    base = reverse("accumulator")
+    tabs = [
+        {
+            "slug": slug,
+            "label": label,
+            "url": base if slug == "mix" else f"{base}?tab={slug}",
+            "active": slug == tab,
+        }
+        for slug, label, _market in MULTIBET_TABS
+    ]
     return render(request, "predictions/accumulator.html", {
-        "multibets": _build_multibets(),
+        "multibets": _build_multibets(_MULTIBET_TAB_MARKET[tab]),
         "multibet_target": MULTIBET_COUNT,
         "min_odds": MULTIBET_MIN_ODDS,
         "max_odds": MULTIBET_MAX_ODDS,
         "max_legs": MULTIBET_MAX_LEGS,
         "is_vip": _vip_status(request),
+        "tabs": tabs,
+        "active_tab": tab,
+        "active_tab_label": next(t["label"] for t in tabs if t["active"]),
     })
 
 

@@ -101,6 +101,53 @@ def extract_market_candidates(markets, home_team_name, away_team_name):
     return candidates
 
 
+def extract_family_selections(markets, home_team_name, away_team_name):
+    """Every individual selection (not just the best per family) as
+    (market_type, label, probability) tuples.
+
+    Used by the single-market multibet tabs (1X2 only, GG only, Corners
+    only ...) so those tabs have enough different legs to reach the odds
+    window. BTTS only offers the "Yes" (GG) side.
+    """
+    markets = markets or {}
+    out = []
+
+    mr = markets.get("match_result") or {}
+    for key, side in (("prob_home", "H"), ("prob_draw", "D"), ("prob_away", "A")):
+        prob = _f(mr.get(key))
+        if prob is not None:
+            out.append(("match_result", PICK_LABELS[side], prob))
+
+    btts_yes = _f((markets.get("btts") or {}).get("prob_yes"))
+    if btts_yes is not None:
+        out.append(("btts", "BTTS: Yes", btts_yes))
+
+    ou = markets.get("over_under") or {}
+    for line in ("15", "25", "35"):
+        label_line = f"{line[0]}.{line[1]}"
+        over = _f(ou.get(f"prob_over_{line}"))
+        under = _f(ou.get(f"prob_under_{line}"))
+        if under is None and over is not None:
+            under = 100.0 - over
+        if over is not None:
+            out.append(("over_under", f"Over {label_line} Goals", over))
+        if under is not None:
+            out.append(("over_under", f"Under {label_line} Goals", under))
+
+    corners = markets.get("corners") or {}
+    for key, line in (("prob_over_85", "8.5"), ("prob_over_95", "9.5"), ("prob_over_105", "10.5")):
+        prob = _f(corners.get(key))
+        if prob is not None:
+            out.append(("corners", f"Corners Over {line}", prob))
+
+    dnb_home = _f((markets.get("draw_no_bet") or {}).get("prob_home"))
+    if dnb_home is not None:
+        out.append(("draw_no_bet", f"Draw No Bet: {home_team_name}", dnb_home))
+        out.append(("draw_no_bet", f"Draw No Bet: {away_team_name}", 100.0 - dnb_home))
+
+    return out
+
+
 def best_market_candidate(markets, home_team_name, away_team_name):
     """Single highest-probability candidate across every market family."""
     candidates = extract_market_candidates(markets, home_team_name, away_team_name)

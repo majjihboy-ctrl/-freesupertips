@@ -56,8 +56,34 @@ class AccumulatorViewTests(TestCase):
             self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
         self.assertContains(response, "Multibet #10")
 
+    def test_every_tab_obeys_the_rules_and_single_market_tabs_stay_pure(self):
+        expected_market = {"1x2": "match_result", "gg": "btts", "goals": "over_under",
+                           "corners": "corners", "dnb": "draw_no_bet"}
+        built = 0
+        for tab, market in expected_market.items():
+            response = self.client.get(reverse("accumulator"), {"tab": tab})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(any(t["active"] and t["slug"] == tab for t in response.context["tabs"]))
+            seen = set()
+            for mb in response.context["multibets"]:
+                built += 1
+                ids = [leg["match_id"] for leg in mb["legs"]]
+                self.assertEqual(len(ids), len(set(ids)))
+                self.assertFalse(seen & set(ids), f"{tab}: match repeated across multibets")
+                seen |= set(ids)
+                self.assertTrue(2 <= len(ids) <= 5)
+                self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
+                self.assertTrue(all(leg["market_type"] == market for leg in mb["legs"]),
+                                f"{tab}: mixed markets in one multibet")
+        self.assertGreater(built, 0)
+
+    def test_unknown_tab_falls_back_to_mix(self):
+        response = self.client.get(reverse("accumulator"), {"tab": "nonsense"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["active_tab"], "mix")
+
     def test_page_renders_when_there_are_no_fixtures(self):
         Prediction.objects.all().delete()
         response = self.client.get(reverse("accumulator"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No multibets yet")
+        self.assertContains(response, "multibets today")
