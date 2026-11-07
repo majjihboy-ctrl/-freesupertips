@@ -53,7 +53,7 @@
             {% if mb.status == "won" %}<span class="result-badge hit">WON</span>
             {% elif mb.status == "lost" %}<span class="result-badge miss">LOST</span>
             {% elif mb.status == "pending" %}<span class="result-badge push">PENDING</span>
-            {% elif mb.status == "unverified" %}<span class="result-badge push" title="Corner counts aren't tracked, so this can't be checked">UNVERIFIED</span>
+            {% elif mb.status == "unverified" %}<span class="result-badge push" title="The API hasn't reported a corner count for this match yet">UNVERIFIED</span>
             {% else %}<span class="result-badge push">VOID</span>{% endif %}
         </span>
     </div>
@@ -67,11 +67,12 @@
             </div>
             <div class="betslip-leg-pick">
                 <span class="betslip-chip">{{ leg.label }}</span>
-                <span class="betslip-conf">{{ leg.probability|floatformat:0 }}% · {{ leg.odds|floatformat:2 }}</span>
+                <span class="betslip-conf">{{ leg.probability|floatformat:0 }}% · {% if leg.odds_source == "market" %}<span title="Bookmaker consensus price">{{ leg.odds|floatformat:2 }}</span>{% else %}<span title="Model-implied price (no bookmaker price available)">~{{ leg.odds|floatformat:2 }}</span>{% endif %}</span>
+                {% if leg.edge and leg.edge >= 5 %}<span class="mb-value" title="Model probability is {{ leg.edge|floatformat:0 }} points above what the market price implies">VALUE</span>{% endif %}
                 {% if leg.state == "won" %}<span class="mb-mark won" title="Won">✓</span>
                 {% elif leg.state == "lost" %}<span class="mb-mark lost" title="Lost">✗</span>
                 {% elif leg.state == "void" %}<span class="mb-mark" title="Void / stake returned">—</span>
-                {% elif leg.state == "unverified" %}<span class="mb-mark" title="Corner counts aren't tracked">?</span>{% endif %}
+                {% elif leg.state == "unverified" %}<span class="mb-mark" title="No corner count reported yet">?</span>{% endif %}
             </div>
         </div>
         {% endfor %}
@@ -120,8 +121,8 @@
 {% endif %}
 
 <p class="disclaimer" style="margin-top:1.25rem;">
-    Every selection is at or above 55% model confidence and each match appears in one multibet only within a tab. Odds shown are model-implied and may differ from your bookmaker’s.
-    Combined odds assume independence — multibets are higher risk than singles. A multibet is marked lost as soon as one leg loses; corner legs can’t be checked (counts aren’t stored) so those multibets show as unverified. 18+ Gamble responsibly.
+    Every selection is at or above 55% model confidence and each match appears in one multibet only within a tab. Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
+    Combined odds assume independence — multibets are higher risk than singles. A multibet is marked lost as soon as one leg loses; corner legs are graded from the match’s reported corner count, and show as unverified until the API reports it. 18+ Gamble responsibly.
 </p>
 {% else %}
 <div class="empty-cell" style="padding:3rem 1.5rem;">

@@ -126,6 +126,15 @@ class Match(models.Model):
     )
     round_label = models.CharField(max_length=120, blank=True, default="")
     is_local_derby = models.BooleanField(default=False)
+    home_corners = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="Final corner count, from the API's /stats/ (null = not reported).",
+    )
+    away_corners = models.PositiveSmallIntegerField(null=True, blank=True)
+    market_odds = models.JSONField(
+        null=True, blank=True,
+        help_text="Bookmaker consensus decimal odds (+ fetched_at) from the API, used to price multibet legs.",
+    )
 
     class Meta:
         ordering = ["-kickoff"]
@@ -208,6 +217,10 @@ class MultibetLeg(models.Model):
     label = models.CharField(max_length=100)
     probability = models.FloatField()
     odds = models.DecimalField(max_digits=6, decimal_places=2)
+    odds_source = models.CharField(
+        max_length=8, default="model",
+        help_text='"market" = bookmaker consensus price; "model" = implied from model probability.',
+    )
     position = models.PositiveSmallIntegerField(default=0)
 
     class Meta:

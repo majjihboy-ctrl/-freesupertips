@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from django.db import transaction
 from django.utils import timezone
 
+from .market_data import market_odds_for_leg
 from .market_picks import extract_family_selections, extract_market_candidates
 from .models import Multibet, MultibetLeg, Prediction
 from .multibets import assemble_multibets
@@ -39,14 +40,19 @@ _NOT_PLAYED = {"postponed", "cancelled", "canceled", "abandoned"}
 # Grading
 # --------------------------------------------------------------------------
 
-def grade_selection(market_type, label, home_score, away_score, home_name, away_name):
+def grade_selection(market_type, label, home_score, away_score, home_name, away_name,
+                    corners_total=None):
     """-> "won" | "lost" | "void" | "unverified" for a finished match.
 
     "void" is a Draw No Bet on a draw (stake returned); "unverified" is
-    anything we hold no ground truth for (corner counts aren't stored).
+    anything we hold no ground truth for (corners when the API never
+    reported the match's corner count).
     """
     if market_type == "corners":
-        return "unverified"
+        m = re.search(r"Corners Over ([\d.]+)", label)
+        if corners_total is None or not m:
+            return "unverified"
+        return "won" if corners_total > float(m.group(1)) else "lost"
 
     if market_type == "btts":
         both = home_score > 0 and away_score > 0
@@ -79,9 +85,12 @@ def settle_leg(leg):
         return "void"
     if match.status != "finished" or match.home_score is None or match.away_score is None:
         return "pending"
+    corners_total = None
+    if match.home_corners is not None and match.away_corners is not None:
+        corners_total = match.home_corners + match.away_corners
     return grade_selection(
         leg.market_type, leg.label, match.home_score, match.away_score,
-        str(match.home_team), str(match.away_team),
+        str(match.home_team), str(match.away_team), corners_total,
     )
 
 
@@ -133,22 +142,28 @@ def build_multibets(market_type=None, day=None, upcoming_only=True):
         seen_matches.add(prediction.match_id)
         home, away = prediction.match.home_team, prediction.match.away_team
         if market_type is None:
-            # Corners are left out of the mix: final corner counts aren't
-            # stored, so a mix containing one could never be graded.
             candidates = [c for c in extract_market_candidates(prediction.markets, home, away)
-                          if c[2] >= ACCA_MIN_CONFIDENCE and c[0] != "corners"]
+                          if c[2] >= ACCA_MIN_CONFIDENCE]
         else:
             candidates = [c for c in extract_family_selections(prediction.markets, home, away)
                           if c[0] == market_type and c[2] >= ACCA_MIN_CONFIDENCE]
         for mtype, label, prob in candidates:
-            options.append({
+            option = {
                 "match_id": prediction.match_id,
                 "match": prediction.match,
                 "market_type": mtype,
                 "label": label,
                 "probability": prob,
                 "kickoff": prediction.match.kickoff,
-            })
+            }
+            # Real bookmaker consensus price where the free feed quotes this
+            # selection (1X2, goals lines, BTTS); otherwise the model-implied
+            # price is used by assemble_multibets.
+            market_price = market_odds_for_leg(prediction.match.market_odds, mtype, label)
+            if market_price:
+                option["odds"] = market_price
+                option["odds_source"] = "market"
+            options.append(option)
     return assemble_multibets(options)
 
 
@@ -158,13 +173,15 @@ def build_multibets(market_type=None, day=None, upcoming_only=True):
 
 def _signature(multibets):
     return sorted(
-        tuple(sorted((leg["match_id"], leg["label"]) for leg in mb["legs"])) for mb in multibets
+        tuple(sorted((leg["match_id"], leg["label"], round(float(leg["odds"]), 2)) for leg in mb["legs"]))
+        for mb in multibets
     )
 
 
 def _saved_signature(rows):
     return sorted(
-        tuple(sorted((leg.match_id, leg.label) for leg in mb.legs.all())) for mb in rows
+        tuple(sorted((leg.match_id, leg.label, round(float(leg.odds), 2)) for leg in mb.legs.all()))
+        for mb in rows
     )
 
 
@@ -180,7 +197,7 @@ def _save(day, tab, built, source):
                 MultibetLeg(
                     multibet=row, match_id=leg["match_id"], market_type=leg["market_type"],
                     label=leg["label"], probability=leg["probability"],
-                    odds=leg["odds"], position=i,
+                    odds=leg["odds"], odds_source=leg.get("odds_source", "model"), position=i,
                 )
                 for i, leg in enumerate(mb["legs"])
             ])
@@ -247,6 +264,11 @@ def present(rows):
                 "label": leg.label,
                 "probability": leg.probability,
                 "odds": leg.odds,
+                "odds_source": leg.odds_source,
+                # Model probability minus what the market price implies;
+                # only meaningful for real market prices.
+                "edge": round(leg.probability - 100.0 / float(leg.odds), 1)
+                        if leg.odds_source == "market" and float(leg.odds) > 1 else None,
                 "state": state,
                 "score": f"{m.home_score}–{m.away_score}"
                          if m.status == "finished" and m.home_score is not None else "",

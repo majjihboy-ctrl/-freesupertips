@@ -176,6 +176,25 @@ def cron_cleanup_matches(request):
 
     out = StringIO()
     call_command("cleanup_old_matches", stdout=out)
+    # Piggy-backs on this daily run (10 minutes after the import) so market
+    # data -- corner counts + bookmaker odds -- needs no third cron job.
+    call_command("sync_market_data", stdout=out)
+    return HttpResponse(out.getvalue(), content_type="text/plain")
+
+
+@never_cache
+def cron_sync_market_data(request):
+    """Same shared-secret check as the other cron views. Lets you trigger or
+    schedule the market-data sync on its own (e.g. a second daily run)."""
+    from io import StringIO
+    from django.core.management import call_command
+
+    expected = f"Bearer {settings.CRON_SECRET}" if settings.CRON_SECRET else None
+    if not expected or request.headers.get("Authorization") != expected:
+        return HttpResponse(status=401)
+
+    out = StringIO()
+    call_command("sync_market_data", stdout=out)
     return HttpResponse(out.getvalue(), content_type="text/plain")
 
 

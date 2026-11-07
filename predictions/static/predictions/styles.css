@@ -3620,3 +3620,8 @@ img {
 .mb-mark.won { color: var(--green); }
 .mb-mark.lost { color: var(--red); }
 .betslip-fold .result-badge { margin-left: 0.5rem; }
+.mb-value {
+    margin-left: 0.4rem; padding: 0.05rem 0.4rem; border-radius: 999px;
+    font-size: 0.65rem; font-weight: 800; letter-spacing: 0.04em;
+    background: var(--green-bg); color: var(--green);
+}

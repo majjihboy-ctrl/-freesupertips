@@ -11,6 +11,7 @@ from predictions.views import (
     robots_txt,
     cron_cleanup_matches,
     cron_import_bzzoiro,
+    cron_sync_market_data,
 )
 
 sitemaps = {
@@ -42,6 +43,8 @@ urlpatterns = [
     # Hit daily by Vercel Cron to pull fixtures + model predictions from
     # sports.bzzoiro.com.
     path("cron/import-bzzoiro/", cron_import_bzzoiro, name="cron_import_bzzoiro"),
+    # Corner counts + bookmaker odds (also run by the cleanup cron).
+    path("cron/sync-market-data/", cron_sync_market_data, name="cron_sync_market_data"),
     path("", include("predictions.urls")),
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),

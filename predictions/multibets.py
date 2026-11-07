@@ -9,8 +9,10 @@ Rules enforced here:
     probability among the combinations that satisfy the odds window
 
 Pure Python, no Django imports. `options` is a list of dicts:
-    {"match_id", "prediction", "market_type", "label", "probability"}  # prob 0-100
-and every returned leg gets an "odds" key (model-implied, 100 / probability).
+    {"match_id", "market_type", "label", "probability"}  # prob 0-100
+    optional: "odds" (a real market price), "odds_source", "kickoff"
+Every returned leg gets "odds" (the supplied market price, else implied by the
+model: 100 / probability) and "odds_source" ("market" or "model").
 """
 
 MIN_ODDS = 4.0
@@ -33,7 +35,13 @@ def _with_odds(options):
             continue
         row = dict(o)
         row["probability"] = p
-        row["odds"] = 100.0 / p
+        supplied = o.get("odds")
+        if supplied and float(supplied) > 1.0:
+            row["odds"] = float(supplied)           # real market price
+            row["odds_source"] = o.get("odds_source", "market")
+        else:
+            row["odds"] = 100.0 / p                 # model-implied price
+            row["odds_source"] = "model"
         out.append(row)
     return out
 

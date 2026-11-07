@@ -63,6 +63,7 @@ class PreviousDayResultsTests(TestCase):
             match = Match.objects.create(
                 league=league, home_team=home, away_team=away, status="finished",
                 home_score=rng.randint(0, 4), away_score=rng.randint(0, 4),
+                home_corners=rng.randint(2, 9), away_corners=rng.randint(1, 8),
                 kickoff=start + timedelta(hours=10, minutes=i),
             )
             Prediction.objects.create(
@@ -101,7 +102,7 @@ class PreviousDayResultsTests(TestCase):
             for mb in response.context["multibets"]:
                 self.assertTrue(all(leg["market_type"] == mbs.TAB_MARKET[tab] for leg in mb["legs"]))
                 if tab == "corners":
-                    self.assertIn(mb["status"], ("unverified", "lost"))
+                    self.assertIn(mb["status"], ("won", "lost"))
 
     def test_dates_outside_the_window_fall_back_to_today(self):
         far = (timezone.localdate() - timedelta(days=90)).isoformat()
