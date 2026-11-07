@@ -3,7 +3,7 @@
 Shared by:
 - import_bzzoiro: picks the single HIGHEST-probability candidate per match
   as that match's primary Prediction.
-- views._build_accumulator: picks up to 5 candidates across different
+- views._build_multibets: builds up to 10 multibets (see multibets.py) from candidates across different
   matches/market types at or above a threshold.
 - Match detail template: full probability board via board_rows().
 

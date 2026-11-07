@@ -26,6 +26,13 @@ from django_ratelimit.decorators import ratelimit
 
 from .models import Prediction, Profile, Match, VIPCode
 from .market_picks import extract_market_candidates
+from .multibets import (
+    assemble_multibets,
+    COUNT as MULTIBET_COUNT,
+    MIN_ODDS as MULTIBET_MIN_ODDS,
+    MAX_ODDS as MULTIBET_MAX_ODDS,
+    MAX_LEGS as MULTIBET_MAX_LEGS,
+)
 from .forms import CustomUserCreationForm
 
 import logging
@@ -200,10 +207,6 @@ def _vip_status(request):
         return False
 
 
-# Order controls diversity priority when building the accumulator: we try to
-# fill one leg from each market type before doubling back to any type, so a
-# 5-leg acca isn't just five 1X2 picks.
-ACCA_MARKET_ORDER = ["match_result", "btts", "over_under", "corners", "draw_no_bet"]
 ACCA_MIN_CONFIDENCE = 55
 
 
@@ -217,11 +220,10 @@ def _acca_candidates_for_match(prediction):
     return [c for c in candidates if c[2] >= ACCA_MIN_CONFIDENCE]
 
 
-def _build_accumulator(leg_count=7):
-    """Picks up to `leg_count` legs for today's accumulator: one match
-    per leg, diversified across market types where possible, every leg at
-    or above ACCA_MIN_CONFIDENCE. Returns a list of dicts ready for the
-    template, plus combined odds/probability."""
+def _build_multibets():
+    """Today's multibets: up to 10 distinct multibets, each
+    with 2-5 selections and combined odds between 4.0 and 5.0, and no match
+    used twice anywhere (see predictions/multibets.py for the rules)."""
     today = timezone.localtime().date()
     day_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
     day_end = day_start + timedelta(days=1)
@@ -236,75 +238,30 @@ def _build_accumulator(leg_count=7):
         .select_related("match", "match__league", "match__home_team", "match__away_team")
     )
 
-    # market_type -> list of (prediction, market_type, label, prob), best first
-    by_type = {t: [] for t in ACCA_MARKET_ORDER}
+    options = []
     for prediction in predictions:
         for market_type, label, prob in _acca_candidates_for_match(prediction):
-            by_type.setdefault(market_type, []).append((prediction, market_type, label, prob))
-    for market_type in by_type:
-        by_type[market_type].sort(key=lambda row: -row[3])
-
-    legs = []
-    used_match_ids = set()
-
-    def try_take(market_type):
-        for prediction, m_type, label, prob in by_type.get(market_type, []):
-            if prediction.match_id not in used_match_ids:
-                used_match_ids.add(prediction.match_id)
-                legs.append({"prediction": prediction, "market_type": m_type, "label": label, "probability": prob})
-                return True
-        return False
-
-    # Pass 1: one leg per market type, in priority order, for diversity.
-    for market_type in ACCA_MARKET_ORDER:
-        if len(legs) >= leg_count:
-            break
-        try_take(market_type)
-
-    # Pass 2: if we still need more legs, cycle through the types again
-    # (a match can't be reused, but a market type can supply a 2nd leg).
-    guard = 0
-    while len(legs) < leg_count and guard < leg_count * len(ACCA_MARKET_ORDER):
-        guard += 1
-        progressed = False
-        for market_type in ACCA_MARKET_ORDER:
-            if len(legs) >= leg_count:
-                break
-            if try_take(market_type):
-                progressed = True
-        if not progressed:
-            break
-
-    combined_prob = 1.0
-    combined_odds = 1.0
-    for leg in legs:
-        combined_prob *= leg["probability"] / 100
-        implied_odds = 100 / leg["probability"]
-        leg["odds"] = round(implied_odds, 2)
-        combined_odds *= implied_odds
-
-    return {
-        "legs": legs,
-        "combined_odds": round(combined_odds, 2) if legs else None,
-        "combined_probability": round(combined_prob * 100) if legs else None,
-        "is_complete": len(legs) == leg_count,
-    }
+            options.append({
+                "match_id": prediction.match_id,
+                "prediction": prediction,
+                "market_type": market_type,
+                "label": label,
+                "probability": prob,
+                "kickoff": prediction.match.kickoff,
+            })
+    return assemble_multibets(options)
 
 
 def accumulator(request):
-    """Daily accumulator — free to view. Aims for up to 7 legs (minimum useful
-    set is 4 when enough high-confidence picks exist). Diversified markets.
-    """
-    is_vip = _vip_status(request)
-    acca = _build_accumulator(leg_count=7)
-    # Treat 4+ legs as a solid daily board; more legs (up to 7) when available
-    n = len(acca.get("legs") or [])
-    acca["is_complete"] = n >= 4
+    """Daily multibets page — free to view. Up to 10 different multibets
+    (2-5 selections each, combined odds 4-5), no match repeated across them."""
     return render(request, "predictions/accumulator.html", {
-        **acca,
-        "is_vip": is_vip,
-        "leg_target": 7,
-        "leg_min": 4,
+        "multibets": _build_multibets(),
+        "multibet_target": MULTIBET_COUNT,
+        "min_odds": MULTIBET_MIN_ODDS,
+        "max_odds": MULTIBET_MAX_ODDS,
+        "max_legs": MULTIBET_MAX_LEGS,
+        "is_vip": _vip_status(request),
     })
 
 

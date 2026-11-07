@@ -1,31 +1,31 @@
 {% extends "predictions/base.html" %}
 {% load static %}
 
-{% block title %}Daily Acca — MatchPro{% endblock %}
-{% block meta_desc %}Today's free accumulator — 4 to 7 legs, diversified markets, each at 55%+ model confidence. Ready to place on Mozzart or your preferred bookie.{% endblock %}
+{% block title %}Daily Multibets — MatchPro{% endblock %}
+{% block meta_desc %}Today's free multibets — up to 10 different accumulators, 2 to 5 selections each, combined odds between 4 and 5, no match repeated. Ready to place on Mozzart or your preferred bookie.{% endblock %}
 
 {% block content %}
 <div class="page-title">
-    Daily Acca
-    {% if legs %}
-    <span class="acca-fold-badge">{{ legs|length }}-FOLD</span>
+    Daily Multibets
+    {% if multibets %}
+    <span class="acca-fold-badge">{{ multibets|length }} MULTIBET{{ multibets|length|pluralize }}</span>
     {% endif %}
 </div>
-<p class="acca-sub">Free daily acca · 4–7 legs · mixed markets · 55%+ confidence each</p>
+<p class="acca-sub">Free daily multibets · up to {{ max_legs }} selections each · odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated</p>
 
-{% if legs %}
-{# ── Ready Betslip Card ── #}
-<div class="betslip-card" id="daily-betslip">
+{% if multibets %}
+{% for mb in multibets %}
+<div class="betslip-card" id="multibet-{{ mb.number }}" style="margin-bottom:1.25rem;">
     <div class="betslip-header">
         <div class="betslip-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-            Ready Betslip
+            Multibet #{{ mb.number }}
         </div>
-        <span class="betslip-fold">{{ legs|length }} selections</span>
+        <span class="betslip-fold">{{ mb.legs|length }} selections</span>
     </div>
 
     <div class="betslip-legs">
-        {% for leg in legs %}
+        {% for leg in mb.legs %}
         <div class="betslip-leg">
             <div class="betslip-leg-info">
                 <span class="betslip-leg-time">{{ leg.prediction.match.kickoff|date:"D H:i" }}</span>
@@ -33,7 +33,7 @@
             </div>
             <div class="betslip-leg-pick">
                 <span class="betslip-chip">{{ leg.label }}</span>
-                <span class="betslip-conf">{{ leg.probability|floatformat:0 }}%</span>
+                <span class="betslip-conf">{{ leg.probability|floatformat:0 }}% · {{ leg.odds|floatformat:2 }}</span>
             </div>
         </div>
         {% endfor %}
@@ -42,14 +42,12 @@
     <div class="betslip-footer">
         <div class="betslip-odds-row">
             <span class="betslip-odds-label">Combined Odds</span>
-            <span class="betslip-odds-value">{{ combined_odds }}</span>
+            <span class="betslip-odds-value">{{ mb.combined_odds|floatformat:2 }}</span>
         </div>
-        {% if combined_probability %}
-        <div class="betslip-prob">~{{ combined_probability }}% model probability</div>
-        {% endif %}
+        <div class="betslip-prob">~{{ mb.combined_probability }}% model probability</div>
 
         <div class="betslip-actions">
-            <button type="button" class="btn-copy-selections" id="copy-betslip-btn" data-text="{% for leg in legs %}{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ combined_odds }}{% if combined_probability %} · ~{{ combined_probability }}% model prob{% endif %}&#10;&#10;From Matchday Pro">
+            <button type="button" class="btn-copy-selections" data-text="Multibet #{{ mb.number }}&#10;&#10;{% for leg in mb.legs %}{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ mb.combined_odds|floatformat:2 }} · ~{{ mb.combined_probability }}% model prob&#10;&#10;From Matchday Pro">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 <span>Copy selections</span>
             </button>
@@ -70,48 +68,21 @@
         <p class="betslip-legal">18+ · Gamble responsibly · T&amp;Cs apply · Odds may change</p>
     </div>
 </div>
+{% endfor %}
 
-{# Keep the original board for easy browsing #}
-<div class="acca-board" style="margin-top:1.5rem;">
-    {% for leg in legs %}
-    <a class="acca-leg" href="{% url 'match_tips' leg.prediction.tip_type leg.prediction.match.id %}">
-        <div class="acca-leg-main">
-            <span class="acca-leg-time">{{ leg.prediction.match.kickoff|date:"H:i" }}</span>
-            <span class="acca-leg-match">{{ leg.prediction.match.home_team }} vs {{ leg.prediction.match.away_team }}</span>
-        </div>
-        <div class="acca-leg-pick">
-            <span class="acca-chip">{{ leg.label }}</span>
-            <span class="acca-conf">{{ leg.probability|floatformat:0 }}%</span>
-        </div>
-    </a>
-    {% endfor %}
-
-    <div class="acca-combined">
-        <div class="acca-combined-value">{{ combined_odds }}</div>
-        <div class="acca-combined-label">Combined Odds</div>
-        {% if combined_probability %}
-        <div class="acca-combined-prob">~{{ combined_probability }}% combined model probability</div>
-        {% endif %}
-    </div>
-</div>
-
-{% if not is_complete %}
+{% if multibets|length < multibet_target %}
 <p class="disclaimer" style="margin-top:1rem;">
-    Only {{ legs|length }} leg{{ legs|length|pluralize }} met the confidence floor so far (target 4–7). More may appear as today’s fixtures update.
-</p>
-{% elif legs|length < leg_target %}
-<p class="disclaimer" style="margin-top:1rem;">
-    {{ legs|length }} legs available today (up to {{ leg_target }} when more high-confidence picks exist).
+    Only {{ multibets|length }} multibet{{ multibets|length|pluralize }} could be built today without repeating a match (target {{ multibet_target }}). More may appear as today’s fixtures update.
 </p>
 {% endif %}
 
 <p class="disclaimer" style="margin-top:1.25rem;">
-    Each leg is independently at or above 55% model confidence across different market types.
-    Combined odds assume independence — accumulators are higher risk than singles. 18+ Gamble responsibly.
+    Every selection is at or above 55% model confidence and each match appears in one multibet only. Odds shown are model-implied and may differ from your bookmaker’s.
+    Combined odds assume independence — multibets are higher risk than singles. 18+ Gamble responsibly.
 </p>
 {% else %}
 <div class="empty-cell" style="padding:3rem 1.5rem;">
-    <div class="empty-title">No daily acca yet</div>
+    <div class="empty-title">No multibets yet</div>
     <div class="empty-sub">Not enough fixtures above 55% confidence right now. Check back after the next import.</div>
 </div>
 {% endif %}
@@ -120,29 +91,21 @@
 {% block extra_js %}
 <script>
 (function () {
-    var btn = document.getElementById('copy-betslip-btn');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-        var text = btn.getAttribute('data-text') || '';
-        // Convert HTML entities for newlines
-        text = text.replace(/&#10;/g, '\n');
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function () {
-                var original = btn.querySelector('span').textContent;
-                btn.querySelector('span').textContent = 'Copied!';
-                btn.classList.add('is-copied');
-                setTimeout(function () {
-                    btn.querySelector('span').textContent = original;
-                    btn.classList.remove('is-copied');
-                }, 1800);
-            }).catch(function () {
-                fallbackCopy(text);
-            });
-        } else {
-            fallbackCopy(text);
-        }
-    });
-    function fallbackCopy(text) {
+    var buttons = document.querySelectorAll('.btn-copy-selections');
+    if (!buttons.length) return;
+
+    function flash(btn) {
+        var label = btn.querySelector('span');
+        var original = label.textContent;
+        label.textContent = 'Copied!';
+        btn.classList.add('is-copied');
+        setTimeout(function () {
+            label.textContent = original;
+            btn.classList.remove('is-copied');
+        }, 1800);
+    }
+
+    function fallbackCopy(btn, text) {
         var ta = document.createElement('textarea');
         ta.value = text;
         ta.style.position = 'fixed';
@@ -151,16 +114,25 @@
         ta.select();
         try {
             document.execCommand('copy');
-            var original = btn.querySelector('span').textContent;
-            btn.querySelector('span').textContent = 'Copied!';
-            btn.classList.add('is-copied');
-            setTimeout(function () {
-                btn.querySelector('span').textContent = original;
-                btn.classList.remove('is-copied');
-            }, 1800);
+            flash(btn);
         } catch (e) {}
         document.body.removeChild(ta);
     }
+
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var text = (btn.getAttribute('data-text') || '').replace(/&#10;/g, '\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    flash(btn);
+                }).catch(function () {
+                    fallbackCopy(btn, text);
+                });
+            } else {
+                fallbackCopy(btn, text);
+            }
+        });
+    });
 })();
 </script>
 {% endblock %}
