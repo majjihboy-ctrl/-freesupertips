@@ -12,6 +12,8 @@ from predictions.views import (
     cron_cleanup_matches,
     cron_import_bzzoiro,
     cron_sync_market_data,
+    api_tips,
+    api_multibets,
 )
 
 sitemaps = {
@@ -45,6 +47,10 @@ urlpatterns = [
     path("cron/import-bzzoiro/", cron_import_bzzoiro, name="cron_import_bzzoiro"),
     # Corner counts + bookmaker odds (also run by the cleanup cron).
     path("cron/sync-market-data/", cron_sync_market_data, name="cron_sync_market_data"),
+    # Public JSON of our derived picks (handy for social posts / bots).
+    path("api/tips/<str:day>.json", api_tips, name="api_tips"),
+    path("api/multibets/<str:tab>.json", api_multibets, name="api_multibets"),
+    path("api/multibets/<str:tab>/<str:day>.json", api_multibets, name="api_multibets_day"),
     path("", include("predictions.urls")),
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),

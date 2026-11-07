@@ -29,6 +29,7 @@ TABS = [
     ("goals", "Goals O/U", "over_under"),
     ("corners", "Corners", "corners"),
     ("dnb", "Draw No Bet", "draw_no_bet"),
+    ("dc", "Double Chance", "double_chance"),
 ]
 TAB_MARKET = {slug: market for slug, _label, market in TABS}
 TAB_LABEL = {slug: label for slug, label, _market in TABS}
@@ -66,6 +67,15 @@ def grade_selection(market_type, label, home_score, away_score, home_name, away_
         if m.group(1) == "Over":
             return "won" if total > line else "lost"
         return "won" if total < line else "lost"
+
+    if market_type == "double_chance":
+        if label == f"Double Chance: {home_name} or Draw":
+            return "won" if home_score >= away_score else "lost"
+        if label == f"Double Chance: {away_name} or Draw":
+            return "won" if away_score >= home_score else "lost"
+        if label == f"Double Chance: {home_name} or {away_name}":
+            return "won" if home_score != away_score else "lost"
+        return "unverified"
 
     if market_type == "draw_no_bet":
         if home_score == away_score:

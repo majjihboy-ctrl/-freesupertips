@@ -871,3 +871,98 @@ def flyer_png(request):
     resp = HttpResponse(png, content_type="image/png")
     resp["Cache-Control"] = "public, max-age=600"
     return resp
+
+
+def _resolve_api_day(token):
+    """'today' | 'tomorrow' | 'day2'..'day6' | YYYY-MM-DD -> date, else None."""
+    today = timezone.localdate()
+    if token in _DAY_OFFSETS:
+        return today + timedelta(days=_DAY_OFFSETS[token])
+    try:
+        return datetime.strptime(token, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def api_tips(request, day="today"):
+    """Public JSON of a day's top free tips (derived picks), e.g.
+    /api/tips/today.json, /api/tips/tomorrow.json, /api/tips/2026-11-09.json.
+    Path-based on purpose so it caches and fetches cleanly. ?n=1..10 (default 5)."""
+    the_day = _resolve_api_day(day)
+    if the_day is None:
+        return JsonResponse({"error": "unknown day"}, status=404)
+    try:
+        n = max(1, min(10, int(request.GET.get("n", 5))))
+    except ValueError:
+        n = 5
+
+    start, end = mbs._day_bounds(the_day)
+    preds = list(
+        Prediction.objects.filter(
+            tip_type="free", confidence__isnull=False,
+            match__kickoff__gte=max(start, timezone.now()), match__kickoff__lt=end,
+            match__status="scheduled",
+        ).select_related("match", "match__league", "match__home_team", "match__away_team")
+        .order_by("-confidence")[:n]
+    )
+    resp = JsonResponse({
+        "date": the_day.isoformat(),
+        "count": len(preds),
+        "tips": [
+            {
+                "match": f"{p.match.home_team} vs {p.match.away_team}",
+                "league": p.match.league.name,
+                "kickoff": p.match.kickoff.isoformat(),
+                "pick": p.prediction,
+                "market": p.market_type,
+                "confidence": p.confidence,
+                "odds": float(p.odds),
+            }
+            for p in preds
+        ],
+        "site": "https://www.matchpro.site/",
+        "note": "Model estimates, not guarantees. 18+ Gamble responsibly.",
+    }, json_dumps_params={"ensure_ascii": False})
+    resp["Cache-Control"] = "public, max-age=300"
+    return resp
+
+
+def api_multibets(request, tab, day=None):
+    """Public JSON of the saved multibets for a tab, graded where games are
+    done: /api/multibets/mix.json (today) or /api/multibets/gg/2026-11-06.json."""
+    if tab not in mbs.TAB_MARKET:
+        return JsonResponse({"error": "unknown tab"}, status=404)
+    the_day = mbs.parse_day(day) if day else timezone.localdate()
+    presented = mbs.present(mbs.get_multibets(the_day, tab))
+    resp = JsonResponse({
+        "date": the_day.isoformat(),
+        "tab": tab,
+        "summary": mbs.summarise(presented),
+        "multibets": [
+            {
+                "number": mb["number"],
+                "combined_odds": float(mb["combined_odds"]),
+                "combined_probability": mb["combined_probability"],
+                "status": mb["status"],
+                "source": mb["source"],
+                "legs": [
+                    {
+                        "match": f"{leg['match'].home_team} vs {leg['match'].away_team}",
+                        "kickoff": leg["match"].kickoff.isoformat(),
+                        "pick": leg["label"],
+                        "confidence": round(leg["probability"]),
+                        "odds": float(leg["odds"]),
+                        "odds_source": leg["odds_source"],
+                        "result": leg["state"],
+                        "score": leg["score"],
+                    }
+                    for leg in mb["legs"]
+                ],
+            }
+            for mb in presented
+        ],
+        "site": "https://www.matchpro.site/accumulator/",
+        "note": "Model estimates, not guarantees. 18+ Gamble responsibly.",
+    }, json_dumps_params={"ensure_ascii": False})
+    resp["Cache-Control"] = "public, max-age=120"
+    return resp

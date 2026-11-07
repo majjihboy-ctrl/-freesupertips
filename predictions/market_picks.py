@@ -118,6 +118,14 @@ def extract_family_selections(markets, home_team_name, away_team_name):
         if prob is not None:
             out.append(("match_result", PICK_LABELS[side], prob))
 
+    probs = {side: _f(mr.get(key)) for key, side in (("prob_home", "H"), ("prob_draw", "D"), ("prob_away", "A"))}
+    if all(v is not None for v in probs.values()):
+        # Double chance is two of the three 1X2 outcomes, so its probability
+        # is their sum (1X2 probabilities are 0-100 and sum to ~100).
+        out.append(("double_chance", f"Double Chance: {home_team_name} or Draw", min(probs["H"] + probs["D"], 100.0)))
+        out.append(("double_chance", f"Double Chance: {away_team_name} or Draw", min(probs["A"] + probs["D"], 100.0)))
+        out.append(("double_chance", f"Double Chance: {home_team_name} or {away_team_name}", min(probs["H"] + probs["A"], 100.0)))
+
     btts_yes = _f((markets.get("btts") or {}).get("prob_yes"))
     if btts_yes is not None:
         out.append(("btts", "BTTS: Yes", btts_yes))
