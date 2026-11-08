@@ -21,6 +21,7 @@
     </div>
 </div>
 
+{% if is_admin %}
 <div class="day-tabs-wrap">
     <div class="day-tabs" role="tablist" aria-label="Day">
         {% for d in days %}
@@ -29,7 +30,7 @@
     </div>
 </div>
 
-{% if multibets and not is_today or multibets and summary.settled %}
+{% if is_admin and multibets and not is_today or is_admin and multibets and summary.settled %}
 <div class="mb-summary">
     <strong>{{ day|date:"D j M" }}{% if is_today %} · so far{% endif %}</strong>
     <span class="mb-pill won">{{ summary.won }} won</span>
@@ -38,6 +39,8 @@
     {% if summary.unverified %}<span class="mb-pill">{{ summary.unverified }} unverified</span>{% endif %}
     {% if summary.win_rate is not None %}<span class="mb-rate">{{ summary.win_rate }}% of settled multibets won</span>{% endif %}
 </div>
+{% endif %}
+
 {% endif %}
 
 {% if multibets %}
@@ -49,31 +52,33 @@
             {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}Multibet #{{ mb.number }}
         </div>
         <span class="betslip-fold">
-            <span class="mb-live" hidden></span>
+            {% if is_admin %}<span class="mb-live" hidden></span>{% endif %}
             {{ mb.legs|length }} selections
-            {% if mb.status == "won" %}<span class="result-badge hit">WON</span>
+{% if is_admin %}            {% if mb.status == "won" %}<span class="result-badge hit">WON</span>
             {% elif mb.status == "lost" %}<span class="result-badge miss">LOST</span>
             {% elif mb.status == "pending" %}<span class="result-badge push">PENDING</span>
             {% elif mb.status == "unverified" %}<span class="result-badge push" title="The API hasn't reported a corner count for this match yet">UNVERIFIED</span>
-            {% else %}<span class="result-badge push">VOID</span>{% endif %}
+            {% else %}<span class="result-badge push">VOID</span>{% endif %}{% endif %}
         </span>
     </div>
 
     <div class="betslip-legs">
         {% for leg in mb.legs %}
-        <div class="betslip-leg" data-leg-id="{{ leg.id }}" data-final="{{ leg.state }}">
+        <div class="betslip-leg"{% if is_admin %} data-leg-id="{{ leg.id }}" data-final="{{ leg.state }}"{% endif %}>
             <div class="betslip-leg-info">
                 <span class="betslip-leg-time">{{ leg.match.kickoff|date:"D H:i" }}</span>
-                <span class="betslip-leg-match">{{ leg.match.home_team }} vs {{ leg.match.away_team }}{% if leg.score %} <strong class="result-score">{{ leg.score }}</strong>{% endif %}<span class="mb-live-score" hidden></span></span>
+                <span class="betslip-leg-match">{{ leg.match.home_team }} vs {{ leg.match.away_team }}{% if is_admin %}{% if leg.score %} <strong class="result-score">{{ leg.score }}</strong>{% endif %}<span class="mb-live-score" hidden></span>{% endif %}</span>
             </div>
             <div class="betslip-leg-pick">
                 <span class="betslip-chip">{{ leg.label }}</span>
                 <span class="betslip-conf">{{ leg.probability|floatformat:0 }}% · {% if leg.odds_source == "market" %}<span title="Bookmaker consensus price">{{ leg.odds|floatformat:2 }}</span>{% else %}<span title="Model-implied price (no bookmaker price available)">~{{ leg.odds|floatformat:2 }}</span>{% endif %}</span>
                 {% if leg.edge and leg.edge >= 5 %}<span class="mb-value" title="Model probability is {{ leg.edge|floatformat:0 }} points above what the market price implies">VALUE</span>{% endif %}
+                {% if is_admin %}
                 {% if leg.state == "won" %}<span class="mb-mark won" title="Won">✓</span>
                 {% elif leg.state == "lost" %}<span class="mb-mark lost" title="Lost">✗</span>
                 {% elif leg.state == "void" %}<span class="mb-mark" title="Void / stake returned">—</span>
                 {% elif leg.state == "unverified" %}<span class="mb-mark" title="No corner count reported yet">?</span>{% endif %}
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -86,7 +91,7 @@
         </div>
         <div class="betslip-prob">~{{ mb.combined_probability }}% model probability</div>
 
-        {% if is_past %}
+        {% if is_past and is_admin %}
         {% if mb.source == "reconstructed" %}<p class="betslip-legal">Rebuilt after the games from the day’s pre-match model data with the same rules; not necessarily the exact multibets shown that day.</p>{% endif %}
         {% else %}
         <div class="betslip-actions">
@@ -123,7 +128,7 @@
 
 <p class="disclaimer" style="margin-top:1.25rem;">
     Every selection is at or above 55% model confidence and each match appears in one multibet only within a tab. Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
-    Combined odds assume independence — multibets are higher risk than singles. A multibet is marked lost as soon as one leg loses; corner legs are graded from the match’s reported corner count, and show as unverified until the API reports it. 18+ Gamble responsibly.
+    Combined odds assume independence — multibets are higher risk than singles. {% if is_admin %}A multibet is marked lost as soon as one leg loses; corner legs are graded from the match’s reported corner count, and show as unverified until the API reports it.{% endif %} 18+ Gamble responsibly.
 </p>
 {% else %}
 <div class="empty-cell" style="padding:3rem 1.5rem;">
@@ -181,7 +186,7 @@
 })();
 </script>
 
-{% if is_today and multibets %}
+{% if is_admin and is_today and multibets %}
 <script>
 (function () {
     var URL = "{% url 'api_live_scores' %}";

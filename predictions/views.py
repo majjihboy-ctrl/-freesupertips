@@ -20,6 +20,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.staticfiles.storage import staticfiles_storage
+from django.utils.cache import patch_vary_headers
 from django.views.decorators.cache import never_cache
 from datetime import datetime, timedelta
 from django_ratelimit.decorators import ratelimit
@@ -227,19 +228,31 @@ def _vip_status(request):
         return False
 
 
+def _is_admin(request):
+    """Multibet RESULTS (grading, history, win rates, live tracking) are
+    visible to site admins (staff accounts) only."""
+    return request.user.is_authenticated and request.user.is_staff
+
+
+@never_cache
 def accumulator(request):
-    """Multibets page, free to view.
+    """Multibets page, free to view; the results side is admin only.
 
     Sub-tabs: Mix (default), 1X2, GG, Goals O/U, Corners, Draw No Bet.
     Every tab: up to 10 different multibets, 2-5 selections each, combined
-    odds 4-5, no match repeated within the tab. `?date=YYYY-MM-DD` shows a
-    previous day with every leg and multibet graded against the final scores.
+    odds 4-5, no match repeated within the tab.
+
+    Admins additionally get `?date=YYYY-MM-DD` (previous days) with every leg
+    and multibet graded against the final scores, the day summary and the
+    live tracker. Everyone else only ever sees today's multibets, with no
+    results, grading or history anywhere in the page.
     """
+    is_admin = _is_admin(request)
     tab = request.GET.get("tab", "mix")
     if tab not in mbs.TAB_MARKET:
         tab = "mix"
-    day = mbs.parse_day(request.GET.get("date"))
     today = timezone.localdate()
+    day = mbs.parse_day(request.GET.get("date")) if is_admin else today
     base = reverse("accumulator")
 
     def link(tab_slug, day_value):
@@ -259,17 +272,27 @@ def accumulator(request):
         for d in mbs.day_options(today)
     ]
     multibets = mbs.present(mbs.get_multibets(day, tab))
+    if not is_admin:
+        # Defence in depth: strip every result field before the template
+        # sees it, so nothing graded can leak through the page source.
+        for mb in multibets:
+            mb["status"] = None
+            mb["source"] = None
+            for leg in mb["legs"]:
+                leg["state"] = None
+                leg["score"] = ""
 
     return render(request, "predictions/accumulator.html", {
+        "is_admin": is_admin,
         "multibets": multibets,
-        "summary": mbs.summarise(multibets),
+        "summary": mbs.summarise(multibets) if is_admin else None,
         "multibet_target": MULTIBET_COUNT,
         "min_odds": MULTIBET_MIN_ODDS,
         "max_odds": MULTIBET_MAX_ODDS,
         "max_legs": MULTIBET_MAX_LEGS,
         "is_vip": _vip_status(request),
         "tabs": tabs,
-        "days": days,
+        "days": days if is_admin else [],
         "active_tab": tab,
         "active_tab_label": mbs.TAB_LABEL[tab],
         "day": day,
@@ -674,7 +697,7 @@ def results(request):
         "hit_rate": hit_rate,
         "lookback_days": lookback_days,
         "market_stats": market_stats,
-        "multibet_record": mbs.record_for_days(),
+        "multibet_record": mbs.record_for_days() if _is_admin(request) else [],
         "multibet_record_days": mbs.HISTORY_DAYS,
     })
 
@@ -929,43 +952,55 @@ def api_tips(request, day="today"):
 
 
 def api_multibets(request, tab, day=None):
-    """Public JSON of the saved multibets for a tab, graded where games are
-    done: /api/multibets/mix.json (today) or /api/multibets/gg/2026-11-06.json."""
+    """JSON of the saved multibets for a tab: /api/multibets/mix.json (today).
+    Public callers get today's multibets only (picks, odds, probabilities).
+    Admins also get grading -- `status`, per-leg `result` / `score`, the day
+    summary -- and may pass a date: /api/multibets/gg/2026-11-06.json."""
     if tab not in mbs.TAB_MARKET:
         return JsonResponse({"error": "unknown tab"}, status=404)
-    the_day = mbs.parse_day(day) if day else timezone.localdate()
+    admin = _is_admin(request)
+    the_day = mbs.parse_day(day) if (day and admin) else timezone.localdate()
     presented = mbs.present(mbs.get_multibets(the_day, tab))
-    resp = JsonResponse({
+
+    def leg_json(leg):
+        data = {
+            "match": f"{leg['match'].home_team} vs {leg['match'].away_team}",
+            "kickoff": leg["match"].kickoff.isoformat(),
+            "pick": leg["label"],
+            "confidence": round(leg["probability"]),
+            "odds": float(leg["odds"]),
+            "odds_source": leg["odds_source"],
+        }
+        if admin:
+            data["result"] = leg["state"]
+            data["score"] = leg["score"]
+        return data
+
+    def mb_json(mb):
+        data = {
+            "number": mb["number"],
+            "combined_odds": float(mb["combined_odds"]),
+            "combined_probability": mb["combined_probability"],
+            "legs": [leg_json(leg) for leg in mb["legs"]],
+        }
+        if admin:
+            data["status"] = mb["status"]
+            data["source"] = mb["source"]
+        return data
+
+    payload = {
         "date": the_day.isoformat(),
         "tab": tab,
-        "summary": mbs.summarise(presented),
-        "multibets": [
-            {
-                "number": mb["number"],
-                "combined_odds": float(mb["combined_odds"]),
-                "combined_probability": mb["combined_probability"],
-                "status": mb["status"],
-                "source": mb["source"],
-                "legs": [
-                    {
-                        "match": f"{leg['match'].home_team} vs {leg['match'].away_team}",
-                        "kickoff": leg["match"].kickoff.isoformat(),
-                        "pick": leg["label"],
-                        "confidence": round(leg["probability"]),
-                        "odds": float(leg["odds"]),
-                        "odds_source": leg["odds_source"],
-                        "result": leg["state"],
-                        "score": leg["score"],
-                    }
-                    for leg in mb["legs"]
-                ],
-            }
-            for mb in presented
-        ],
+        "multibets": [mb_json(mb) for mb in presented],
         "site": "https://www.matchpro.site/accumulator/",
         "note": "Model estimates, not guarantees. 18+ Gamble responsibly.",
-    }, json_dumps_params={"ensure_ascii": False})
-    resp["Cache-Control"] = "public, max-age=120"
+    }
+    if admin:
+        payload["summary"] = mbs.summarise(presented)
+    resp = JsonResponse(payload, json_dumps_params={"ensure_ascii": False})
+    # Admin responses must never sit in a shared cache.
+    resp["Cache-Control"] = "private, no-store" if admin else "public, max-age=120"
+    patch_vary_headers(resp, ["Cookie"])
     return resp
 
 
@@ -981,6 +1016,9 @@ def api_live_scores(request):
     import requests
     from django.core.cache import cache
     from . import market_data
+
+    if not _is_admin(request):
+        return JsonResponse({"live": False, "matches": {}})
 
     today = timezone.localdate()
     legs = list(

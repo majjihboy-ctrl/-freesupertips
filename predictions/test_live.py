@@ -2,6 +2,7 @@
 import decimal
 from unittest import mock
 
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
@@ -82,6 +83,8 @@ class LiveStateTests(SimpleTestCase):
 class LiveEndpointTests(TestCase):
     def setUp(self):
         cache.clear()
+        self.staff = get_user_model().objects.create_user("boss", password="pw", is_staff=True)
+        self.client.force_login(self.staff)
         league = League.objects.create(name="L", country="C")
         self.home = Team.objects.create(name="Ajax", short_name="AJX", league=league)
         self.away = Team.objects.create(name="PSV", short_name="PSV", league=league)
@@ -138,3 +141,11 @@ class LiveEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'data-leg-id="{leg.id}"')
         self.assertContains(response, reverse("api_live_scores"))
+
+    def test_live_tracking_is_admin_only(self):
+        self._leg("940")
+        self.client.logout()
+        with mock.patch.object(md, "fetch_live_events") as fetch:
+            data = self.client.get(reverse("api_live_scores")).json()
+        self.assertEqual(data, {"live": False, "matches": {}})
+        fetch.assert_not_called()

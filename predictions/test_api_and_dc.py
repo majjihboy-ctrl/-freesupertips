@@ -4,6 +4,7 @@ import json
 import random
 from datetime import datetime, timedelta
 
+from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -96,15 +97,29 @@ class ApiTests(TestCase):
         self.assertEqual(self.client.get(f"/api/tips/{self.tomorrow.isoformat()}.json").status_code, 200)
         self.assertEqual(self.client.get("/api/tips/nonsense.json").status_code, 404)
 
-    def test_multibets_json(self):
+    def test_multibets_json_public_has_no_results(self):
         response = self.client.get("/api/multibets/gg.json")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertEqual(data["tab"], "gg")
         self.assertTrue(data["multibets"])
+        self.assertNotIn("summary", data)
         mb = data["multibets"][0]
         self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
+        self.assertNotIn("status", mb)
+        self.assertEqual(set(mb["legs"][0]), {"match", "kickoff", "pick", "confidence", "odds", "odds_source"})
+        self.assertEqual(self.client.get("/api/multibets/nope.json").status_code, 404)
+        self.assertIn("public", response["Cache-Control"])
+
+    def test_multibets_json_admin_gets_grading_and_dates(self):
+        staff = get_user_model().objects.create_user("boss", password="pw", is_staff=True)
+        self.client.force_login(staff)
+        response = self.client.get("/api/multibets/gg.json")
+        data = json.loads(response.content)
+        self.assertIn("summary", data)
+        mb = data["multibets"][0]
+        self.assertIn("status", mb)
         self.assertEqual(set(mb["legs"][0]), {"match", "kickoff", "pick", "confidence", "odds",
                                               "odds_source", "result", "score"})
-        self.assertEqual(self.client.get("/api/multibets/nope.json").status_code, 404)
+        self.assertIn("no-store", response["Cache-Control"])
         self.assertEqual(self.client.get(f"/api/multibets/gg/{timezone.localdate().isoformat()}.json").status_code, 200)

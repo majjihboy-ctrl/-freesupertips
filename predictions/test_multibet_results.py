@@ -3,6 +3,7 @@ import decimal
 import random
 from datetime import datetime, timedelta
 
+from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -52,6 +53,9 @@ class GradingTests(SimpleTestCase):
 
 class PreviousDayResultsTests(TestCase):
     def setUp(self):
+        # Multibet results are admin-only, so these tests act as staff.
+        self.staff = get_user_model().objects.create_user("boss", password="pw", is_staff=True)
+        self.client.force_login(self.staff)
         rng = random.Random(11)
         league = League.objects.create(name="L", country="C")
         today = timezone.localdate()
