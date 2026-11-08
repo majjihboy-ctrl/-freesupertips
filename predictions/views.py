@@ -1010,9 +1010,18 @@ _LIVE_CACHE_SECONDS = 15
 
 def api_live_scores(request):
     """Live score + per-leg provisional state for today's multibets, polled
-    by the Multibets page every ~30s. Only talks to the Bzzoiro API when some
-    tracked match isn't finished yet, and shares one cached upstream response
-    (15s) across all visitors."""
+    by the Multibets page every ~30s (admins only). Only talks to the Bzzoiro
+    API when some tracked match isn't finished yet, and shares one cached
+    upstream response (15s) across callers.
+
+    Always returns a `status` so the page can say WHY nothing is live:
+      no_legs   no saved multibet for today has an unfinished match
+      no_key    BZZOIRO_API_KEY isn't set on the server
+      api_down  the live feed couldn't be reached
+      none_live the feed is fine but none of our games is in play
+      unparsed  the feed returned games but none had a usable id/score
+      live      at least one tracked game is in play
+    `?debug=1` bypasses the cache and adds raw diagnostics."""
     import requests
     from django.core.cache import cache
     from . import market_data
@@ -1020,25 +1029,37 @@ def api_live_scores(request):
     if not _is_admin(request):
         return JsonResponse({"live": False, "matches": {}})
 
+    debug = request.GET.get("debug") == "1"
     today = timezone.localdate()
     legs = list(
         MultibetLeg.objects.filter(multibet__day=today)
         .exclude(match__status="finished").exclude(match__external_id__isnull=True)
         .select_related("match", "match__home_team", "match__away_team")
     )
-    if not legs:
-        return JsonResponse({"live": False, "matches": {}})
+    info = {"tracked_matches": len({l.match_id for l in legs}), "tracked_legs": len(legs)}
 
-    live = cache.get(_LIVE_CACHE_KEY)
+    def reply(status, matches=None, **extra):
+        payload = {"live": bool(matches), "status": status, "matches": matches or {}}
+        if debug:
+            payload["debug"] = {**info, **extra}
+        resp = JsonResponse(payload)
+        resp["Cache-Control"] = "private, no-store"
+        return resp
+
+    if not legs:
+        return reply("no_legs")
+
+    api_key = getattr(settings, "BZZOIRO_API_KEY", "")
+    stats, sample = {}, []
+    live = None if debug else cache.get(_LIVE_CACHE_KEY)
     if live is None:
-        api_key = getattr(settings, "BZZOIRO_API_KEY", "")
         if not api_key:
-            return JsonResponse({"live": False, "matches": {}})
+            return reply("no_key", api_key_set=False)
         session = requests.Session()
         session.headers.update({"Authorization": f"Token {api_key}"})
-        live = market_data.fetch_live_events(session)
+        live = market_data.fetch_live_events(session, stats=stats, raw_sample=sample)
         if live is None:
-            return JsonResponse({"live": False, "matches": {}})
+            return reply("api_down", api_key_set=True)
         cache.set(_LIVE_CACHE_KEY, live, _LIVE_CACHE_SECONDS)
 
     matches = {}
@@ -1056,6 +1077,15 @@ def api_live_scores(request):
             leg.market_type, leg.label, event["home"], event["away"],
             str(leg.match.home_team), str(leg.match.away_team),
         )
-    resp = JsonResponse({"live": bool(matches), "matches": matches})
-    resp["Cache-Control"] = "no-store"
-    return resp
+
+    if matches:
+        status = "live"
+    elif stats.get("raw_count") and not stats.get("parsed_count"):
+        status = "unparsed"
+    else:
+        status = "none_live"
+    return reply(
+        status, matches, api_key_set=bool(api_key), live_events_in_feed=len(live),
+        feed_stats=stats, raw_first_item=sample[0] if sample else None,
+        tracked_external_ids=sorted({str(l.match.external_id) for l in legs})[:20],
+    )

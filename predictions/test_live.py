@@ -101,7 +101,7 @@ class LiveEndpointTests(TestCase):
     def test_nothing_to_track_makes_no_api_call(self):
         with mock.patch.object(md, "fetch_live_events") as fetch:
             data = self.client.get(reverse("api_live_scores")).json()
-        self.assertEqual(data, {"live": False, "matches": {}})
+        self.assertEqual(data, {"live": False, "status": "no_legs", "matches": {}})
         fetch.assert_not_called()
 
     def test_live_match_returns_score_and_leg_state(self):
@@ -111,6 +111,7 @@ class LiveEndpointTests(TestCase):
         with mock.patch.object(md, "fetch_live_events", return_value=feed):
             data = self.client.get(reverse("api_live_scores")).json()
         self.assertTrue(data["live"])
+        self.assertEqual(data["status"], "live")
         self.assertEqual(list(data["matches"]), ["900"])
         entry = data["matches"]["900"]
         self.assertEqual(entry["score"], "2\u20130")
@@ -133,7 +134,45 @@ class LiveEndpointTests(TestCase):
         self._leg("920")
         with mock.patch.object(md, "fetch_live_events", return_value=None):
             data = self.client.get(reverse("api_live_scores")).json()
-        self.assertEqual(data, {"live": False, "matches": {}})
+        self.assertEqual(data, {"live": False, "status": "api_down", "matches": {}})
+
+    def test_status_none_live_and_no_key_and_unparsed(self):
+        self._leg("950")
+        with mock.patch.object(md, "fetch_live_events", return_value={"1": {"id": "1", "home": 0, "away": 0,
+                                                                          "minute": 5, "period": "1st"}}):
+            self.assertEqual(self.client.get(reverse("api_live_scores")).json()["status"], "none_live")
+        cache.clear()
+        with override_settings(BZZOIRO_API_KEY=""):
+            self.assertEqual(self.client.get(reverse("api_live_scores")).json()["status"], "no_key")
+
+        cache.clear()
+        def unparsed(session, max_pages=3, stats=None, raw_sample=None):
+            stats.update(raw_count=4, parsed_count=0)
+            raw_sample.append({"weird": "shape"})
+            return {}
+        with mock.patch.object(md, "fetch_live_events", side_effect=unparsed):
+            self.assertEqual(self.client.get(reverse("api_live_scores")).json()["status"], "unparsed")
+
+    def test_debug_output_for_admin_shows_raw_sample_and_bypasses_cache(self):
+        self._leg("960")
+        calls = []
+        def fake(session, max_pages=3, stats=None, raw_sample=None):
+            calls.append(1)
+            stats.update(raw_count=1, parsed_count=1)
+            raw_sample.append({"id": 960, "home_score": 1, "away_score": 0})
+            return {"960": {"id": "960", "home": 1, "away": 0, "minute": 12, "period": "1st"}}
+        with mock.patch.object(md, "fetch_live_events", side_effect=fake):
+            first = self.client.get(reverse("api_live_scores") + "?debug=1").json()
+            self.client.get(reverse("api_live_scores") + "?debug=1")
+        self.assertEqual(len(calls), 2)  # debug always asks the API
+        dbg = first["debug"]
+        self.assertEqual(dbg["tracked_matches"], 1)
+        self.assertTrue(dbg["api_key_set"])
+        self.assertEqual(dbg["raw_first_item"], {"id": 960, "home_score": 1, "away_score": 0})
+        self.assertEqual(dbg["tracked_external_ids"], ["960"])
+        # no debug block unless asked
+        with mock.patch.object(md, "fetch_live_events", side_effect=fake):
+            self.assertNotIn("debug", self.client.get(reverse("api_live_scores")).json())
 
     def test_page_exposes_leg_ids_for_the_tracker(self):
         leg = self._leg("930")
@@ -141,6 +180,7 @@ class LiveEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'data-leg-id="{leg.id}"')
         self.assertContains(response, reverse("api_live_scores"))
+        self.assertContains(response, 'id="live-status"')
 
     def test_live_tracking_is_admin_only(self):
         self._leg("940")

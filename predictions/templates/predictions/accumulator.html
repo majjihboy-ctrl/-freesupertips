@@ -22,6 +22,7 @@
 </div>
 
 {% if is_admin %}
+{% if is_today %}<p class="acca-sub" id="live-status" hidden></p>{% endif %}
 <div class="day-tabs-wrap">
     <div class="day-tabs" role="tablist" aria-label="Day">
         {% for d in days %}
@@ -241,12 +242,33 @@
         });
     }
 
+    var STATUS_TEXT = {
+        live: function (d) { return 'Live tracker on \u00b7 ' + Object.keys(d.matches).length + ' game(s) in play'; },
+        none_live: function () { return 'Live tracker on \u00b7 none of today\u2019s multibet games is in play right now'; },
+        no_legs: function () { return 'Live tracker on \u00b7 no unfinished games in today\u2019s multibets'; },
+        no_key: function () { return 'Live tracker off \u00b7 BZZOIRO_API_KEY is not set on the server'; },
+        api_down: function () { return 'Live tracker can\u2019t reach the score feed right now'; },
+        unparsed: function () { return 'Live feed sent games in an unexpected format \u00b7 open /api/live-scores.json?debug=1'; }
+    };
+
+    function showStatus(text) {
+        var el = document.getElementById('live-status');
+        if (!el) return;
+        el.hidden = false;
+        el.textContent = text;
+    }
+
     function poll() {
         if (document.hidden) return;
-        fetch(URL, {headers: {'Accept': 'application/json'}})
+        fetch(URL, {headers: {'Accept': 'application/json'}, credentials: 'same-origin'})
             .then(function (r) { return r.ok ? r.json() : null; })
-            .then(function (data) { if (data) applyLive(data); })
-            .catch(function () {});
+            .then(function (data) {
+                if (!data) { showStatus('Live tracker: could not load (log in as staff?)'); return; }
+                var f = STATUS_TEXT[data.status];
+                showStatus(f ? f(data) : 'Live tracker status: ' + data.status);
+                applyLive(data);
+            })
+            .catch(function () { showStatus('Live tracker: network error'); });
     }
 
     poll();

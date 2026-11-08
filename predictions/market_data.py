@@ -212,21 +212,34 @@ def parse_live_event(item):
     }
 
 
-def fetch_live_events(session, max_pages=3):
+def fetch_live_events(session, max_pages=3, stats=None, raw_sample=None):
     """All currently live events as parsed dicts keyed by event id.
-    Returns None if the API could not be reached (callers keep what they had)."""
+    Returns None if the API could not be reached (callers keep what they had).
+
+    Optional diagnostics: `stats` (dict) receives raw_count / parsed_count;
+    `raw_sample` (list) receives the first raw item, so an admin can see the
+    real field names when parsing doesn't match."""
     url = f"{API_BASE}/events/live/"
     out = {}
+    raw_count = 0
     for _ in range(max_pages):
         payload = _get_json(session, url)
         if payload is None:
-            return None if not out else out
+            if not out and not raw_count:
+                return None
+            break
         items = payload if isinstance(payload, list) else (payload.get("results") or [])
         for item in items:
+            raw_count += 1
+            if raw_sample is not None and not raw_sample:
+                raw_sample.append(item)
             parsed = parse_live_event(item)
             if parsed:
                 out[parsed["id"]] = parsed
         url = None if isinstance(payload, list) else payload.get("next")
         if not url:
             break
+    if stats is not None:
+        stats["raw_count"] = raw_count
+        stats["parsed_count"] = len(out)
     return out
