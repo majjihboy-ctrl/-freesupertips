@@ -15,6 +15,7 @@ from predictions.views import (
     api_tips,
     api_multibets,
     api_live_scores,
+    api_live_tips,
 )
 
 sitemaps = {
@@ -51,6 +52,7 @@ urlpatterns = [
     # Public JSON of our derived picks (handy for social posts / bots).
     path("api/tips/<str:day>.json", api_tips, name="api_tips"),
     path("api/live-scores.json", api_live_scores, name="api_live_scores"),
+    path("api/live-tips.json", api_live_tips, name="api_live_tips"),
     path("api/multibets/<str:tab>.json", api_multibets, name="api_multibets"),
     path("api/multibets/<str:tab>/<str:day>.json", api_multibets, name="api_multibets_day"),
     path("", include("predictions.urls")),

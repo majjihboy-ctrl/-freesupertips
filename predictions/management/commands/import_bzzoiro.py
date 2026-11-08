@@ -338,7 +338,7 @@ class Command(BaseCommand):
             if has_score:
                 match.home_score = event["home_score"]
                 match.away_score = event["away_score"]
-                match.status = STATUS_MAP.get(event.get("status"), "finished")
+                match.status = STATUS_MAP.get(event.get("status"), "live")
                 updated_scores += 1
             to_update_detail.append(match)
 

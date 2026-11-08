@@ -13,6 +13,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 
 from .models import Match, Prediction
@@ -140,7 +141,8 @@ def sync_corners(session, budget_seconds=20, limit=60):
     matches = list(
         Match.objects.filter(
             status="finished", kickoff__gte=since, home_corners__isnull=True,
-            multibet_legs__market_type="corners",
+        ).filter(
+            Q(multibet_legs__market_type="corners") | Q(predictions__market_type="corners")
         ).exclude(external_id__isnull=True).distinct().order_by("-kickoff")[:limit]
     )
     if not matches:
@@ -242,4 +244,26 @@ def fetch_live_events(session, max_pages=3, stats=None, raw_sample=None):
     if stats is not None:
         stats["raw_count"] = raw_count
         stats["parsed_count"] = len(out)
+    return out
+
+
+def fetch_recent_events(session, date_from, date_to, max_pages=5):
+    """Events between two dates from /events/ (paginated via `next`), as raw
+    dicts with status + scores. Returns [] on any failure."""
+    url = f"{API_BASE}/events/"
+    params = {"date_from": date_from.isoformat(), "date_to": date_to.isoformat(), "limit": 100}
+    out = []
+    for _ in range(max_pages):
+        try:
+            resp = session.get(url, params=params, timeout=REQUEST_TIMEOUT)
+            if resp.status_code != 200:
+                break
+            payload = resp.json()
+        except Exception:
+            break
+        params = None  # `next` already carries them
+        out.extend(payload.get("results") or [] if isinstance(payload, dict) else payload or [])
+        url = payload.get("next") if isinstance(payload, dict) else None
+        if not url:
+            break
     return out

@@ -83,6 +83,10 @@ class LiveStateTests(SimpleTestCase):
 class LiveEndpointTests(TestCase):
     def setUp(self):
         cache.clear()
+        # the endpoint also refreshes match scores; keep tests off the network
+        patcher = mock.patch("predictions.live_service.refresh_if_due", return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.staff = get_user_model().objects.create_user("boss", password="pw", is_staff=True)
         self.client.force_login(self.staff)
         league = League.objects.create(name="L", country="C")

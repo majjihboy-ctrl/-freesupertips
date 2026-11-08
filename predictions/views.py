@@ -33,6 +33,7 @@ from .multibets import (
     MAX_ODDS as MULTIBET_MAX_ODDS,
     MAX_LEGS as MULTIBET_MAX_LEGS,
 )
+from . import live_service
 from . import multibet_service as mbs
 from .models import MultibetLeg
 from .forms import CustomUserCreationForm
@@ -614,9 +615,12 @@ def _grade_prediction(prediction, home_score, away_score):
         return actual, prediction.prediction == actual
 
     if market_type == "corners":
-        # We don't store final corner counts anywhere, so there's no ground
-        # truth to grade this against.
-        return "Not tracked", None
+        match = prediction.match
+        line_match = re.search(r"Corners Over ([\d.]+)", prediction.prediction)
+        if match.home_corners is None or match.away_corners is None or not line_match:
+            return "Not tracked", None  # the API hasn't reported a corner count
+        total = match.home_corners + match.away_corners
+        return f"{total} corners", total > float(line_match.group(1))
 
     # match_result (the default/fallback)
     if home_score > away_score:
@@ -1029,6 +1033,7 @@ def api_live_scores(request):
     if not _is_admin(request):
         return JsonResponse({"live": False, "matches": {}})
 
+    live_service.refresh_if_due()  # keeps match status/scores (and so grading) fresh
     debug = request.GET.get("debug") == "1"
     today = timezone.localdate()
     legs = list(
@@ -1089,3 +1094,41 @@ def api_live_scores(request):
         feed_stats=stats, raw_first_item=sample[0] if sample else None,
         tracked_external_ids=sorted({str(l.match.external_id) for l in legs})[:20],
     )
+
+
+def api_live_tips(request):
+    """Live / final state of the tips shown on a page, public.
+
+    GET /api/live-tips.json?tip=<match_id>|<pick label>&tip=...   (max 60)
+    The page asks about the picks it displays; for each one we return
+    {state, score, minute, final}. If any asked-about match has started, a
+    throttled refresh (once per 30s for everybody) first pulls fresh scores,
+    so a game settles within about a minute of full time."""
+    wanted = []
+    for raw in request.GET.getlist("tip")[:60]:
+        match_id, _, label = raw.partition("|")
+        if match_id.isdigit() and label:
+            wanted.append((int(match_id), label))
+    if not wanted:
+        return JsonResponse({"tips": {}})
+
+    matches = {
+        m.id: m for m in Match.objects.filter(id__in={w[0] for w in wanted})
+        .select_related("home_team", "away_team")
+    }
+    now = timezone.now()
+    if any(m.kickoff <= now and m.status != "finished" for m in matches.values()):
+        live_service.refresh_if_due()
+        matches = {
+            m.id: m for m in Match.objects.filter(id__in=list(matches))
+            .select_related("home_team", "away_team")
+        }
+
+    tips = {}
+    for match_id, label in wanted:
+        m = matches.get(match_id)
+        if m:
+            tips[f"{match_id}|{label}"] = live_service.tip_state(m, label)
+    resp = JsonResponse({"tips": tips})
+    resp["Cache-Control"] = "public, max-age=10"
+    return resp

@@ -6,11 +6,12 @@
   {% with match=fixture.match %}
 {% if fixture.market_override %}
   {% with label=fixture.market_override.label conf=fixture.market_override.probability odds=fixture.market_override.odds %}
-  <article class="fx-card {{ conf|conf_tier }}">
+  <article class="fx-card {{ conf|conf_tier }}" data-match="{{ match.id }}" data-label="{{ label }}" data-kickoff="{{ match.kickoff|date:'c' }}">
     <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
       <div class="fx-meta">
         <span>{{ match.kickoff|date:"H:i" }}</span>
         {% if match.is_local_derby %}<span class="derby-chip">Derby</span>{% endif %}
+        <span class="fx-live" hidden></span>
       </div>
       <div class="fx-team">
         {% if match.home_team|team_logo_url %}
@@ -62,11 +63,12 @@
   {% endwith %}
 {% else %}
   {% with label=fixture.top_tip.prediction conf=fixture.top_tip.confidence odds=fixture.top_tip.odds %}
-  <article class="fx-card {{ conf|conf_tier }}">
+  <article class="fx-card {{ conf|conf_tier }}" data-match="{{ match.id }}" data-label="{{ label }}" data-kickoff="{{ match.kickoff|date:'c' }}">
     <a class="fx-card-link" href="{% url 'match_tips' tip_type match.id %}">
       <div class="fx-meta">
         <span>{{ match.kickoff|date:"H:i" }}</span>
         {% if match.is_local_derby %}<span class="derby-chip">Derby</span>{% endif %}
+        <span class="fx-live" hidden></span>
       </div>
       <div class="fx-team">
         {% if match.home_team|team_logo_url %}
@@ -132,3 +134,62 @@
     </div>
 </div>
 {% endfor %}
+
+<script>
+(function () {
+    var URL = "{% url 'api_live_tips' %}";
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.fx-card[data-match]'));
+    if (!cards.length) return;
+    var WINDOW_MS = 12 * 3600 * 1000;      // started in the last 12h
+    var timer = null;
+
+    function watching() {
+        var now = Date.now();
+        return cards.filter(function (c) {
+            if (c.getAttribute('data-done') === '1') return false;
+            var ko = Date.parse(c.getAttribute('data-kickoff'));
+            return !isNaN(ko) && ko <= now && now - ko < WINDOW_MS;
+        });
+    }
+
+    var TEXT = {
+        won: ['\u2713 Won', 'is-won'], lost: ['\u2717 Lost', 'is-lost'], void: ['Void', 'is-void'],
+        winning: ['\u2713 so far', 'is-winning'], losing: ['\u2717 so far', 'is-losing'],
+        level: ['level', 'is-void'], unknown: ['', ''], pending: ['', '']
+    };
+
+    function render(card, info) {
+        var el = card.querySelector('.fx-live');
+        if (!el || !info || info.state === 'pending') return;
+        var t = TEXT[info.state] || ['', ''];
+        var head = info.final ? 'FT ' : 'LIVE ';
+        el.hidden = false;
+        el.className = 'fx-live ' + t[1];
+        el.textContent = head + (info.score || '') + (info.minute && !info.final ? " " + info.minute + "'" : '')
+            + (t[0] ? ' \u00b7 ' + t[0] : '');
+        if (info.final) card.setAttribute('data-done', '1');
+    }
+
+    function poll() {
+        if (document.hidden) return;
+        var active = watching();
+        if (!active.length) { if (!cards.some(function (c) { return c.getAttribute('data-done') !== '1'; })) clearInterval(timer); return; }
+        var qs = active.map(function (c) {
+            return 'tip=' + encodeURIComponent(c.getAttribute('data-match') + '|' + c.getAttribute('data-label'));
+        }).join('&');
+        fetch(URL + '?' + qs, {headers: {'Accept': 'application/json'}})
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data) return;
+                active.forEach(function (c) {
+                    render(c, data.tips[c.getAttribute('data-match') + '|' + c.getAttribute('data-label')]);
+                });
+            })
+            .catch(function () {});
+    }
+
+    poll();
+    timer = setInterval(poll, 30000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+})();
+</script>
