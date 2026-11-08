@@ -3625,3 +3625,16 @@ img {
     font-size: 0.65rem; font-weight: 800; letter-spacing: 0.04em;
     background: var(--green-bg); color: var(--green);
 }
+
+/* ---------- Live multibet tracker ---------- */
+.mb-live {
+    margin-right: 0.5rem; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.03em;
+    background: var(--green-bg); color: var(--green);
+}
+.mb-live.is-failing { background: var(--red-bg); color: var(--red); }
+.mb-live-score {
+    margin-left: 0.5rem; font-size: 0.7rem; font-weight: 800; color: var(--text-muted);
+}
+.mb-live-score.is-winning, .mb-live-score.is-won { color: var(--green); }
+.mb-live-score.is-losing, .mb-live-score.is-lost { color: var(--red); }

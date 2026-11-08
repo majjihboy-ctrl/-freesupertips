@@ -104,6 +104,40 @@ def settle_leg(leg):
     )
 
 
+def live_leg_state(market_type, label, home_score, away_score, home_name, away_name):
+    """Provisional state of a leg while the match is in play:
+
+      "won" / "lost"   locked in -- the score can no longer change the outcome
+                       (an Over line already cleared, an Under line already
+                       broken, BTTS Yes once both have scored, BTTS No once
+                       they have)
+      "winning" / "losing"   would win / lose if the match ended now
+      "level"          would be void now (draw no bet while level)
+      "unknown"        can't be tracked live (corners)
+    """
+    base = grade_selection(market_type, label, home_score, away_score, home_name, away_name)
+    if base == "unverified":
+        return "unknown"
+    if base == "void":
+        return "level"
+
+    locked = False
+    if market_type == "over_under":
+        if label.startswith("Over"):
+            locked = base == "won"
+        elif label.startswith("Under"):
+            locked = base == "lost"
+    elif market_type == "btts":
+        if label == "BTTS: Yes":
+            locked = base == "won"
+        elif label == "BTTS: No":
+            locked = base == "lost"
+
+    if locked:
+        return base
+    return "winning" if base == "won" else "losing"
+
+
 def settle_multibet(leg_states):
     """Combine leg states -> "won" | "lost" | "pending" | "unverified" | "void".
 
@@ -268,6 +302,7 @@ def present(rows):
             state = settle_leg(leg)
             m = leg.match
             legs.append({
+                "id": leg.id,
                 "match": m,
                 "match_id": leg.match_id,
                 "market_type": leg.market_type,

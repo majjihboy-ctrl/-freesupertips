@@ -14,6 +14,7 @@ from predictions.views import (
     cron_sync_market_data,
     api_tips,
     api_multibets,
+    api_live_scores,
 )
 
 sitemaps = {
@@ -49,6 +50,7 @@ urlpatterns = [
     path("cron/sync-market-data/", cron_sync_market_data, name="cron_sync_market_data"),
     # Public JSON of our derived picks (handy for social posts / bots).
     path("api/tips/<str:day>.json", api_tips, name="api_tips"),
+    path("api/live-scores.json", api_live_scores, name="api_live_scores"),
     path("api/multibets/<str:tab>.json", api_multibets, name="api_multibets"),
     path("api/multibets/<str:tab>/<str:day>.json", api_multibets, name="api_multibets_day"),
     path("", include("predictions.urls")),

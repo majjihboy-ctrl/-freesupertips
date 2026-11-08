@@ -33,6 +33,7 @@ from .multibets import (
     MAX_LEGS as MULTIBET_MAX_LEGS,
 )
 from . import multibet_service as mbs
+from .models import MultibetLeg
 from .forms import CustomUserCreationForm
 
 import logging
@@ -965,4 +966,58 @@ def api_multibets(request, tab, day=None):
         "note": "Model estimates, not guarantees. 18+ Gamble responsibly.",
     }, json_dumps_params={"ensure_ascii": False})
     resp["Cache-Control"] = "public, max-age=120"
+    return resp
+
+
+_LIVE_CACHE_KEY = "bzzoiro-live-events"
+_LIVE_CACHE_SECONDS = 15
+
+
+def api_live_scores(request):
+    """Live score + per-leg provisional state for today's multibets, polled
+    by the Multibets page every ~30s. Only talks to the Bzzoiro API when some
+    tracked match isn't finished yet, and shares one cached upstream response
+    (15s) across all visitors."""
+    import requests
+    from django.core.cache import cache
+    from . import market_data
+
+    today = timezone.localdate()
+    legs = list(
+        MultibetLeg.objects.filter(multibet__day=today)
+        .exclude(match__status="finished").exclude(match__external_id__isnull=True)
+        .select_related("match", "match__home_team", "match__away_team")
+    )
+    if not legs:
+        return JsonResponse({"live": False, "matches": {}})
+
+    live = cache.get(_LIVE_CACHE_KEY)
+    if live is None:
+        api_key = getattr(settings, "BZZOIRO_API_KEY", "")
+        if not api_key:
+            return JsonResponse({"live": False, "matches": {}})
+        session = requests.Session()
+        session.headers.update({"Authorization": f"Token {api_key}"})
+        live = market_data.fetch_live_events(session)
+        if live is None:
+            return JsonResponse({"live": False, "matches": {}})
+        cache.set(_LIVE_CACHE_KEY, live, _LIVE_CACHE_SECONDS)
+
+    matches = {}
+    for leg in legs:
+        event = live.get(str(leg.match.external_id))
+        if not event:
+            continue
+        entry = matches.setdefault(str(leg.match.external_id), {
+            "score": f"{event['home']}\u2013{event['away']}",
+            "minute": event["minute"],
+            "period": event["period"],
+            "legs": {},
+        })
+        entry["legs"][str(leg.id)] = mbs.live_leg_state(
+            leg.market_type, leg.label, event["home"], event["away"],
+            str(leg.match.home_team), str(leg.match.away_team),
+        )
+    resp = JsonResponse({"live": bool(matches), "matches": matches})
+    resp["Cache-Control"] = "no-store"
     return resp

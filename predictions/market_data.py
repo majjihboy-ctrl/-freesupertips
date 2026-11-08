@@ -186,3 +186,47 @@ def sync_odds(session, budget_seconds=25, limit=120, horizon_hours=36):
     if updated:
         Match.objects.bulk_update(updated, ["market_odds"])
     return len(updated)
+
+
+# --------------------------------------------------------------------------
+# Live scores (free tier: GET /events/live/, server-cached ~10-30s upstream)
+# --------------------------------------------------------------------------
+
+def parse_live_event(item):
+    """One item of /events/live/ -> {"id", "home", "away", "minute", "period"}
+    or None when it has no usable id / score. Scores are regulation time only
+    (extra time and shoot-outs arrive in separate fields we ignore)."""
+    if not isinstance(item, dict):
+        return None
+    event_id = item.get("id", item.get("event_id"))
+    home = _int_or_none(item.get("home_score"))
+    away = _int_or_none(item.get("away_score"))
+    if event_id is None or home is None or away is None:
+        return None
+    return {
+        "id": str(event_id),
+        "home": home,
+        "away": away,
+        "minute": item.get("current_minute"),
+        "period": item.get("period") or item.get("status"),
+    }
+
+
+def fetch_live_events(session, max_pages=3):
+    """All currently live events as parsed dicts keyed by event id.
+    Returns None if the API could not be reached (callers keep what they had)."""
+    url = f"{API_BASE}/events/live/"
+    out = {}
+    for _ in range(max_pages):
+        payload = _get_json(session, url)
+        if payload is None:
+            return None if not out else out
+        items = payload if isinstance(payload, list) else (payload.get("results") or [])
+        for item in items:
+            parsed = parse_live_event(item)
+            if parsed:
+                out[parsed["id"]] = parsed
+        url = None if isinstance(payload, list) else payload.get("next")
+        if not url:
+            break
+    return out

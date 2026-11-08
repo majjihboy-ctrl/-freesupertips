@@ -49,6 +49,7 @@
             {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}Multibet #{{ mb.number }}
         </div>
         <span class="betslip-fold">
+            <span class="mb-live" hidden></span>
             {{ mb.legs|length }} selections
             {% if mb.status == "won" %}<span class="result-badge hit">WON</span>
             {% elif mb.status == "lost" %}<span class="result-badge miss">LOST</span>
@@ -60,10 +61,10 @@
 
     <div class="betslip-legs">
         {% for leg in mb.legs %}
-        <div class="betslip-leg">
+        <div class="betslip-leg" data-leg-id="{{ leg.id }}" data-final="{{ leg.state }}">
             <div class="betslip-leg-info">
                 <span class="betslip-leg-time">{{ leg.match.kickoff|date:"D H:i" }}</span>
-                <span class="betslip-leg-match">{{ leg.match.home_team }} vs {{ leg.match.away_team }}{% if leg.score %} <strong class="result-score">{{ leg.score }}</strong>{% endif %}</span>
+                <span class="betslip-leg-match">{{ leg.match.home_team }} vs {{ leg.match.away_team }}{% if leg.score %} <strong class="result-score">{{ leg.score }}</strong>{% endif %}<span class="mb-live-score" hidden></span></span>
             </div>
             <div class="betslip-leg-pick">
                 <span class="betslip-chip">{{ leg.label }}</span>
@@ -179,4 +180,74 @@
     });
 })();
 </script>
+
+{% if is_today and multibets %}
+<script>
+(function () {
+    var URL = "{% url 'api_live_scores' %}";
+    var INTERVAL_MS = 30000;
+    var timer = null;
+
+    function legEls() { return document.querySelectorAll('.betslip-leg[data-leg-id]'); }
+
+    function applyLive(data) {
+        var byLeg = {};
+        var scoreByLeg = {};
+        Object.keys(data.matches || {}).forEach(function (mid) {
+            var m = data.matches[mid];
+            Object.keys(m.legs).forEach(function (legId) {
+                byLeg[legId] = m.legs[legId];
+                scoreByLeg[legId] = m.score + (m.minute ? ' ' + m.minute + "'" : '');
+            });
+        });
+
+        legEls().forEach(function (el) {
+            var id = el.getAttribute('data-leg-id');
+            var badge = el.querySelector('.mb-live-score');
+            if (byLeg[id] && badge) {
+                badge.hidden = false;
+                badge.textContent = ' LIVE ' + scoreByLeg[id];
+                badge.className = 'mb-live-score is-' + byLeg[id];
+            } else if (badge) {
+                badge.hidden = true;
+            }
+        });
+
+        document.querySelectorAll('.betslip-card').forEach(function (card) {
+            var legs = card.querySelectorAll('.betslip-leg[data-leg-id]');
+            var chip = card.querySelector('.mb-live');
+            if (!chip || !legs.length) return;
+            var anyLive = false, landing = 0, failing = 0, total = legs.length;
+            legs.forEach(function (el) {
+                var id = el.getAttribute('data-leg-id');
+                var final = el.getAttribute('data-final');
+                var live = byLeg[id];
+                if (live) anyLive = true;
+                var state = live || (final === 'won' ? 'won' : final === 'lost' ? 'lost' : 'pending');
+                if (state === 'won' || state === 'winning') landing++;
+                else if (state === 'lost' || state === 'losing') failing++;
+            });
+            if (!anyLive) { chip.hidden = true; return; }
+            chip.hidden = false;
+            chip.className = 'mb-live ' + (failing ? 'is-failing' : 'is-landing');
+            chip.textContent = failing
+                ? ('LIVE · ' + failing + ' leg' + (failing > 1 ? 's' : '') + ' failing')
+                : ('LIVE · ' + landing + '/' + total + ' landing');
+        });
+    }
+
+    function poll() {
+        if (document.hidden) return;
+        fetch(URL, {headers: {'Accept': 'application/json'}})
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) { if (data) applyLive(data); })
+            .catch(function () {});
+    }
+
+    poll();
+    timer = setInterval(poll, INTERVAL_MS);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+})();
+</script>
+{% endif %}
 {% endblock %}
