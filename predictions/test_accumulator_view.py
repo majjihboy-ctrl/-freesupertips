@@ -77,6 +77,23 @@ class AccumulatorViewTests(TestCase):
                                 f"{tab}: mixed markets in one multibet")
         self.assertGreater(built, 0)
 
+    def test_mega_tab_is_a_long_1x2_accumulator_near_222(self):
+        response = self.client.get(reverse("accumulator"), {"tab": "mega"})
+        self.assertEqual(response.status_code, 200)
+        multibets = response.context["multibets"]
+        self.assertTrue(multibets)
+        self.assertEqual((response.context["min_odds"], response.context["max_odds"]), (200.0, 250.0))
+        seen = set()
+        for mb in multibets:
+            ids = [leg["match_id"] for leg in mb["legs"]]
+            self.assertFalse(seen & set(ids))
+            seen |= set(ids)
+            self.assertTrue(200 <= mb["combined_odds"] <= 250)
+            self.assertGreater(len(ids), 5)
+            self.assertTrue(all(leg["market_type"] == "match_result" and leg["label"] != "Draw"
+                                for leg in mb["legs"]))
+        self.assertContains(response, "1X2 favourites only")
+
     def test_unknown_tab_falls_back_to_mix(self):
         response = self.client.get(reverse("accumulator"), {"tab": "nonsense"})
         self.assertEqual(response.status_code, 200)

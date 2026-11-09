@@ -16,7 +16,7 @@ from django.utils import timezone
 from .market_data import market_odds_for_leg
 from .market_picks import extract_family_selections, extract_market_candidates
 from .models import Multibet, MultibetLeg, Prediction
-from .multibets import assemble_multibets
+from .multibets import assemble_multibets, assemble_targeted
 
 ACCA_MIN_CONFIDENCE = 55
 HISTORY_DAYS = 14  # how far back the page lets people browse / reconstruct
@@ -30,7 +30,13 @@ TABS = [
     ("corners", "Corners", "corners"),
     ("dnb", "Draw No Bet", "draw_no_bet"),
     ("dc", "Double Chance", "double_chance"),
+    ("mega", "Mega 1X2", "match_result"),
 ]
+
+# "Mega 1X2": a long 1X2 accumulator in the style of a recent ~222 winner --
+# win/lose picks only (no draws), around a dozen legs, combined odds near 222.
+MEGA = {"min_odds": 200.0, "max_odds": 250.0, "target_odds": 222.64,
+        "target_legs": 12, "count": 3, "min_confidence": 50}
 TAB_MARKET = {slug: market for slug, _label, market in TABS}
 TAB_LABEL = {slug: label for slug, label, _market in TABS}
 
@@ -163,7 +169,7 @@ def _day_bounds(day):
     return start, start + timedelta(days=1)
 
 
-def build_multibets(market_type=None, day=None, upcoming_only=True):
+def build_multibets(market_type=None, day=None, upcoming_only=True, tab=None):
     """Fresh multibets for `day` (default today). With upcoming_only=True only
     matches that are still "scheduled" are used (the live page); with False
     every match of the day that was actually due to be played is used (used to
@@ -185,7 +191,11 @@ def build_multibets(market_type=None, day=None, upcoming_only=True):
             continue  # one prediction row per match is enough
         seen_matches.add(prediction.match_id)
         home, away = prediction.match.home_team, prediction.match.away_team
-        if market_type is None:
+        if tab == "mega":
+            candidates = [c for c in extract_family_selections(prediction.markets, home, away)
+                          if c[0] == "match_result" and c[1] != "Draw"
+                          and c[2] >= MEGA["min_confidence"]]
+        elif market_type is None:
             candidates = [c for c in extract_market_candidates(prediction.markets, home, away)
                           if c[2] >= ACCA_MIN_CONFIDENCE]
         else:
@@ -208,6 +218,11 @@ def build_multibets(market_type=None, day=None, upcoming_only=True):
                 option["odds"] = market_price
                 option["odds_source"] = "market"
             options.append(option)
+    if tab == "mega":
+        return assemble_targeted(
+            options, count=MEGA["count"], min_odds=MEGA["min_odds"], max_odds=MEGA["max_odds"],
+            target_odds=MEGA["target_odds"], target_legs=MEGA["target_legs"],
+        )
     return assemble_multibets(options)
 
 
@@ -273,7 +288,7 @@ def get_multibets(day, tab):
 
     if day < today:
         if not rows and (today - day).days <= HISTORY_DAYS:
-            built = build_multibets(market, day=day, upcoming_only=False)
+            built = build_multibets(market, day=day, upcoming_only=False, tab=tab)
             if built:
                 _save(day, tab, built, "reconstructed")
                 rows = _load(day, tab)
@@ -284,7 +299,7 @@ def get_multibets(day, tab):
     started = any(leg.match.kickoff <= now for mb in rows for leg in mb.legs.all())
     if rows and started:
         return rows
-    built = build_multibets(market, day=day, upcoming_only=True)
+    built = build_multibets(market, day=day, upcoming_only=True, tab=tab)
     if rows and _signature(built) == _saved_signature(rows):
         return rows
     if built or rows:
@@ -392,3 +407,15 @@ def parse_day(value):
     if day > today or (today - day).days > HISTORY_DAYS:
         return today
     return day
+
+
+def tab_odds_window(tab):
+    """(min, max) combined odds a tab aims for."""
+    if tab == "mega":
+        return MEGA["min_odds"], MEGA["max_odds"]
+    from .multibets import MIN_ODDS, MAX_ODDS
+    return MIN_ODDS, MAX_ODDS
+
+
+def tab_min_confidence(tab):
+    return MEGA["min_confidence"] if tab == "mega" else ACCA_MIN_CONFIDENCE

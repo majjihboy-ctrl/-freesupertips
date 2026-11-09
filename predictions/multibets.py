@@ -18,6 +18,7 @@ Pure Python, no Django imports. `options` is a list of dicts:
 Every returned leg gets "odds" (the supplied market price, else implied by the
 model: 100 / probability) and "odds_source" ("market" or "model").
 """
+import math
 
 MIN_ODDS = 4.0
 MAX_ODDS = 5.0
@@ -181,7 +182,7 @@ def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, prefer_sho
             "number": len(multibets) + 1,
             "legs": combo,
             "combined_odds": round(combined_odds, 2),
-            "combined_probability": round(combined_prob * 100),
+            "combined_probability": round(combined_prob * 100, 1),
         })
     return multibets
 
@@ -201,3 +202,80 @@ def assemble_multibets(options, count=COUNT, min_odds=MIN_ODDS, max_odds=MAX_ODD
         if len(short) > len(best):
             best = short
     return best
+
+
+# --------------------------------------------------------------------------
+# Targeted "mega" multibets: a long accumulator aimed at a specific price
+# (e.g. ~222 on a 12-leg 1X2 slip) instead of the 4-5 window.
+# --------------------------------------------------------------------------
+
+def _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs):
+    """Aim for `legs` selections of roughly equal price (target ** 1/legs each):
+    take the options closest to that ideal price first, skip any that would
+    overshoot the window, and close with the one leg whose price lands the
+    product nearest the target."""
+    ideal = target_odds ** (1.0 / legs)
+    ordered = sorted(
+        available,
+        key=lambda o: (abs(math.log(o["odds"] / ideal)), -o["probability"], o["match_id"], o["label"]),
+    )
+    prefix, used, product = [], set(), 1.0
+    for opt in ordered:
+        if opt["match_id"] in used:
+            continue
+        if len(prefix) >= min_legs and min_odds <= product <= max_odds:
+            return list(prefix)
+        closers = [
+            o for o in available
+            if o["match_id"] not in used and min_odds <= product * o["odds"] <= max_odds
+        ]
+        if closers and len(prefix) + 1 >= min_legs:
+            need = target_odds / product
+            best = min(closers, key=lambda o: (abs(math.log(o["odds"] / need)), -o["probability"]))
+            return list(prefix) + [best]
+        if product * opt["odds"] > max_odds:
+            continue
+        prefix.append(opt)
+        used.add(opt["match_id"])
+        product *= opt["odds"]
+    if len(prefix) >= min_legs and min_odds <= product <= max_odds:
+        return list(prefix)
+    return None
+
+
+def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_legs=12, min_legs=3):
+    """Up to `count` distinct multibets whose combined odds fall in
+    [min_odds, max_odds], built around `target_legs` selections each (the
+    number of legs flexes when the slate can't give that many). No match is
+    used twice across the set. Same output shape as assemble_multibets."""
+    remaining = _with_odds(options)
+    used_matches = set()
+    multibets = []
+    tries = [target_legs]
+    for d in range(1, 10):
+        tries += [target_legs + d, target_legs - d]
+    tries = [n for n in tries if n >= max(min_legs, 3)]
+
+    while len(multibets) < count:
+        available = [o for o in remaining if o["match_id"] not in used_matches]
+        combo = None
+        for legs in tries:
+            combo = _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs)
+            if combo:
+                break
+        if not combo:
+            break
+        combined_odds, combined_prob = 1.0, 1.0
+        for leg in combo:
+            used_matches.add(leg["match_id"])
+            combined_odds *= leg["odds"]
+            combined_prob *= leg["probability"] / 100.0
+            leg["odds"] = round(leg["odds"], 2)
+        combo.sort(key=lambda leg: (leg.get("kickoff") is None, leg.get("kickoff") or 0, leg["match_id"]))
+        multibets.append({
+            "number": len(multibets) + 1,
+            "legs": combo,
+            "combined_odds": round(combined_odds, 2),
+            "combined_probability": round(combined_prob * 100, 2),
+        })
+    return multibets

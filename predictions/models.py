@@ -196,7 +196,7 @@ class Multibet(models.Model):
     tab = models.CharField(max_length=10, default="mix")
     number = models.PositiveSmallIntegerField()
     combined_odds = models.DecimalField(max_digits=6, decimal_places=2)
-    combined_probability = models.PositiveSmallIntegerField(default=0)
+    combined_probability = models.FloatField(default=0)
     source = models.CharField(max_length=14, choices=SOURCE_CHOICES, default="live")
     created_at = models.DateTimeField(auto_now_add=True)
 

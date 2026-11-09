@@ -11,7 +11,7 @@
     <span class="acca-fold-badge">{{ multibets|length }} MULTIBET{{ multibets|length|pluralize }}</span>
     {% endif %}
 </div>
-<p class="acca-sub">Free daily multibets · combined odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated</p>
+<p class="acca-sub">Free daily multibets · combined odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated{% if active_tab == 'mega' %} · 1X2 favourites only, no draws{% endif %}</p>
 
 <div class="day-tabs-wrap">
     <div class="day-tabs" role="tablist" aria-label="Multibet type">
@@ -90,13 +90,13 @@
             <span class="betslip-odds-label">Combined Odds</span>
             <span class="betslip-odds-value">{{ mb.combined_odds|floatformat:2 }}</span>
         </div>
-        <div class="betslip-prob">~{{ mb.combined_probability }}% model probability</div>
+        <div class="betslip-prob">~{{ mb.combined_probability|floatformat:'-1' }}% model probability</div>
 
         {% if is_past and is_admin %}
         {% if mb.source == "reconstructed" %}<p class="betslip-legal">Rebuilt after the games from the day’s pre-match model data with the same rules; not necessarily the exact multibets shown that day.</p>{% endif %}
         {% else %}
         <div class="betslip-actions">
-            <button type="button" class="btn-copy-selections" data-text="{{ active_tab_label }} Multibet #{{ mb.number }}&#10;&#10;{% for leg in mb.legs %}{{ leg.match.home_team }} vs {{ leg.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ mb.combined_odds|floatformat:2 }} · ~{{ mb.combined_probability }}% model prob&#10;&#10;From Matchday Pro">
+            <button type="button" class="btn-copy-selections" data-text="{{ active_tab_label }} Multibet #{{ mb.number }}&#10;&#10;{% for leg in mb.legs %}{{ leg.match.home_team }} vs {{ leg.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ mb.combined_odds|floatformat:2 }} · ~{{ mb.combined_probability|floatformat:'-1' }}% model prob&#10;&#10;From Matchday Pro">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 <span>Copy selections</span>
             </button>
@@ -128,7 +128,7 @@
 {% endif %}
 
 <p class="disclaimer" style="margin-top:1.25rem;">
-    Every selection is at or above 55% model confidence and each match appears in one multibet only within a tab. Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
+    Every selection is at or above {{ min_conf }}% model confidence and each match appears in one multibet only within a tab. Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
     Combined odds assume independence — multibets are higher risk than singles. {% if is_admin %}A multibet is marked lost as soon as one leg loses; corner legs are graded from the match’s reported corner count, and show as unverified until the API reports it.{% endif %} 18+ Gamble responsibly.
 </p>
 {% else %}

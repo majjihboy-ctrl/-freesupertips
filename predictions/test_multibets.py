@@ -3,7 +3,7 @@ import random
 import unittest
 
 from .multibets import (
-    assemble_multibets, COUNT, MAX_LEGS, MAX_ODDS, MIN_LEGS, MIN_ODDS, PREFERRED_LEGS,
+    assemble_multibets, assemble_targeted, COUNT, MAX_LEGS, MAX_ODDS, MIN_LEGS, MIN_ODDS, PREFERRED_LEGS,
 )
 
 
@@ -92,3 +92,36 @@ class MultibetRulesTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TargetedMegaTests(unittest.TestCase):
+    def _slate(self, seed, matches=60):
+        rng = random.Random(seed)
+        options = []
+        for m in range(matches):
+            for label, p in (("Home Win", rng.uniform(25, 80)), ("Away Win", rng.uniform(10, 45))):
+                if p >= 50:
+                    options.append({"match_id": m, "market_type": "match_result", "label": label, "probability": p})
+        return options
+
+    def test_builds_long_multibets_near_the_target_price(self):
+        for seed in range(8):
+            result = assemble_targeted(self._slate(seed), 3, 200, 250, 222.64, 12)
+            self.assertGreaterEqual(len(result), 2, f"seed {seed}")
+            seen = set()
+            for mb in result:
+                ids = [leg["match_id"] for leg in mb["legs"]]
+                self.assertEqual(len(ids), len(set(ids)))
+                self.assertFalse(seen & set(ids), "match reused across mega multibets")
+                seen |= set(ids)
+                self.assertTrue(200 <= mb["combined_odds"] <= 250)
+                self.assertTrue(8 <= len(ids) <= 18, len(ids))
+                self.assertTrue(all(leg["label"] != "Draw" for leg in mb["legs"]))
+
+    def test_first_multibet_aims_for_about_twelve_legs(self):
+        sizes = [len(assemble_targeted(self._slate(s), 3, 200, 250, 222.64, 12)[0]["legs"]) for s in range(8)]
+        self.assertTrue(all(10 <= n <= 14 for n in sizes), sizes)
+
+    def test_small_or_empty_slates_do_not_crash(self):
+        self.assertEqual(assemble_targeted([], 3, 200, 250, 222.64), [])
+        self.assertEqual(assemble_targeted(self._slate(1, matches=4), 3, 200, 250, 222.64), [])

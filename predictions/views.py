@@ -29,8 +29,6 @@ from .models import Prediction, Profile, Match, VIPCode
 from .market_picks import extract_market_candidates
 from .multibets import (
     COUNT as MULTIBET_COUNT,
-    MIN_ODDS as MULTIBET_MIN_ODDS,
-    MAX_ODDS as MULTIBET_MAX_ODDS,
 )
 from . import live_service
 from . import multibet_service as mbs
@@ -287,8 +285,9 @@ def accumulator(request):
         "multibets": multibets,
         "summary": mbs.summarise(multibets) if is_admin else None,
         "multibet_target": MULTIBET_COUNT,
-        "min_odds": MULTIBET_MIN_ODDS,
-        "max_odds": MULTIBET_MAX_ODDS,
+        "min_odds": mbs.tab_odds_window(tab)[0],
+        "max_odds": mbs.tab_odds_window(tab)[1],
+        "min_conf": mbs.tab_min_confidence(tab),
         "is_vip": _vip_status(request),
         "tabs": tabs,
         "days": days if is_admin else [],
