@@ -31,7 +31,6 @@ from .multibets import (
     COUNT as MULTIBET_COUNT,
     MIN_ODDS as MULTIBET_MIN_ODDS,
     MAX_ODDS as MULTIBET_MAX_ODDS,
-    MAX_LEGS as MULTIBET_MAX_LEGS,
 )
 from . import live_service
 from . import multibet_service as mbs
@@ -240,8 +239,8 @@ def accumulator(request):
     """Multibets page, free to view; the results side is admin only.
 
     Sub-tabs: Mix (default), 1X2, GG, Goals O/U, Corners, Draw No Bet.
-    Every tab: up to 10 different multibets, 2-5 selections each, combined
-    odds 4-5, no match repeated within the tab.
+    Every tab: up to 10 different multibets, combined odds 4-5 (no cap on the
+    number of selections), no match repeated within the tab.
 
     Admins additionally get `?date=YYYY-MM-DD` (previous days) with every leg
     and multibet graded against the final scores, the day summary and the
@@ -290,7 +289,6 @@ def accumulator(request):
         "multibet_target": MULTIBET_COUNT,
         "min_odds": MULTIBET_MIN_ODDS,
         "max_odds": MULTIBET_MAX_ODDS,
-        "max_legs": MULTIBET_MAX_LEGS,
         "is_vip": _vip_status(request),
         "tabs": tabs,
         "days": days if is_admin else [],

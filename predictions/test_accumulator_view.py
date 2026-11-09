@@ -71,7 +71,7 @@ class AccumulatorViewTests(TestCase):
                 self.assertEqual(len(ids), len(set(ids)))
                 self.assertFalse(seen & set(ids), f"{tab}: match repeated across multibets")
                 seen |= set(ids)
-                self.assertTrue(2 <= len(ids) <= 5)
+                self.assertGreaterEqual(len(ids), 2)
                 self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
                 self.assertTrue(all(leg["market_type"] == market for leg in mb["legs"]),
                                 f"{tab}: mixed markets in one multibet")

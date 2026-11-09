@@ -80,7 +80,7 @@ class ApiTests(TestCase):
             ids = [leg["match_id"] for leg in mb["legs"]]
             self.assertFalse(seen & set(ids))
             seen |= set(ids)
-            self.assertTrue(2 <= len(ids) <= 5)
+            self.assertGreaterEqual(len(ids), 2)
             self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
             self.assertTrue(all(leg["market_type"] == "double_chance" for leg in mb["legs"]))
         self.assertTrue(response.context["multibets"])

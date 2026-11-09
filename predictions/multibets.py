@@ -1,8 +1,12 @@
 """Builds several distinct multibets (accumulators) from a pool of legs.
 
 Rules enforced here:
-  * every multibet has MIN_LEGS..MAX_LEGS selections (default 2..5)
-  * combined odds of every multibet fall inside MIN_ODDS..MAX_ODDS (4.0..5.0)
+  * every multibet has at least MIN_LEGS selections and NO maximum: the only
+    thing that matters is that the combined odds fall inside
+    MIN_ODDS..MAX_ODDS (4.0..5.0). Compact multibets (up to PREFERRED_LEGS
+    selections) are searched exhaustively first; only when no such multibet
+    can reach the window -- e.g. a tab made of short-priced legs like Draw No
+    Bet -- does it add more selections, strongest legs first.
   * a match is used at most ONCE in the whole set -- never twice in one
     multibet and never repeated across different multibets
   * multibets are built strongest-first: each one maximises combined model
@@ -18,8 +22,10 @@ model: 100 / probability) and "odds_source" ("market" or "model").
 MIN_ODDS = 4.0
 MAX_ODDS = 5.0
 MIN_LEGS = 2
-MAX_LEGS = 5
+MAX_LEGS = None          # no cap on selections; the odds window is the only limit
+PREFERRED_LEGS = 5      # compact multibets are tried first
 COUNT = 10
+_NODE_BUDGET = 150_000  # safety valve on the exhaustive search
 
 # Candidate pool per multibet, stratified by odds so the search always has
 # both short-priced "glue" legs and longer-priced legs to reach the window.
@@ -67,13 +73,17 @@ def _best_combo(pool, min_odds, max_odds, min_legs, max_legs, prefer_short=False
     matches so more distinct multibets can be built from a small slate."""
     best = [None, None]  # [score, legs]
     n = len(pool)
+    nodes = [0]
 
     def dfs(start, combo, used, odds, prob):
+        nodes[0] += 1
+        if nodes[0] > _NODE_BUDGET:
+            return
         if len(combo) >= min_legs and min_odds <= odds <= max_odds:
             score = (-len(combo), prob) if prefer_short else (prob,)
             if best[0] is None or score > best[0]:
                 best[0], best[1] = score, list(combo)
-        if len(combo) == max_legs:
+        if max_legs is not None and len(combo) == max_legs:
             return
         for i in range(start, n):
             opt = pool[i]
@@ -92,6 +102,56 @@ def _best_combo(pool, min_odds, max_odds, min_legs, max_legs, prefer_short=False
     return best[1]
 
 
+def _greedy_combo(available, min_odds, max_odds, min_legs):
+    """Uncapped fallback. Take the strongest (shortest-priced) legs one match
+    at a time and, after each, look for ONE closing leg that lands the product
+    inside the window; the first prefix that can be closed wins, so the
+    multibet is as compact as the strongest-first order allows."""
+    ordered = sorted(available, key=lambda r: (-r["probability"], r["match_id"], r["label"]))
+    prefix, used, product = [], set(), 1.0
+    for opt in ordered:
+        if opt["match_id"] in used:
+            continue
+        # can the current prefix already be closed (or is it itself in range)?
+        if len(prefix) >= min_legs and min_odds <= product <= max_odds:
+            return list(prefix)
+        closers = [
+            o for o in ordered
+            if o["match_id"] not in used and min_odds <= product * o["odds"] <= max_odds
+        ]
+        if closers and len(prefix) + 1 >= min_legs:
+            # the strongest closer = lowest odds that still reaches the window
+            return list(prefix) + [closers[0]]
+        prefix.append(opt)
+        used.add(opt["match_id"])
+        product *= opt["odds"]
+        if product > max_odds:
+            return None
+    if len(prefix) >= min_legs and min_odds <= product <= max_odds:
+        return list(prefix)
+    return None
+
+
+def _find_combo(available, target, min_odds, max_odds, min_legs, max_legs, prefer_short):
+    """Compact exhaustive search first (up to PREFERRED_LEGS selections, or
+    max_legs when a caller asks for an explicit cap), then -- only when there
+    is no cap -- the greedy fallback that may use as many selections as the
+    odds window needs."""
+    pool = _pool(available)
+    compact = PREFERRED_LEGS if max_legs is None else max_legs
+    for lo in (target, min_odds):
+        combo = _best_combo(pool, lo, max_odds, min_legs, compact, prefer_short)
+        if combo:
+            return combo
+    if max_legs is not None:
+        return None
+    for lo in (target, min_odds):
+        combo = _greedy_combo(available, lo, max_odds, min_legs)
+        if combo:
+            return combo
+    return None
+
+
 def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, prefer_short):
     remaining = _with_odds(options)
     used_matches = set()
@@ -102,13 +162,11 @@ def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, prefer_sho
         available = [o for o in remaining if o["match_id"] not in used_matches]
         if not available:
             break
-        pool = _pool(available)
         # Spread the multibets across the odds window (4.0, 4.2, 4.4 ...)
         # instead of every one sitting on the lower edge; fall back to the
         # full window if nothing fits the tighter target.
         target = min_odds + span * ((len(multibets) % 5) / 5.0)
-        combo = (_best_combo(pool, target, max_odds, min_legs, max_legs, prefer_short)
-                 or _best_combo(pool, min_odds, max_odds, min_legs, max_legs, prefer_short))
+        combo = _find_combo(available, target, min_odds, max_odds, min_legs, max_legs, prefer_short)
         if not combo:
             break
         combined_odds = 1.0
@@ -132,7 +190,8 @@ def assemble_multibets(options, count=COUNT, min_odds=MIN_ODDS, max_odds=MAX_ODD
                        min_legs=MIN_LEGS, max_legs=MAX_LEGS):
     """Return up to `count` multibets as a list of dicts:
         {"number", "legs", "combined_odds", "combined_probability"}
-    Tries the strongest-first strategy, and if that can't reach `count`
+    `max_legs=None` (the default) puts no cap on selections: the odds window
+    is the only limit. Tries the strongest-first strategy, and if that can't reach `count`
     retries preferring shorter multibets (fewer matches each); the run that
     yields more multibets wins. Fewer than `count` come back only when the
     slate genuinely lacks enough distinct matches."""
