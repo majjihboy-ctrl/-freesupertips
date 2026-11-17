@@ -1,0 +1,83 @@
+{% extends "predictions/base.html" %}
+{% load predictions_extras tz %}
+
+{% block title %}Predictions — only when we're sure — Matchday Pro{% endblock %}
+{% block meta_desc %}One line per match, shown only when the model is at least {{ floor }}% confident. The full hit/miss record is public, misses included.{% endblock %}
+
+{% block content %}
+<div class="calls">
+  <h1 class="calls-title">Only high-confidence predictions</h1>
+  <p class="calls-sub">One line per match, shown only when the model is at least <strong>{{ floor }}%</strong> sure. Most matches get nothing — on purpose.</p>
+
+  <section class="calls-record" aria-label="Track record">
+    {% if record.graded %}
+      <div class="calls-record-pct">{{ record.pct }}%</div>
+      <div class="calls-record-text">of calls were right — <strong>{{ record.graded }}</strong> calls across <strong>{{ record.matches }}</strong> matches, last {{ record.days }} days.</div>
+      <div class="calls-bar" role="img" aria-label="{{ record.right }} right, {{ record.wrong }} wrong">
+        <span class="calls-bar-right" style="width: {{ record.pct }}%"></span>
+      </div>
+      <div class="calls-record-split"><span>{{ record.right }} right</span><span>{{ record.wrong }} wrong</span></div>
+    {% else %}
+      <div class="calls-record-text">The record fills in as matches finish — every call is graded, misses included.</div>
+    {% endif %}
+  </section>
+
+  <nav class="calls-tabs" aria-label="Day">
+    {% for key, label in date_tabs %}
+      <a href="?date={{ key }}{% if league_id %}&amp;league={{ league_id }}{% endif %}" class="{% if date_param == key %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <form method="get" class="calls-filter">
+    <input type="hidden" name="date" value="{{ date_param }}">
+    <label for="calls-league" class="sr-only">League</label>
+    <select id="calls-league" name="league">
+      <option value="">All leagues</option>
+      {% for lid, lname in leagues %}<option value="{{ lid }}"{% if lid == league_id %} selected{% endif %}>{{ lname }}</option>{% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+  </form>
+
+  {% if played_total %}
+    <p class="calls-played">Already played: <strong>{{ played_right }} of {{ played_total }}</strong> calls correct.</p>
+  {% endif %}
+
+  {% if rows %}
+    <ul class="calls-list">
+    {% for r in rows %}
+      {% with m=r.match %}
+      <li>
+        <a class="calls-row" href="{% url 'match_tips' 'free' m.id %}">
+          <div class="calls-when">
+            <strong>{{ m.kickoff|localtime|date:"H:i" }}</strong>
+            {% if show_dates %}<span>{{ m.kickoff|localtime|date:"D d/m" }}</span>{% endif %}
+          </div>
+          <div class="calls-main">
+            <div class="calls-teams">
+              {% if m.home_team|team_logo_url %}<img src="{{ m.home_team|team_logo_url }}" alt="" width="20" height="20" loading="lazy">{% endif %}
+              <span>{{ m.home_team.name }}</span>
+              <span class="calls-vs">{% if r.played %}{{ m.home_score }}–{{ m.away_score }}{% else %}vs{% endif %}</span>
+              <span>{{ m.away_team.name }}</span>
+              {% if m.away_team|team_logo_url %}<img src="{{ m.away_team|team_logo_url }}" alt="" width="20" height="20" loading="lazy">{% endif %}
+            </div>
+            <div class="calls-league">{{ m.league.name }}</div>
+            <div class="calls-pick">{{ r.top.label }}{% if r.more %} <span class="calls-more">· +{{ r.more }} more</span>{% endif %}</div>
+          </div>
+          <div class="calls-conf {% if r.played and r.top_hit is True %}hit{% elif r.played and r.top_hit is False %}miss{% endif %}">
+            {% if r.played and r.top_hit is True %}✓ {{ r.top.pct }}%
+            {% elif r.played and r.top_hit is False %}✗ {{ r.top.pct }}%
+            {% else %}{{ r.top.pct }}% sure{% endif %}
+          </div>
+        </a>
+      </li>
+      {% endwith %}
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p class="calls-empty">No match clears the {{ floor }}% bar for this view{% if date_param == "today" %} yet — check back later, or look at <a href="?date=tomorrow">tomorrow</a>{% endif %}.</p>
+  {% endif %}
+
+  <p class="calls-note"><strong>What this is.</strong> A confidence number, not a guarantee: when the model says 85%, it should happen about 85% of the time, and the record above is the whole record. These are short odds because they are likely — nobody wins every time. Bet only what you can afford to lose.</p>
+  <p class="calls-note">Times shown in {% get_current_timezone as TZ %}{{ TZ }}.</p>
+</div>
+{% endblock %}

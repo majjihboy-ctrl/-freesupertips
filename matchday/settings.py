@@ -307,3 +307,6 @@ LOGGING = {
         },
     },
 }
+
+# Predictions page: only selections the model rates at least this likely (percent) are published.
+CALLS_MIN_CONFIDENCE = config("CALLS_MIN_CONFIDENCE", default=80, cast=int)
