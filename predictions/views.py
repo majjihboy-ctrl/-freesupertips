@@ -209,8 +209,13 @@ def cron_import_bzzoiro(request):
     if not expected or request.headers.get("Authorization") != expected:
         return HttpResponse(status=401)
 
-    out = StringIO()
-    call_command("import_bzzoiro", stdout=out)
+    out, err = StringIO(), StringIO()
+    call_command("import_bzzoiro", stdout=out, stderr=err)
+    if err.getvalue().strip():
+        # The import reports API failures (bad key, quota, 4xx/5xx) on stderr and
+        # carries on. Return 500 so Vercel marks the cron run as failed instead of
+        # silently showing "success" while no new tips arrive.
+        return HttpResponse(out.getvalue() + "\nERRORS:\n" + err.getvalue(), content_type="text/plain", status=500)
     return HttpResponse(out.getvalue(), content_type="text/plain")
 
 
@@ -1129,3 +1134,105 @@ def api_live_tips(request):
     resp = JsonResponse({"tips": tips})
     resp["Cache-Control"] = "public, max-age=10"
     return resp
+
+
+_CALLS_DATES = ("yesterday", "today", "tomorrow", "week", "all")
+
+
+def _calls_window(date_param, today):
+    """(start_date, end_date_exclusive) in local calendar days; None = unbounded."""
+    if date_param == "yesterday":
+        return today - timedelta(days=1), today
+    if date_param == "tomorrow":
+        return today + timedelta(days=1), today + timedelta(days=2)
+    if date_param == "week":
+        return today, today + timedelta(days=7)
+    if date_param == "all":
+        return None, None
+    return today, today + timedelta(days=1)
+
+
+def _calls_matches(start, end):
+    from . import calls as C
+
+    qs = (
+        Match.objects.filter(predictions__source="bzzoiro")
+        .exclude(status="postponed")
+        .distinct()
+        .select_related("league", "home_team", "away_team")
+        .prefetch_related(
+            Prefetch("predictions", queryset=Prediction.objects.filter(source="bzzoiro"), to_attr="bz_preds")
+        )
+        .order_by("kickoff")
+    )
+    if start is not None:
+        qs = qs.filter(
+            kickoff__gte=timezone.make_aware(datetime.combine(start, datetime.min.time())),
+            kickoff__lt=timezone.make_aware(datetime.combine(end, datetime.min.time())),
+        )
+    rows = []
+    for match in qs:
+        calls = C.match_calls(match, match.bz_preds)
+        if calls:
+            rows.append({"match": match, "calls": calls, "top": calls[0], "more": len(calls) - 1})
+    return rows
+
+
+def _calls_record():
+    """Hit/miss record over the retained history, cached 10 minutes."""
+    from django.core.cache import cache
+    from . import calls as C
+
+    def build():
+        today = timezone.localdate()
+        rows = _calls_matches(today - timedelta(days=C.RECORD_DAYS), today)
+        right, wrong = C.tally(r["calls"] for r in rows)
+        graded = right + wrong
+        return {
+            "right": right, "wrong": wrong, "graded": graded,
+            "matches": sum(1 for r in rows if any(c["hit"] is not None for c in r["calls"])),
+            "pct": round(100 * right / graded, 1) if graded else None,
+            "days": C.RECORD_DAYS,
+        }
+
+    try:
+        return cache.get_or_set("calls-record-v1", build, 600)
+    except Exception:  # a broken cache backend must never take the page down
+        return build()
+
+
+def calls_page(request):
+    from . import calls as C
+
+    today = timezone.localdate()
+    date_param = request.GET.get("date", "today")
+    if date_param not in _CALLS_DATES:
+        date_param = "today"
+    start, end = _calls_window(date_param, today)
+    all_rows = _calls_matches(start, end)
+
+    leagues = {}
+    for r in all_rows:
+        leagues[r["match"].league_id] = r["match"].league.name
+    league_id = request.GET.get("league", "")
+    league_id = int(league_id) if league_id.isdigit() else None
+    rows = [r for r in all_rows if league_id is None or r["match"].league_id == league_id]
+
+    right, wrong = C.tally(r["calls"] for r in rows)
+    played_calls = right + wrong
+    for r in rows:
+        r["top_hit"] = r["top"]["hit"]
+        r["played"] = r["match"].status == "finished" and r["match"].home_score is not None
+
+    return render(request, "predictions/calls.html", {
+        "rows": rows,
+        "date_param": date_param,
+        "date_tabs": [("yesterday", "Yesterday"), ("today", "Today"), ("tomorrow", "Tomorrow"), ("week", "This week"), ("all", "All")],
+        "leagues": sorted(leagues.items(), key=lambda kv: kv[1]),
+        "league_id": league_id,
+        "floor": int(C.min_confidence()),
+        "record": _calls_record(),
+        "played_right": right,
+        "played_total": played_calls,
+        "show_dates": date_param in ("week", "all"),
+    })

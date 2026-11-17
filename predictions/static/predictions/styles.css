@@ -3646,3 +3646,37 @@ img {
 }
 .fx-live.is-won, .fx-live.is-winning { background: var(--green-bg); color: var(--green); }
 .fx-live.is-lost, .fx-live.is-losing { background: var(--red-bg); color: var(--red); }
+
+/* ---- Predictions page (high-confidence calls) ---- */
+.calls { max-width: 760px; margin: 0 auto; padding: 8px 0 32px; }
+.calls-title { font-size: 1.5rem; margin: 8px 0 4px; }
+.calls-sub { color: var(--text-muted); margin: 0 0 16px; }
+.calls-record { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+.calls-record-pct { font-size: 2rem; font-weight: 700; color: var(--green); line-height: 1.1; }
+.calls-record-text { color: var(--text-muted); margin-top: 2px; }
+.calls-bar { height: 8px; background: #7a2f2f; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+.calls-bar-right { display: block; height: 100%; background: var(--green); }
+.calls-record-split { display: flex; justify-content: space-between; font-size: .8rem; color: var(--text-muted); margin-top: 4px; }
+.calls-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; }
+.calls-tabs a { padding: 7px 13px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-muted); white-space: nowrap; text-decoration: none; font-size: .9rem; }
+.calls-tabs a.active { background: var(--green-dim); color: #fff; border-color: var(--green-dim); }
+.calls-filter { display: flex; gap: 8px; margin-bottom: 10px; }
+.calls-filter select { flex: 1; min-width: 0; padding: 8px; background: var(--bg-inset); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
+.calls-filter button { padding: 8px 14px; background: var(--bg-raised); color: var(--text); border: 1px solid var(--border-bright); border-radius: 8px; cursor: pointer; }
+.calls-played { margin: 6px 0 10px; color: var(--text-muted); }
+.calls-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.calls-row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 12px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; }
+.calls-row:hover { border-color: var(--border-bright); }
+.calls-when { display: flex; flex-direction: column; font-size: .8rem; color: var(--text-muted); }
+.calls-when strong { color: var(--text); font-size: .95rem; }
+.calls-teams { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 600; }
+.calls-vs { color: var(--text-muted); font-weight: 400; }
+.calls-league { font-size: .78rem; color: var(--text-faint); margin-top: 2px; }
+.calls-pick { margin-top: 4px; color: var(--green); font-weight: 600; }
+.calls-more { color: var(--text-muted); font-weight: 400; }
+.calls-conf { font-weight: 700; font-size: .95rem; white-space: nowrap; }
+.calls-conf.hit { color: var(--green); }
+.calls-conf.miss { color: #d9605f; }
+.calls-empty { padding: 24px 8px; text-align: center; color: var(--text-muted); }
+.calls-note { font-size: .82rem; color: var(--text-muted); margin-top: 18px; }
+@media (max-width: 480px) { .calls-row { grid-template-columns: 48px 1fr; } .calls-conf { grid-column: 2; } }

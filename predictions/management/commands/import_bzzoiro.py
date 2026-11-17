@@ -22,11 +22,10 @@ STATUS_MAP = {
 }
 # Anything else (1st_half, 2nd_half, halftime, extra_time, etc.) is live.
 
-# A "prediction" for a match that's already been decided or called off isn't
-# useful to a customer, so we don't create/update the Prediction row for
-# these -- but the Match itself (status, and later its score) still needs
-# to stay in sync, for the results/accuracy history page.
-SKIP_PREDICTION_STATUSES = {"finished", "cancelled"}
+# Called-off matches get no Prediction row. Finished matches DO keep theirs:
+# the Predictions page publishes its full hit/miss record, and a missed daily
+# import must not leave yesterday's matches without the calls made for them.
+SKIP_PREDICTION_STATUSES = {"cancelled"}
 
 
 def _short_name(name):
@@ -57,18 +56,25 @@ class Command(BaseCommand):
             help="How many days ahead (from today) to import fixtures for. Default 7.",
         )
         parser.add_argument(
+            "--days-back", type=int, default=2,
+            help="Also import predictions for matches from the last N days (already played), "
+                 "so yesterday never ends up empty after a missed run. Default 2.",
+        )
+        parser.add_argument(
             "--results-days-back", type=int, default=14,
             help="How many days back to check for finished-match scores. Default 14.",
         )
 
-    def _paginated_get(self, session, url, params):
+    def _paginated_get(self, session, url, params, quiet=False):
         while url:
             resp = session.get(url, params=params, timeout=20)
             params = None  # only needed on the first request; "next" already has them
             if resp.status_code != 200:
-                self.stderr.write(self.style.ERROR(
-                    f"Bzzoiro API returned {resp.status_code} for {url}: {resp.text[:500]}"
-                ))
+                msg = f"Bzzoiro API returned {resp.status_code} for {url}: {resp.text[:500]}"
+                if quiet:  # optional pass: warn, but don't flag the whole run as failed
+                    self.stdout.write(self.style.WARNING(msg))
+                else:
+                    self.stderr.write(self.style.ERROR(msg))
                 return
             payload = resp.json()
             yield from payload.get("results", [])
@@ -182,6 +188,18 @@ class Command(BaseCommand):
             session, f"{API_BASE}/predictions/",
             {"date_from": date_from.isoformat(), "date_to": date_to.isoformat(), "limit": 100},
         ))
+
+        # ---- Pass 0: calls already made for matches played in the last N days ----
+        days_back = options["days_back"]
+        if days_back > 0:
+            seen_events = {str((r.get("event") or {}).get("id")) for r in rows}
+            history = self._paginated_get(
+                session, f"{API_BASE}/predictions/",
+                {"date_from": (today - timedelta(days=days_back)).isoformat(), "date_to": today.isoformat(),
+                 "upcoming": "false", "limit": 100},
+                quiet=True,
+            )
+            rows.extend(r for r in history if str((r.get("event") or {}).get("id")) not in seen_events)
 
         # ---- Pass 1: figure out every league/team this batch references ----
         leagues_wanted, teams_wanted, team_league = {}, {}, {}

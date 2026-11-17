@@ -47,6 +47,7 @@
 
         <nav class="header-nav" aria-label="Main">
             <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
+            <a href="{% url 'calls' %}" class="{% if request.resolver_match.url_name == 'calls' %}active{% endif %}">Predictions</a>
             <a href="{% url 'results' %}" class="{% if request.resolver_match.url_name == 'results' %}active{% endif %}">Results</a>
             <a href="{% url 'accumulator' %}" class="{% if request.resolver_match.url_name == 'accumulator' %}active{% endif %}">Acca</a>
             {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
@@ -77,6 +78,7 @@
 
     <nav id="mobile-nav" class="mobile-nav">
         <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'calls' %}">Predictions</a>
         <a href="{% url 'results' %}">Results</a>
         <a href="{% url 'accumulator' %}">Accumulator</a>
         {% if not user.is_authenticated or not user.profile.is_vip_active and not user.is_staff %}
