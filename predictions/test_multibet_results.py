@@ -80,8 +80,10 @@ class PreviousDayResultsTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         multibets = response.context["multibets"]
-        self.assertEqual(len(multibets), 10)
+        n = len(multibets)
+        self.assertTrue(1 <= n <= 10)   # up to 10, never forced
         for mb in multibets:
+            self.assertTrue(all(float(leg["odds"]) <= 1.4 for leg in mb["legs"]))
             self.assertIn(mb["status"], ("won", "lost"))
             self.assertEqual(mb["source"], "reconstructed")
             self.assertTrue(all(leg["state"] in ("won", "lost", "void") for leg in mb["legs"]))
@@ -90,11 +92,11 @@ class PreviousDayResultsTests(TestCase):
             else:
                 self.assertTrue(any(leg["state"] == "lost" for leg in mb["legs"]))
         summary = response.context["summary"]
-        self.assertEqual(summary["won"] + summary["lost"], 10)
+        self.assertEqual(summary["won"] + summary["lost"], n)
         self.assertNotContains(response, "Place on Mozzart")
         self.assertContains(response, "Rebuilt after the games")
         # saved, so the second view reads the same rows
-        self.assertEqual(Multibet.objects.filter(day=self.yesterday, tab="mix").count(), 10)
+        self.assertEqual(Multibet.objects.filter(day=self.yesterday, tab="mix").count(), n)
         again = self.client.get(url).context["multibets"]
         self.assertEqual([m["combined_odds"] for m in again], [m["combined_odds"] for m in multibets])
 
@@ -117,11 +119,12 @@ class PreviousDayResultsTests(TestCase):
         self.assertTrue(self.client.get(reverse("accumulator"), {"date": "garbage"}).context["is_today"])
 
     def test_results_page_shows_multibet_record(self):
-        self.client.get(reverse("accumulator") + f"?date={self.yesterday.isoformat()}")
+        n = len(self.client.get(reverse("accumulator") + f"?date={self.yesterday.isoformat()}").context["multibets"])
+        self.assertGreaterEqual(n, 1)
         response = self.client.get(reverse("results"))
         self.assertEqual(response.status_code, 200)
         record = response.context["multibet_record"]
-        self.assertTrue(any(r["slug"] == "mix" and r["won"] + r["lost"] == 10 for r in record))
+        self.assertTrue(any(r["slug"] == "mix" and r["won"] + r["lost"] == n for r in record))
         self.assertContains(response, "Multibets")
 
     def test_todays_snapshot_is_saved_and_freezes_after_kickoff(self):

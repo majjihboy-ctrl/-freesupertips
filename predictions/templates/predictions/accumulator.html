@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Daily Multibets — MatchPro{% endblock %}
-{% block meta_desc %}Today's free multibets — up to 10 different accumulators with combined odds between 4 and 5, no match repeated. Ready to place on Mozzart or your preferred bookie.{% endblock %}
+{% block meta_desc %}Today's free multibets — accumulators of short-priced picks (no leg above 1.4) with combined odds between 4 and 5, no match repeated. Ready to place on Mozzart or your preferred bookie.{% endblock %}
 
 {% block content %}
 <div class="page-title">
@@ -134,7 +134,7 @@
 {% else %}
 <div class="empty-cell" style="padding:3rem 1.5rem;">
     <div class="empty-title">No {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}multibets {% if is_today %}today{% else %}for {{ day|date:"D j M" }}{% endif %}</div>
-    <div class="empty-sub">{% if is_today %}Not enough selections above 55% confidence can reach odds of 4–5 right now. Try another tab or check back after the next import.{% else %}No multibets were saved for this day and there isn’t enough match data left to rebuild them.{% endif %}</div>
+    <div class="empty-sub">{% if is_today %}We only publish a multibet when enough safe picks (above 55% confidence, no single leg priced over 1.4) can reach combined odds of 4–5. Nothing qualifies in this market right now — try another tab or check back after the next import.{% else %}No multibets were saved for this day and there isn’t enough match data left to rebuild them.{% endif %}</div>
 </div>
 {% endif %}
 {% endblock %}

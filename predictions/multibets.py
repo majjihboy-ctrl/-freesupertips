@@ -1,16 +1,19 @@
-"""Builds several distinct multibets (accumulators) from a pool of legs.
+"""Builds distinct multibets (accumulators) from a pool of legs.
 
 Rules enforced here:
-  * a multibet has NO minimum and NO maximum number of selections (MIN_LEGS is
-    just 1, i.e. non-empty): the only thing that matters is that the combined odds fall inside
-    MIN_ODDS..MAX_ODDS (4.0..5.0). There is deliberately no "compact first"
-    preference: a short-priced tab (Double Chance, Draw No Bet) must be free to
-    stack as many safe legs as it needs, instead of being squeezed into a few
-    legs and forced to reach the window with risky long-priced ones.
+  * no leg is priced above LEG_MAX_ODDS (1.4): short-priced legs only, so a
+    market is never forced onto a risky long-priced selection just to reach
+    the window
+  * a multibet has between 1 and MAX_LEGS (20) selections; the combined odds
+    must fall inside MIN_ODDS..MAX_ODDS (4.0..5.0)
+  * nothing is forced: COUNT is only an upper bound. If the safe legs of a
+    market can't make a multibet, it gets none (an empty tab is fine) -- there
+    is no spreading across the odds window and no "fewest legs" retry to
+    squeeze out more multibets
   * a match is used at most ONCE in the whole set -- never twice in one
     multibet and never repeated across different multibets
   * multibets are built strongest-first: each one maximises combined model
-    probability among the combinations that satisfy the odds window
+    probability among the combinations that satisfy the rules
 
 Pure Python, no Django imports. `options` is a list of dicts:
     {"match_id", "market_type", "label", "probability"}  # prob 0-100
@@ -23,8 +26,9 @@ import math
 MIN_ODDS = 4.0
 MAX_ODDS = 5.0
 MIN_LEGS = 1             # no minimum number of selections (a multibet just can't be empty)
-MAX_LEGS = None          # no cap on selections; the odds window is the only limit
-COUNT = 10
+MAX_LEGS = 20            # a multibet can use up to 20 selections
+LEG_MAX_ODDS = 1.4       # the largest price allowed for any single selection
+COUNT = 10              # an upper bound, never a target
 _NODE_BUDGET = 150_000  # safety valve on the exhaustive search
 
 # Candidate pool per multibet, stratified by odds so the search always has
@@ -32,10 +36,10 @@ _NODE_BUDGET = 150_000  # safety valve on the exhaustive search
 # (upper odds bound of bucket, how many options to keep from that bucket)
 # Short-priced buckets are generous so a low-odds market can stack enough
 # safe legs to reach the window without needing a long-priced one.
-_BUCKETS = ((1.25, 14), (1.5, 12), (float("inf"), 9))
+_BUCKETS = ((1.25, 16), (1.5, 14), (float("inf"), 9))
 
 
-def _with_odds(options):
+def _with_odds(options, max_leg_odds=None):
     out = []
     for o in options:
         p = float(o["probability"])
@@ -50,6 +54,8 @@ def _with_odds(options):
         else:
             row["odds"] = 100.0 / p                 # model-implied price
             row["odds_source"] = "model"
+        if max_leg_odds is not None and row["odds"] > max_leg_odds:
+            continue                                # too risky for a single leg
         out.append(row)
     return out
 
@@ -104,7 +110,7 @@ def _best_combo(pool, min_odds, max_odds, min_legs, max_legs, prefer_short=False
     return best[1]
 
 
-def _greedy_combo(available, min_odds, max_odds, min_legs):
+def _greedy_combo(available, min_odds, max_odds, min_legs, max_legs=None):
     """Uncapped fallback. Take the strongest (shortest-priced) legs one match
     at a time and, after each, look for ONE closing leg that lands the product
     inside the window; the first prefix that can be closed wins, so the
@@ -121,9 +127,11 @@ def _greedy_combo(available, min_odds, max_odds, min_legs):
             o for o in ordered
             if o["match_id"] not in used and min_odds <= product * o["odds"] <= max_odds
         ]
-        if closers and len(prefix) + 1 >= min_legs:
+        if closers and len(prefix) + 1 >= min_legs and (max_legs is None or len(prefix) + 1 <= max_legs):
             # the strongest closer = lowest odds that still reaches the window
             return list(prefix) + [closers[0]]
+        if max_legs is not None and len(prefix) + 1 >= max_legs:
+            return None
         prefix.append(opt)
         used.add(opt["match_id"])
         product *= opt["odds"]
@@ -134,39 +142,27 @@ def _greedy_combo(available, min_odds, max_odds, min_legs):
     return None
 
 
-def _find_combo(available, target, min_odds, max_odds, min_legs, max_legs, prefer_short):
-    """Best-probability search over the pool with no limit on the number of
-    selections (unless a caller passes an explicit max_legs), then -- only when
-    there is no cap -- the greedy fallback over every available option."""
+def _find_combo(available, min_odds, max_odds, min_legs, max_legs):
+    """Best-probability combination over the pool within [min_odds, max_odds]
+    and min_legs..max_legs selections, then the greedy fallback over every
+    available option. None when the legs can't make a multibet."""
     pool = _pool(available)
-    for lo in (target, min_odds):
-        combo = _best_combo(pool, lo, max_odds, min_legs, max_legs, prefer_short)
-        if combo:
-            return combo
-    if max_legs is not None:
-        return None
-    for lo in (target, min_odds):
-        combo = _greedy_combo(available, lo, max_odds, min_legs)
-        if combo:
-            return combo
-    return None
+    combo = _best_combo(pool, min_odds, max_odds, min_legs, max_legs)
+    if combo:
+        return combo
+    return _greedy_combo(available, min_odds, max_odds, min_legs, max_legs)
 
 
-def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, prefer_short):
-    remaining = _with_odds(options)
+def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, max_leg_odds):
+    remaining = _with_odds(options, max_leg_odds)
     used_matches = set()
     multibets = []
-    span = max_odds - min_odds
 
     while len(multibets) < count:
         available = [o for o in remaining if o["match_id"] not in used_matches]
         if not available:
             break
-        # Spread the multibets across the odds window (4.0, 4.2, 4.4 ...)
-        # instead of every one sitting on the lower edge; fall back to the
-        # full window if nothing fits the tighter target.
-        target = min_odds + span * ((len(multibets) % 5) / 5.0)
-        combo = _find_combo(available, target, min_odds, max_odds, min_legs, max_legs, prefer_short)
+        combo = _find_combo(available, min_odds, max_odds, min_legs, max_legs)
         if not combo:
             break
         combined_odds = 1.0
@@ -187,27 +183,20 @@ def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, prefer_sho
 
 
 def assemble_multibets(options, count=COUNT, min_odds=MIN_ODDS, max_odds=MAX_ODDS,
-                       min_legs=MIN_LEGS, max_legs=MAX_LEGS):
+                       min_legs=MIN_LEGS, max_legs=MAX_LEGS, max_leg_odds=LEG_MAX_ODDS):
     """Return up to `count` multibets as a list of dicts:
         {"number", "legs", "combined_odds", "combined_probability"}
-    `min_legs`/`max_legs` default to no limit on selections: the odds window
-    is the only constraint. Tries the strongest-first strategy, and if that
-    can't reach `count` retries preferring shorter multibets (fewer matches
-    each); the run that yields more multibets wins. Fewer than `count` come
-    back only when the slate genuinely lacks enough distinct matches."""
-    best = _assemble(options, count, min_odds, max_odds, min_legs, max_legs, False)
-    if len(best) < count:
-        short = _assemble(options, count, min_odds, max_odds, min_legs, max_legs, True)
-        if len(short) > len(best):
-            best = short
-    return best
+    Only legs priced at or below `max_leg_odds` are used, each multibet has
+    min_legs..max_legs selections, and fewer than `count` (even none) come
+    back when the safe legs can't make more -- nothing is forced."""
+    return _assemble(options, count, min_odds, max_odds, min_legs, max_legs, max_leg_odds)
 
 
 # Targeted "mega" multibets: a long accumulator aimed at a specific price
 # (e.g. ~222 on a 12-leg 1X2 slip) instead of the 4-5 window.
 # --------------------------------------------------------------------------
 
-def _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs):
+def _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs, max_legs=None):
     """Aim for `legs` selections of roughly equal price (target ** 1/legs each):
     take the options closest to that ideal price first, skip any that would
     overshoot the window, and close with the one leg whose price lands the
@@ -227,11 +216,13 @@ def _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs):
             o for o in available
             if o["match_id"] not in used and min_odds <= product * o["odds"] <= max_odds
         ]
-        if closers and len(prefix) + 1 >= min_legs:
+        if closers and len(prefix) + 1 >= min_legs and (max_legs is None or len(prefix) + 1 <= max_legs):
             need = target_odds / product
             best = min(closers, key=lambda o: (abs(math.log(o["odds"] / need)), -o["probability"]))
             return list(prefix) + [best]
         if product * opt["odds"] > max_odds:
+            continue
+        if max_legs is not None and len(prefix) + 1 >= max_legs:
             continue
         prefix.append(opt)
         used.add(opt["match_id"])
@@ -241,24 +232,25 @@ def _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs):
     return None
 
 
-def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_legs=12, min_legs=1):
+def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_legs=18, min_legs=1,
+                      max_legs=MAX_LEGS, max_leg_odds=LEG_MAX_ODDS):
     """Up to `count` distinct multibets whose combined odds fall in
     [min_odds, max_odds], built around `target_legs` selections each (the
     number of legs flexes when the slate can't give that many). No match is
     used twice across the set. Same output shape as assemble_multibets."""
-    remaining = _with_odds(options)
+    remaining = _with_odds(options, max_leg_odds)
     used_matches = set()
     multibets = []
     tries = [target_legs]
     for d in range(1, 10):
         tries += [target_legs + d, target_legs - d]
-    tries = [n for n in tries if n >= max(min_legs, 1)]
+    tries = [n for n in tries if n >= max(min_legs, 1) and (max_legs is None or n <= max_legs)]
 
     while len(multibets) < count:
         available = [o for o in remaining if o["match_id"] not in used_matches]
         combo = None
         for legs in tries:
-            combo = _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs)
+            combo = _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs, max_legs)
             if combo:
                 break
         if not combo:

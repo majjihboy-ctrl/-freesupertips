@@ -33,10 +33,13 @@ TABS = [
     ("mega", "Mega 1X2", "match_result"),
 ]
 
-# "Mega 1X2": a long 1X2 accumulator in the style of a recent ~222 winner --
-# win/lose picks only (no draws), around a dozen legs, combined odds near 222.
+# "Mega 1X2": a long 1X2 accumulator aimed at combined odds near 222 -- win/lose
+# picks only (no draws). Every leg is held to the same 1.4 ceiling as the other
+# tabs, so it needs 15-20 selections and only exists on days with enough safe
+# 1X2 picks (no forcing: an empty Mega tab is fine). Raise "max_leg_odds" to let
+# it use longer-priced legs again.
 MEGA = {"min_odds": 200.0, "max_odds": 250.0, "target_odds": 222.64,
-        "target_legs": 12, "count": 3, "min_confidence": 50}
+        "target_legs": 18, "count": 3, "min_confidence": 50, "max_leg_odds": 1.4}
 TAB_MARKET = {slug: market for slug, _label, market in TABS}
 TAB_LABEL = {slug: label for slug, label, _market in TABS}
 
@@ -222,6 +225,7 @@ def build_multibets(market_type=None, day=None, upcoming_only=True, tab=None):
         return assemble_targeted(
             options, count=MEGA["count"], min_odds=MEGA["min_odds"], max_odds=MEGA["max_odds"],
             target_odds=MEGA["target_odds"], target_legs=MEGA["target_legs"],
+            max_leg_odds=MEGA["max_leg_odds"],
         )
     return assemble_multibets(options)
 

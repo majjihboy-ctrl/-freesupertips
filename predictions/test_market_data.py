@@ -63,18 +63,18 @@ class MarketPricingTests(SimpleTestCase):
         options = []
         for i in range(40):
             options.append({"match_id": i, "market_type": "match_result", "label": f"Home Win",
-                            "probability": 70.0, "odds": 1.45, "odds_source": "market"})
+                            "probability": 74.0, "odds": 1.35, "odds_source": "market"})
             options.append({"match_id": i + 100, "market_type": "corners", "label": "Corners Over 9.5",
-                            "probability": 70.0})
+                            "probability": 74.0})
         result = assemble_multibets(options)
         self.assertTrue(result)
         for mb in result:
             for leg in mb["legs"]:
                 if leg["match_id"] < 100:
-                    self.assertEqual((leg["odds"], leg["odds_source"]), (1.45, "market"))
+                    self.assertEqual((leg["odds"], leg["odds_source"]), (1.35, "market"))
                 else:
                     self.assertEqual(leg["odds_source"], "model")
-                    self.assertAlmostEqual(leg["odds"], 1.43, places=2)
+                    self.assertAlmostEqual(leg["odds"], 1.35, places=2)
             self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
 
 

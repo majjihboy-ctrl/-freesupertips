@@ -3,7 +3,7 @@ import random
 import unittest
 
 from .multibets import (
-    assemble_multibets, assemble_targeted, COUNT, MAX_LEGS, MAX_ODDS, MIN_LEGS, MIN_ODDS,
+    assemble_multibets, assemble_targeted, COUNT, LEG_MAX_ODDS, MAX_LEGS, MAX_ODDS, MIN_LEGS, MIN_ODDS,
 )
 
 
@@ -34,19 +34,57 @@ class MultibetRulesTests(unittest.TestCase):
                     self.assertEqual(len(ids), len(set(ids)), "match repeated inside a multibet")
                     self.assertFalse(seen & set(ids), "match repeated across multibets")
                     seen |= set(ids)
-                    self.assertGreaterEqual(len(ids), MIN_LEGS)
+                    self.assertTrue(MIN_LEGS <= len(ids) <= MAX_LEGS)
+                    self.assertTrue(all(leg["odds"] <= LEG_MAX_ODDS for leg in mb["legs"]))
                     self.assertTrue(MIN_ODDS <= mb["combined_odds"] <= MAX_ODDS)
 
-    def test_builds_ten_from_a_full_slate(self):
-        self.assertEqual(len(assemble_multibets(_pool(1, 60))), COUNT)
+    def test_builds_up_to_ten_from_a_big_safe_slate(self):
+        rng = random.Random(21)
+        options = [{"match_id": i, "market_type": "1x2", "label": f"x{i}",
+                    "probability": rng.uniform(78, 90)} for i in range(160)]
+        self.assertEqual(len(assemble_multibets(options)), COUNT)
+
+    def test_count_is_never_forced(self):
+        # only long-priced legs (55-65% -> odds 1.5-1.8): nothing is safe enough,
+        # so there are no multibets rather than forced risky ones
+        rng = random.Random(22)
+        options = [{"match_id": i, "market_type": "ou", "label": f"o{i}",
+                    "probability": rng.uniform(55, 65)} for i in range(80)]
+        self.assertEqual(assemble_multibets(options), [])
+        # a thin safe slate gives fewer than ten, however many matches exist
+        thin = [{"match_id": i, "market_type": "dc", "label": f"d{i}", "probability": 85.0}
+                for i in range(30)]
+        result = assemble_multibets(thin)
+        self.assertTrue(0 < len(result) < COUNT)
+
+    def test_no_leg_is_priced_above_the_ceiling(self):
+        mixed = [{"match_id": i, "market_type": "dc", "label": f"d{i}", "probability": 80.0, "odds": 1.25}
+                 for i in range(40)]
+        mixed += [{"match_id": 100 + i, "market_type": "dc", "label": f"e{i}", "probability": 80.0, "odds": 1.9}
+                  for i in range(10)]
+        for mb in assemble_multibets(mixed):
+            self.assertTrue(all(leg["odds"] <= 1.4 for leg in mb["legs"]))
+            self.assertTrue(all(leg["match_id"] < 100 for leg in mb["legs"]))
+
+    def test_a_multibet_never_exceeds_twenty_selections(self):
+        # 1.05-priced legs would need ~29 selections to reach 4.0, so no multibet
+        options = [{"match_id": i, "market_type": "dc", "label": f"d{i}", "probability": 95.0}
+                   for i in range(200)]
+        self.assertEqual(assemble_multibets(options), [])
+        near = [{"match_id": i, "market_type": "dc", "label": f"d{i}", "probability": 93.0}
+                for i in range(200)]   # 1.075 each -> 20 legs = 4.2
+        for mb in assemble_multibets(near):
+            self.assertLessEqual(len(mb["legs"]), 20)
 
     def test_multibets_are_distinct(self):
         result = assemble_multibets(_pool(3, 60))
         keys = [tuple(sorted(leg["match_id"] for leg in mb["legs"])) for mb in result]
         self.assertEqual(len(keys), len(set(keys)))
 
-    def test_no_cap_on_selections_by_default(self):
-        self.assertIsNone(MAX_LEGS)
+    def test_selection_and_price_limits(self):
+        self.assertEqual(MAX_LEGS, 20)
+        self.assertEqual(MIN_LEGS, 1)
+        self.assertEqual(LEG_MAX_ODDS, 1.4)
 
     def test_short_priced_legs_still_reach_the_odds_window(self):
         # every leg ~1.11 odds (90%): 5 legs can only reach ~1.7, so the
@@ -122,7 +160,7 @@ class TargetedMegaTests(unittest.TestCase):
 
     def test_builds_long_multibets_near_the_target_price(self):
         for seed in range(8):
-            result = assemble_targeted(self._slate(seed), 3, 200, 250, 222.64, 12)
+            result = assemble_targeted(self._slate(seed), 3, 200, 250, 222.64, 12, max_leg_odds=None)
             self.assertGreaterEqual(len(result), 2, f"seed {seed}")
             seen = set()
             for mb in result:
@@ -135,8 +173,25 @@ class TargetedMegaTests(unittest.TestCase):
                 self.assertTrue(all(leg["label"] != "Draw" for leg in mb["legs"]))
 
     def test_first_multibet_aims_for_about_twelve_legs(self):
-        sizes = [len(assemble_targeted(self._slate(s), 3, 200, 250, 222.64, 12)[0]["legs"]) for s in range(8)]
+        sizes = [len(assemble_targeted(self._slate(s), 3, 200, 250, 222.64, 12, max_leg_odds=None)[0]["legs"]) for s in range(8)]
         self.assertTrue(all(10 <= n <= 14 for n in sizes), sizes)
+
+    def test_capped_mega_uses_only_short_legs_and_at_most_twenty(self):
+        rng = random.Random(5)
+        options = [{"match_id": m, "market_type": "match_result", "label": "Home Win",
+                    "probability": rng.uniform(72, 76)} for m in range(60)]
+        result = assemble_targeted(options, 3, 200, 250, 222.64)
+        self.assertTrue(result)
+        for mb in result:
+            self.assertTrue(200 <= mb["combined_odds"] <= 250)
+            self.assertTrue(len(mb["legs"]) <= 20)
+            self.assertTrue(all(leg["odds"] <= 1.4 for leg in mb["legs"]))
+
+    def test_mega_is_empty_when_there_are_no_safe_legs(self):
+        rng = random.Random(6)
+        options = [{"match_id": m, "market_type": "match_result", "label": "Home Win",
+                    "probability": rng.uniform(50, 60)} for m in range(60)]
+        self.assertEqual(assemble_targeted(options, 3, 200, 250, 222.64), [])
 
     def test_small_or_empty_slates_do_not_crash(self):
         self.assertEqual(assemble_targeted([], 3, 200, 250, 222.64), [])

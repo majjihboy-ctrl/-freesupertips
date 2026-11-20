@@ -41,19 +41,21 @@ class AccumulatorViewTests(TestCase):
                 odds=decimal.Decimal("1.50"), confidence=70, markets=_markets(rng),
             )
 
-    def test_page_shows_ten_distinct_multibets(self):
+    def test_page_shows_distinct_multibets_without_forcing_a_count(self):
         response = self.client.get(reverse("accumulator"))
         self.assertEqual(response.status_code, 200)
         multibets = response.context["multibets"]
-        self.assertEqual(len(multibets), 10)
+        self.assertTrue(1 <= len(multibets) <= 10)   # up to 10, never forced
         seen = set()
         for mb in multibets:
             ids = [leg["match_id"] for leg in mb["legs"]]
             self.assertEqual(len(ids), len(set(ids)))
             self.assertFalse(seen & set(ids))
             seen |= set(ids)
+            self.assertTrue(1 <= len(ids) <= 20)
+            self.assertTrue(all(float(leg["odds"]) <= 1.4 for leg in mb["legs"]))
             self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
-        self.assertContains(response, "Multibet #10")
+        self.assertContains(response, "Multibet #1")
 
     def test_every_tab_obeys_the_rules_and_single_market_tabs_stay_pure(self):
         expected_market = {"1x2": "match_result", "gg": "btts", "goals": "over_under",
@@ -76,22 +78,21 @@ class AccumulatorViewTests(TestCase):
                                 f"{tab}: mixed markets in one multibet")
         self.assertGreater(built, 0)
 
-    def test_mega_tab_is_a_long_1x2_accumulator_near_222(self):
+    def test_mega_tab_only_appears_when_safe_legs_can_reach_it(self):
+        # Mega legs obey the same 1.4 ceiling, so with this slate (few short
+        # favourites) it is allowed to be empty -- nothing is forced.
         response = self.client.get(reverse("accumulator"), {"tab": "mega"})
         self.assertEqual(response.status_code, 200)
-        multibets = response.context["multibets"]
-        self.assertTrue(multibets)
         self.assertEqual((response.context["min_odds"], response.context["max_odds"]), (200.0, 250.0))
         seen = set()
-        for mb in multibets:
+        for mb in response.context["multibets"]:
             ids = [leg["match_id"] for leg in mb["legs"]]
             self.assertFalse(seen & set(ids))
             seen |= set(ids)
             self.assertTrue(200 <= mb["combined_odds"] <= 250)
-            self.assertGreater(len(ids), 5)
+            self.assertTrue(len(ids) <= 20)
             self.assertTrue(all(leg["market_type"] == "match_result" and leg["label"] != "Draw"
-                                for leg in mb["legs"]))
-        self.assertContains(response, "1X2 favourites only")
+                                and float(leg["odds"]) <= 1.4 for leg in mb["legs"]))
 
     def test_unknown_tab_falls_back_to_mix(self):
         response = self.client.get(reverse("accumulator"), {"tab": "nonsense"})

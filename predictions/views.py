@@ -242,8 +242,9 @@ def accumulator(request):
     """Multibets page, free to view; the results side is admin only.
 
     Sub-tabs: Mix (default), 1X2, GG, Goals O/U, Corners, Draw No Bet.
-    Every tab: up to 10 different multibets, combined odds 4-5 (no cap on the
-    number of selections), no match repeated within the tab.
+    Every tab: up to 10 different multibets (never forced -- a tab can have
+    fewer, or none), combined odds 4-5, 1 to 20 selections, no selection priced
+    above 1.4, no match repeated within the tab.
 
     Admins additionally get `?date=YYYY-MM-DD` (previous days) with every leg
     and multibet graded against the final scores, the day summary and the
