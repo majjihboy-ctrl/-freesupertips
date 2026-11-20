@@ -123,8 +123,8 @@ def web_manifest(request):
     hashed filenames collectstatic actually produced, instead of the
     hardcoded paths a static manifest.json can't keep in sync with."""
     manifest = {
-        "name": "Matchday Pro",
-        "short_name": "Matchday",
+        "name": "MatchPro",
+        "short_name": "MatchPro",
         "start_url": "/",
         "display": "standalone",
         "background_color": "#0f172a",
@@ -712,7 +712,7 @@ def upgrade(request):
     whatsapp_url = None
     if request.user.is_authenticated and settings.WHATSAPP_NUMBER:
         message = (
-            "Hi! I'd like to get VIP access on Matchday Pro "
+            "Hi! I'd like to get VIP access on MatchPro "
             f"(username: {request.user.username})."
         )
         whatsapp_url = f"https://wa.me/{settings.WHATSAPP_NUMBER}?text={quote(message)}"
@@ -777,13 +777,13 @@ def _send_verification_email(request, user):
         reverse("verify_email", args=[uidb64, token])
     )
     send_mail(
-        subject="Confirm your Matchday Pro account",
+        subject="Confirm your MatchPro account",
         message=(
             f"Hi {user.username},\n\n"
             "Click the link below to confirm your email and activate your "
-            "Matchday Pro account:\n\n"
+            "MatchPro account:\n\n"
             f"{verify_url}\n\n"
-            "If you didn't sign up for Matchday Pro, you can ignore this email."
+            "If you didn't sign up for MatchPro, you can ignore this email."
         ),
         from_email=None,  # falls back to DEFAULT_FROM_EMAIL
         recipient_list=[user.email],
@@ -825,7 +825,7 @@ def verify_email(request, uidb64, token):
         user.is_active = True
         user.save()
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-        messages.success(request, "Email confirmed! Welcome to Matchday Pro.")
+        messages.success(request, "Email confirmed! Welcome to MatchPro.")
         return redirect("home")
 
     messages.error(

@@ -378,7 +378,6 @@ class Command(BaseCommand):
         # Multibets page has a stable snapshot to grade against later.
         try:
             from predictions import multibet_service as mbs
-            from django.utils import timezone
             today = timezone.localdate()
             day_start, _day_end = mbs._day_bounds(today)
             # Only snapshot a day that hasn't kicked off yet, otherwise the

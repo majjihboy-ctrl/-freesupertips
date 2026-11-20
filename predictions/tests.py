@@ -221,3 +221,19 @@ class SitemapTests(TestCase):
         )
         response = self.client.get("/sitemap.xml")
         self.assertEqual(response.status_code, 200)
+
+class SeoMetaTests(TestCase):
+    """Link-preview and canonical tags must be absolute / query-free."""
+
+    def test_og_image_is_absolute_and_canonical_has_no_query(self):
+        resp = self.client.get("/?day=tomorrow&market=btts&utm_source=fb")
+        html = resp.content.decode()
+        self.assertRegex(html, r'property="og:image" content="https?://[^"]+/static/[^"]*og-image[^"]*\.png"')
+        self.assertRegex(html, r'name="twitter:image" content="https?://')
+        self.assertRegex(html, r'rel="canonical" href="https?://[^"?]+"')
+        self.assertRegex(html, r'property="og:url" content="https?://[^"?]+"')
+        self.assertNotIn("Matchday Pro", html)
+
+    def test_bigcat_script_is_included_at_most_once(self):
+        html = self.client.get("/").content.decode()
+        self.assertLessEqual(html.count("js.bigcatpartners.com/javascript.php"), 1)

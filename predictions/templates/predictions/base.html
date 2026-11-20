@@ -1,4 +1,4 @@
-{% load static %}
+{% load static predictions_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,17 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
     <meta name="description" content="{% block meta_desc %}Expert football predictions, free tips, VIP accumulators, and data-driven betting analysis.{% endblock %}">
     <meta name="keywords" content="football predictions, betting tips, soccer tips, accumulator, over 2.5, btts">
-    <meta property="og:title" content="{% block og_title %}Matchday Pro{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}MatchPro{% endblock %}">
     <meta property="og:description" content="{% block og_desc %}Professional football predictions and betting tips.{% endblock %}">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="{% static 'predictions/og-image.png' %}">
+    <meta property="og:site_name" content="MatchPro">
+    <meta property="og:url" content="{% canonical_url %}">
+    <meta property="og:image" content="{% abs_static 'predictions/og-image.png' %}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="{% static 'predictions/og-image.png' %}">
+    <meta name="twitter:image" content="{% abs_static 'predictions/og-image.png' %}">
     <link rel="icon" type="image/png" href="{% static 'predictions/favicon.png' %}">
-    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <link rel="canonical" href="{% canonical_url %}">
     <link rel="manifest" href="{% url 'web_manifest' %}">
     <meta name="theme-color" content="#0f5132" id="theme-color-meta">
-    <title>{% block title %}Free Supertips Daily{% endblock %}</title>
+    <title>{% block title %}MatchPro — Football Predictions & Tips{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'predictions/styles.css' %}">
     <link rel="stylesheet" href="{% static 'predictions/theme.css' %}">
     <script>
@@ -41,7 +43,7 @@
 <header class="site-header">
     <div class="header-top">
         <a href="{% url 'home' %}" class="logo" aria-label="Home">
-            <span class="logo-mark">MD</span>
+            <span class="logo-mark">MP</span>
             <span class="logo-text">Match<span>Pro</span></span>
         </a>
 
@@ -166,7 +168,7 @@
 
 <footer class="site-footer">
     {% include "predictions/_affiliate.html" with variant="footer" %}
-    <p>Matchday Pro — Data-driven football predictions &amp; betting tips.</p>
+    <p>MatchPro — Data-driven football predictions &amp; betting tips.</p>
 </footer>
 
 <div id="page-loader">

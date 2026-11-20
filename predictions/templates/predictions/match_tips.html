@@ -1,10 +1,10 @@
 {% extends "predictions/base.html" %}
 {% load predictions_extras %}
 
-{% block title %}{{ match }} — Matchday Pro{% endblock %}
-{% block meta_desc %}{{ tip_type|capfirst }} tips for {{ match }} — Matchday Pro.{% endblock %}
-{% block og_title %}{{ match }} — Matchday Pro{% endblock %}
-{% block og_desc %}{{ predictions|length }} tip{{ predictions|length|pluralize }} for {{ match }} — Matchday Pro{% endblock %}
+{% block title %}{{ match }} — MatchPro{% endblock %}
+{% block meta_desc %}{{ tip_type|capfirst }} tips for {{ match }} — MatchPro.{% endblock %}
+{% block og_title %}{{ match }} — MatchPro{% endblock %}
+{% block og_desc %}{{ predictions|length }} tip{{ predictions|length|pluralize }} for {{ match }} — MatchPro{% endblock %}
 
 {% block schema %}
 <script type="application/ld+json">
@@ -212,7 +212,7 @@ function copyTip() {
         {% endfor %}
     ];
 
-    const text = lines.join("\n") + "\n\nvia Matchday Pro";
+    const text = lines.join("\n") + "\n\nvia MatchPro";
     const feedback = document.getElementById("copy-feedback");
 
     function showFeedback(message) {

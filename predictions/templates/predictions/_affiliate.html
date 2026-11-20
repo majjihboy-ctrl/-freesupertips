@@ -1,8 +1,9 @@
 {# Affiliate banners – EaglePredict-style popping frames #}
 {# BigCat Partners (JS) + Mozzart static Multibonus banner #}
-{% load static %}
+{% load static predictions_extras %}
+{% aff_variant variant as v %}
 
-{% if variant == "banner" or variant == "top" %}
+{% if v == "banner" or v == "top" %}
 <div class="aff-frame aff-frame--banner aff-pop">
     <div class="aff-frame__glow"></div>
     <div class="aff-frame__inner">
@@ -14,7 +15,7 @@
     </div>
 </div>
 
-{% elif variant == "mozzart" or variant == "mozzart-top" %}
+{% elif v == "mozzart" or v == "mozzart-top" %}
 {# Mozzart Multibonus 1,000% static banner #}
 <div class="aff-frame aff-frame--banner aff-pop">
     <div class="aff-frame__glow"></div>
@@ -38,7 +39,7 @@
     </div>
 </div>
 
-{% elif variant == "button" or variant == "mid" %}
+{% elif v == "button" or v == "mid" %}
 <div class="aff-frame aff-frame--mid aff-pop">
     <div class="aff-frame__glow"></div>
     <div class="aff-frame__inner">
@@ -50,7 +51,7 @@
     </div>
 </div>
 
-{% elif variant == "mozzart-mid" %}
+{% elif v == "mozzart-mid" %}
 {# Mozzart mid-content placement #}
 <div class="aff-frame aff-frame--mid aff-pop">
     <div class="aff-frame__glow"></div>
@@ -74,7 +75,7 @@
     </div>
 </div>
 
-{% elif variant == "sidebar" %}
+{% elif v == "sidebar" %}
 <div class="aff-frame aff-frame--sidebar aff-pop">
     <div class="aff-frame__glow"></div>
     <div class="aff-frame__inner">
@@ -87,7 +88,7 @@
     </div>
 </div>
 
-{% elif variant == "mozzart-sidebar" %}
+{% elif v == "mozzart-sidebar" %}
 {# Mozzart sidebar placement #}
 <div class="aff-frame aff-frame--sidebar aff-pop">
     <div class="aff-frame__glow"></div>
@@ -111,7 +112,7 @@
     </div>
 </div>
 
-{% elif variant == "footer" %}
+{% elif v == "footer" %}
 <div class="aff-footer">
     <a href="https://record.bigcatpartners.com/_yhmiE0nN3KvCP9GC20JVYmNd7ZgqdRLk/1/"
        target="_blank" rel="nofollow sponsored noopener">

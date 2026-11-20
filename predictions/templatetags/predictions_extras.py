@@ -1,4 +1,5 @@
 from django import template
+from django.templatetags.static import static as _static
 import re
 
 register = template.Library()
@@ -95,3 +96,38 @@ def market_board(markets, home_name="Home", away_name="Away"):
     """Full probability board groups for match detail."""
     from predictions.market_picks import board_rows
     return board_rows(markets, home_name, away_name)
+
+
+@register.simple_tag(takes_context=True)
+def abs_static(context, path):
+    """Absolute URL for a static file. Open Graph / Twitter card crawlers
+    (Facebook, X, WhatsApp) ignore relative image URLs, so link previews
+    need the full https://host/static/... form."""
+    request = context.get("request")
+    url = _static(path)
+    return request.build_absolute_uri(url) if request else url
+
+
+@register.simple_tag(takes_context=True)
+def canonical_url(context):
+    """Canonical URL = scheme + host + path, without the query string, so
+    ?day=/?market=/tracking parameters don't each become their own page."""
+    request = context.get("request")
+    return request.build_absolute_uri(request.path) if request else ""
+
+
+# BigCat's banner script loads synchronously and renders the same creative
+# wherever it is placed, so we include it once per page and leave any further
+# BigCat slots empty (the Mozzart slots are separate and unaffected).
+_BIGCAT_VARIANTS = {"banner", "top", "mid", "button", "sidebar"}
+
+
+@register.simple_tag(takes_context=True)
+def aff_variant(context, variant):
+    request = context.get("request")
+    if variant not in _BIGCAT_VARIANTS or request is None:
+        return variant
+    if getattr(request, "_bigcat_rendered", False):
+        return ""
+    request._bigcat_rendered = True
+    return variant

@@ -1,9 +1,9 @@
 {% extends "predictions/base.html" %}
 
-{% block title %}{{ prediction.match }} — Matchday Pro{% endblock %}
-{% block meta_desc %}{{ prediction.prediction }} prediction for {{ prediction.match }} — Matchday Pro.{% endblock %}
-{% block og_title %}{{ prediction.match }} — Matchday Pro{% endblock %}
-{% block og_desc %}{{ prediction.prediction }} @ {{ prediction.odds }} — Matchday Pro{% endblock %}
+{% block title %}{{ prediction.match }} — MatchPro{% endblock %}
+{% block meta_desc %}{{ prediction.prediction }} prediction for {{ prediction.match }} — MatchPro.{% endblock %}
+{% block og_title %}{{ prediction.match }} — MatchPro{% endblock %}
+{% block og_desc %}{{ prediction.prediction }} @ {{ prediction.odds }} — MatchPro{% endblock %}
 
 {% block schema %}
 <script type="application/ld+json">
@@ -55,7 +55,7 @@
 
 <script>
 function copyTip() {
-    const text = `{{ prediction.match|escapejs }}\n{{ prediction.prediction|escapejs }} @ {{ prediction.odds }}\n\nvia Matchday Pro`;
+    const text = `{{ prediction.match|escapejs }}\n{{ prediction.prediction|escapejs }} @ {{ prediction.odds }}\n\nvia MatchPro`;
     navigator.clipboard.writeText(text).then(() => {
         const fb = document.getElementById('copy-feedback');
         fb.style.opacity = '1';

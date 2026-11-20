@@ -96,7 +96,7 @@
         {% if mb.source == "reconstructed" %}<p class="betslip-legal">Rebuilt after the games from the day’s pre-match model data with the same rules; not necessarily the exact multibets shown that day.</p>{% endif %}
         {% else %}
         <div class="betslip-actions">
-            <button type="button" class="btn-copy-selections" data-text="{{ active_tab_label }} Multibet #{{ mb.number }}&#10;&#10;{% for leg in mb.legs %}{{ leg.match.home_team }} vs {{ leg.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ mb.combined_odds|floatformat:2 }} · ~{{ mb.combined_probability|floatformat:'-1' }}% model prob&#10;&#10;From Matchday Pro">
+            <button type="button" class="btn-copy-selections" data-text="{{ active_tab_label }} Multibet #{{ mb.number }}&#10;&#10;{% for leg in mb.legs %}{{ leg.match.home_team }} vs {{ leg.match.away_team }} — {{ leg.label }} ({{ leg.probability|floatformat:0 }}%){% if not forloop.last %}&#10;{% endif %}{% endfor %}&#10;&#10;Combined odds: {{ mb.combined_odds|floatformat:2 }} · ~{{ mb.combined_probability|floatformat:'-1' }}% model prob&#10;&#10;From MatchPro">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 <span>Copy selections</span>
             </button>

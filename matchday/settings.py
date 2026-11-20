@@ -216,7 +216,7 @@ else:
 #        EMAIL_HOST=smtp-relay.brevo.com
 #        EMAIL_HOST_USER=<your Brevo account email>
 #        EMAIL_HOST_PASSWORD=<the SMTP key from step 2, not your account password>
-#        DEFAULT_FROM_EMAIL=Matchday Pro <no-reply@yourdomain.com>
+#        DEFAULT_FROM_EMAIL=MatchPro <no-reply@yourdomain.com>
 #
 # Any other free SMTP provider (Resend, Mailjet, etc.) works the same way
 # -- just point EMAIL_HOST at their relay. With EMAIL_HOST unset (e.g.
@@ -233,7 +233,7 @@ else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 DEFAULT_FROM_EMAIL = config(
-    "DEFAULT_FROM_EMAIL", default="Matchday Pro <majjihboy@gmail.com>"
+    "DEFAULT_FROM_EMAIL", default="MatchPro <majjihboy@gmail.com>"
 )
 
 # WhatsApp
