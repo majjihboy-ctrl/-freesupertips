@@ -10,7 +10,7 @@
 import re
 from datetime import datetime, timedelta
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .market_data import market_odds_for_leg
@@ -251,6 +251,17 @@ def _saved_signature(rows):
 
 
 def _save(day, tab, built, source):
+    try:
+        _save_rows(day, tab, built, source)
+    except IntegrityError:
+        # Two requests built the same (day, tab) at the same moment and the
+        # other one saved first (unique day/tab/number). Theirs is as good as
+        # ours, so keep it -- callers re-read the rows right after saving.
+        return False
+    return True
+
+
+def _save_rows(day, tab, built, source):
     with transaction.atomic():
         Multibet.objects.filter(day=day, tab=tab).delete()
         for mb in built:

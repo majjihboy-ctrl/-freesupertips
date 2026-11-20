@@ -123,12 +123,12 @@
 
 {% if is_today and multibets|length < multibet_target %}
 <p class="disclaimer" style="margin-top:1rem;">
-    Only {{ multibets|length }} {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}multibet{{ multibets|length|pluralize }} could be built today without repeating a match (target {{ multibet_target }}). More may appear as today’s fixtures update.
+    Only {{ multibets|length }} {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}multibet{{ multibets|length|pluralize }} could be built today from safe picks without repeating a match — the number varies by day and market, and more may appear as today’s fixtures update.
 </p>
 {% endif %}
 
 <p class="disclaimer" style="margin-top:1.25rem;">
-    Every selection is at or above {{ min_conf }}% model confidence and each match appears in one multibet only within a tab. Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
+    Every selection is at or above {{ min_conf }}% model confidence and priced at 1.4 or less, and each match appears in one multibet only within a tab. Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
     Combined odds assume independence — multibets are higher risk than singles. {% if is_admin %}A multibet is marked lost as soon as one leg loses; corner legs are graded from the match’s reported corner count, and show as unverified until the API reports it.{% endif %} 18+ Gamble responsibly.
 </p>
 {% else %}

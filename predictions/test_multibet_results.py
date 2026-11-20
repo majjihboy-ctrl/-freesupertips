@@ -155,3 +155,16 @@ class PreviousDayResultsTests(TestCase):
         self.client.get(reverse("accumulator"))
         frozen_after = list(Multibet.objects.filter(day=today, tab="mix").values_list("id", flat=True))
         self.assertEqual(frozen_before, frozen_after)
+
+
+class ConcurrentSaveTests(TestCase):
+    """Two first visitors can build the same (day, tab) at the same instant;
+    the loser must not 500 on the unique (day, tab, number) constraint."""
+
+    def test_save_swallows_a_lost_race(self):
+        from unittest import mock
+        from django.db import IntegrityError
+
+        built = [{"number": 1, "combined_odds": 4.2, "combined_probability": 20.0, "legs": []}]
+        with mock.patch.object(Multibet.objects, "create", side_effect=IntegrityError("duplicate")):
+            self.assertFalse(mbs._save(timezone.localdate(), "goals", built, "live"))
