@@ -244,7 +244,8 @@ def accumulator(request):
     Sub-tabs: Mix (default), 1X2, GG, Goals O/U, Corners, Draw No Bet.
     Every tab: up to 10 different multibets (never forced -- a tab can have
     fewer, or none), combined odds 4-5, 1 to 20 selections, no selection priced
-    above 1.4, no match repeated within the tab.
+    above 1.4. A match can appear in several multibets with a different pick each
+    time, never twice in the same multibet.
 
     Admins additionally get `?date=YYYY-MM-DD` (previous days) with every leg
     and multibet graded against the final scores, the day summary and the

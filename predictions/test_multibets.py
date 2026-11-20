@@ -32,8 +32,9 @@ class MultibetRulesTests(unittest.TestCase):
                 for mb in result:
                     ids = [leg["match_id"] for leg in mb["legs"]]
                     self.assertEqual(len(ids), len(set(ids)), "match repeated inside a multibet")
-                    self.assertFalse(seen & set(ids), "match repeated across multibets")
-                    seen |= set(ids)
+                    picks = {(leg["match_id"], leg["market_type"], leg["label"]) for leg in mb["legs"]}
+                    self.assertFalse(seen & picks, "same pick used in two multibets")
+                    seen |= picks
                     self.assertTrue(MIN_LEGS <= len(ids) <= MAX_LEGS)
                     self.assertTrue(all(leg["odds"] <= LEG_MAX_ODDS for leg in mb["legs"]))
                     self.assertTrue(MIN_ODDS <= mb["combined_odds"] <= MAX_ODDS)
@@ -81,6 +82,29 @@ class MultibetRulesTests(unittest.TestCase):
         keys = [tuple(sorted(leg["match_id"] for leg in mb["legs"])) for mb in result]
         self.assertEqual(len(keys), len(set(keys)))
 
+    def test_a_match_can_be_reused_with_a_different_pick(self):
+        # every match has two safe picks (1X2 favourite and Double Chance);
+        # a match may appear in several multibets, but with a different pick
+        # each time and never twice in the same multibet
+        rng = random.Random(31)
+        options = []
+        for m in range(14):
+            options.append({"match_id": m, "market_type": "match_result", "label": f"Home {m}",
+                            "probability": rng.uniform(76, 82)})
+            options.append({"match_id": m, "market_type": "double_chance", "label": f"1X {m}",
+                            "probability": rng.uniform(88, 94)})
+        result = assemble_multibets(options)
+        appearances, picks_seen = {}, set()
+        for mb in result:
+            ids = [leg["match_id"] for leg in mb["legs"]]
+            self.assertEqual(len(ids), len(set(ids)), "match twice in one multibet")
+            for leg in mb["legs"]:
+                pick = (leg["match_id"], leg["market_type"], leg["label"])
+                self.assertNotIn(pick, picks_seen, "same pick used twice")
+                picks_seen.add(pick)
+                appearances[leg["match_id"]] = appearances.get(leg["match_id"], 0) + 1
+        self.assertTrue(any(n > 1 for n in appearances.values()), appearances)
+
     def test_selection_and_price_limits(self):
         self.assertEqual(MAX_LEGS, 20)
         self.assertEqual(MIN_LEGS, 1)
@@ -100,8 +124,9 @@ class MultibetRulesTests(unittest.TestCase):
             ids = [leg["match_id"] for leg in mb["legs"]]
             self.assertGreater(len(ids), 5)
             self.assertEqual(len(ids), len(set(ids)))
-            self.assertFalse(seen & set(ids))
-            seen |= set(ids)
+            picks = {(leg["match_id"], leg["market_type"], leg["label"]) for leg in mb["legs"]}
+            self.assertFalse(seen & picks, "same pick used in two multibets")
+            seen |= picks
             self.assertTrue(MIN_ODDS <= mb["combined_odds"] <= MAX_ODDS)
 
     def test_short_priced_tab_is_not_forced_into_risky_long_priced_legs(self):
@@ -166,8 +191,9 @@ class TargetedMegaTests(unittest.TestCase):
             for mb in result:
                 ids = [leg["match_id"] for leg in mb["legs"]]
                 self.assertEqual(len(ids), len(set(ids)))
-                self.assertFalse(seen & set(ids), "match reused across mega multibets")
-                seen |= set(ids)
+                picks = {(leg["match_id"], leg["market_type"], leg["label"]) for leg in mb["legs"]}
+                self.assertFalse(seen & picks, "same pick used in two multibets")
+                seen |= picks
                 self.assertTrue(200 <= mb["combined_odds"] <= 250)
                 self.assertTrue(8 <= len(ids) <= 18, len(ids))
                 self.assertTrue(all(leg["label"] != "Draw" for leg in mb["legs"]))

@@ -10,8 +10,11 @@ Rules enforced here:
     market can't make a multibet, it gets none (an empty tab is fine) -- there
     is no spreading across the odds window and no "fewest legs" retry to
     squeeze out more multibets
-  * a match is used at most ONCE in the whole set -- never twice in one
-    multibet and never repeated across different multibets
+  * a match can appear in several multibets, but never twice in the same one
+    (one selection per match per multibet, so every slip can be placed as a
+    normal accumulator) and never with the same pick twice: reusing a match
+    means using a DIFFERENT pick from it (e.g. its 1X2 pick in one multibet
+    and its Double Chance pick in another)
   * multibets are built strongest-first: each one maximises combined model
     probability among the combinations that satisfy the rules
 
@@ -58,6 +61,12 @@ def _with_odds(options, max_leg_odds=None):
             continue                                # too risky for a single leg
         out.append(row)
     return out
+
+
+def _pick_key(option):
+    """Identity of one pick: the same match with a different market/selection is
+    a different pick and may be reused in another multibet."""
+    return (option["match_id"], option.get("market_type"), option["label"])
 
 
 def _pool(available):
@@ -155,11 +164,11 @@ def _find_combo(available, min_odds, max_odds, min_legs, max_legs):
 
 def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, max_leg_odds):
     remaining = _with_odds(options, max_leg_odds)
-    used_matches = set()
+    used_picks = set()
     multibets = []
 
     while len(multibets) < count:
-        available = [o for o in remaining if o["match_id"] not in used_matches]
+        available = [o for o in remaining if _pick_key(o) not in used_picks]
         if not available:
             break
         combo = _find_combo(available, min_odds, max_odds, min_legs, max_legs)
@@ -168,7 +177,7 @@ def _assemble(options, count, min_odds, max_odds, min_legs, max_legs, max_leg_od
         combined_odds = 1.0
         combined_prob = 1.0
         for leg in combo:
-            used_matches.add(leg["match_id"])
+            used_picks.add(_pick_key(leg))
             combined_odds *= leg["odds"]
             combined_prob *= leg["probability"] / 100.0
             leg["odds"] = round(leg["odds"], 2)
@@ -239,7 +248,7 @@ def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_le
     number of legs flexes when the slate can't give that many). No match is
     used twice across the set. Same output shape as assemble_multibets."""
     remaining = _with_odds(options, max_leg_odds)
-    used_matches = set()
+    used_picks = set()
     multibets = []
     tries = [target_legs]
     for d in range(1, 10):
@@ -247,7 +256,7 @@ def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_le
     tries = [n for n in tries if n >= max(min_legs, 1) and (max_legs is None or n <= max_legs)]
 
     while len(multibets) < count:
-        available = [o for o in remaining if o["match_id"] not in used_matches]
+        available = [o for o in remaining if _pick_key(o) not in used_picks]
         combo = None
         for legs in tries:
             combo = _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs, max_legs)
@@ -257,7 +266,7 @@ def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_le
             break
         combined_odds, combined_prob = 1.0, 1.0
         for leg in combo:
-            used_matches.add(leg["match_id"])
+            used_picks.add(_pick_key(leg))
             combined_odds *= leg["odds"]
             combined_prob *= leg["probability"] / 100.0
             leg["odds"] = round(leg["odds"], 2)

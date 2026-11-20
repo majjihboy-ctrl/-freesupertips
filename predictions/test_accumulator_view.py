@@ -50,8 +50,9 @@ class AccumulatorViewTests(TestCase):
         for mb in multibets:
             ids = [leg["match_id"] for leg in mb["legs"]]
             self.assertEqual(len(ids), len(set(ids)))
-            self.assertFalse(seen & set(ids))
-            seen |= set(ids)
+            picks = {(leg["match_id"], leg["market_type"], leg["label"]) for leg in mb["legs"]}
+            self.assertFalse(seen & picks, "same pick used in two multibets")
+            seen |= picks
             self.assertTrue(1 <= len(ids) <= 20)
             self.assertTrue(all(float(leg["odds"]) <= 1.4 for leg in mb["legs"]))
             self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
@@ -70,8 +71,9 @@ class AccumulatorViewTests(TestCase):
                 built += 1
                 ids = [leg["match_id"] for leg in mb["legs"]]
                 self.assertEqual(len(ids), len(set(ids)))
-                self.assertFalse(seen & set(ids), f"{tab}: match repeated across multibets")
-                seen |= set(ids)
+                picks = {(leg["match_id"], leg["market_type"], leg["label"]) for leg in mb["legs"]}
+                self.assertFalse(seen & picks, "same pick used in two multibets")
+                seen |= picks
                 self.assertGreaterEqual(len(ids), 2)
                 self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
                 self.assertTrue(all(leg["market_type"] == market for leg in mb["legs"]),
@@ -87,8 +89,9 @@ class AccumulatorViewTests(TestCase):
         seen = set()
         for mb in response.context["multibets"]:
             ids = [leg["match_id"] for leg in mb["legs"]]
-            self.assertFalse(seen & set(ids))
-            seen |= set(ids)
+            picks = {(leg["match_id"], leg["market_type"], leg["label"]) for leg in mb["legs"]}
+            self.assertFalse(seen & picks, "same pick used in two multibets")
+            seen |= picks
             self.assertTrue(200 <= mb["combined_odds"] <= 250)
             self.assertTrue(len(ids) <= 30)
             self.assertTrue(all(float(leg["odds"]) <= 1.4 for leg in mb["legs"]))

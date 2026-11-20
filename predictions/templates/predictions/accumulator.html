@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Daily Multibets — MatchPro{% endblock %}
-{% block meta_desc %}Today's free multibets — accumulators of short-priced picks (no leg above 1.4) with combined odds between 4 and 5, no match repeated. Ready to place on Mozzart or your preferred bookie.{% endblock %}
+{% block meta_desc %}Today's free multibets — accumulators of short-priced picks (no leg above 1.4) with combined odds between 4 and 5. A match can appear in more than one multibet with a different pick each time. Ready to place on Mozzart or your preferred bookie.{% endblock %}
 
 {% block content %}
 <div class="page-title">
@@ -11,7 +11,7 @@
     <span class="acca-fold-badge">{{ multibets|length }} MULTIBET{{ multibets|length|pluralize }}</span>
     {% endif %}
 </div>
-<p class="acca-sub">Free daily multibets · combined odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated{% if active_tab == 'mega' %} · combines every market, up to 30 selections{% endif %}</p>
+<p class="acca-sub">Free daily multibets · combined odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · one pick per match in each multibet{% if active_tab == 'mega' %} · combines every market, up to 30 selections{% endif %}</p>
 {% if is_admin and is_today %}
 <form method="post" style="margin:.4rem 0 .8rem;">
     {% csrf_token %}
@@ -132,12 +132,12 @@
 
 {% if is_today and multibets|length < multibet_target %}
 <p class="disclaimer" style="margin-top:1rem;">
-    Only {{ multibets|length }} {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}multibet{{ multibets|length|pluralize }} could be built today from safe picks without repeating a match — the number varies by day and market, and more may appear as today’s fixtures update.
+    Only {{ multibets|length }} {% if active_tab != 'mix' %}{{ active_tab_label }} {% endif %}multibet{{ multibets|length|pluralize }} could be built today from safe picks — the number varies by day and market, and more may appear as today’s fixtures update.
 </p>
 {% endif %}
 
 <p class="disclaimer" style="margin-top:1.25rem;">
-    Every selection is at or above {{ min_conf }}% model confidence and priced at 1.4 or less, and each match appears in one multibet only within a tab. Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
+    Every selection is at or above {{ min_conf }}% model confidence and priced at 1.4 or less, and a match is never used twice in the same multibet (it can appear in others with a different pick). Odds are bookmaker consensus prices at the time the multibets were built; odds marked ~ are model-implied where no bookmaker price was available. Your bookmaker’s prices may differ.
     Combined odds assume independence — multibets are higher risk than singles. {% if is_admin %}A multibet is marked lost as soon as one leg loses; corner legs are graded from the match’s reported corner count, and show as unverified until the API reports it.{% endif %} 18+ Gamble responsibly.
 </p>
 {% else %}
