@@ -79,8 +79,8 @@ class AccumulatorViewTests(TestCase):
         self.assertGreater(built, 0)
 
     def test_mega_tab_only_appears_when_safe_legs_can_reach_it(self):
-        # Mega legs obey the same 1.4 ceiling, so with this slate (few short
-        # favourites) it is allowed to be empty -- nothing is forced.
+        # Mega combines every market (up to 30 legs) under the same 1.4 ceiling;
+        # it is allowed to be empty -- nothing is forced.
         response = self.client.get(reverse("accumulator"), {"tab": "mega"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual((response.context["min_odds"], response.context["max_odds"]), (200.0, 250.0))
@@ -90,9 +90,8 @@ class AccumulatorViewTests(TestCase):
             self.assertFalse(seen & set(ids))
             seen |= set(ids)
             self.assertTrue(200 <= mb["combined_odds"] <= 250)
-            self.assertTrue(len(ids) <= 20)
-            self.assertTrue(all(leg["market_type"] == "match_result" and leg["label"] != "Draw"
-                                and float(leg["odds"]) <= 1.4 for leg in mb["legs"]))
+            self.assertTrue(len(ids) <= 30)
+            self.assertTrue(all(float(leg["odds"]) <= 1.4 for leg in mb["legs"]))
 
     def test_unknown_tab_falls_back_to_mix(self):
         response = self.client.get(reverse("accumulator"), {"tab": "nonsense"})

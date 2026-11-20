@@ -30,16 +30,18 @@ TABS = [
     ("corners", "Corners", "corners"),
     ("dnb", "Draw No Bet", "draw_no_bet"),
     ("dc", "Double Chance", "double_chance"),
-    ("mega", "Mega 1X2", "match_result"),
+    ("mega", "Mega", None),
 ]
 
-# "Mega 1X2": a long 1X2 accumulator aimed at combined odds near 222 -- win/lose
-# picks only (no draws). Every leg is held to the same 1.4 ceiling as the other
-# tabs, so it needs 15-20 selections and only exists on days with enough safe
-# 1X2 picks (no forcing: an empty Mega tab is fine). Raise "max_leg_odds" to let
-# it use longer-priced legs again.
+# "Mega": one long accumulator that combines every other market (1X2, GG,
+# goals, corners, draw no bet, double chance), aimed at combined odds near 222
+# with up to 30 selections. Every leg is held to the same 1.4 ceiling as the
+# other tabs, so it only exists on days with enough safe picks (nothing is
+# forced: an empty Mega tab is fine). Raise "max_leg_odds" to allow longer
+# prices, or lower "max_legs" to shorten it.
 MEGA = {"min_odds": 200.0, "max_odds": 250.0, "target_odds": 222.64,
-        "target_legs": 18, "count": 3, "min_confidence": 50, "max_leg_odds": 1.4}
+        "target_legs": 24, "max_legs": 30, "count": 3, "min_confidence": 50,
+        "max_leg_odds": 1.4}
 TAB_MARKET = {slug: market for slug, _label, market in TABS}
 TAB_LABEL = {slug: label for slug, label, _market in TABS}
 
@@ -195,9 +197,9 @@ def build_multibets(market_type=None, day=None, upcoming_only=True, tab=None):
         seen_matches.add(prediction.match_id)
         home, away = prediction.match.home_team, prediction.match.away_team
         if tab == "mega":
-            candidates = [c for c in extract_family_selections(prediction.markets, home, away)
-                          if c[0] == "match_result" and c[1] != "Draw"
-                          and c[2] >= MEGA["min_confidence"]]
+            # every market, one leg per match (the builder never reuses a match)
+            candidates = [c for c in extract_market_candidates(prediction.markets, home, away)
+                          if c[2] >= MEGA["min_confidence"]]
         elif market_type is None:
             candidates = [c for c in extract_market_candidates(prediction.markets, home, away)
                           if c[2] >= ACCA_MIN_CONFIDENCE]
@@ -225,7 +227,7 @@ def build_multibets(market_type=None, day=None, upcoming_only=True, tab=None):
         return assemble_targeted(
             options, count=MEGA["count"], min_odds=MEGA["min_odds"], max_odds=MEGA["max_odds"],
             target_odds=MEGA["target_odds"], target_legs=MEGA["target_legs"],
-            max_leg_odds=MEGA["max_leg_odds"],
+            max_leg_odds=MEGA["max_leg_odds"], max_legs=MEGA["max_legs"],
         )
     return assemble_multibets(options)
 

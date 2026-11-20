@@ -11,7 +11,7 @@
     <span class="acca-fold-badge">{{ multibets|length }} MULTIBET{{ multibets|length|pluralize }}</span>
     {% endif %}
 </div>
-<p class="acca-sub">Free daily multibets · combined odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated{% if active_tab == 'mega' %} · 1X2 favourites only, no draws{% endif %}</p>
+<p class="acca-sub">Free daily multibets · combined odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated{% if active_tab == 'mega' %} · combines every market, up to 30 selections{% endif %}</p>
 
 <div class="day-tabs-wrap">
     <div class="day-tabs" role="tablist" aria-label="Multibet type">

@@ -187,6 +187,21 @@ class TargetedMegaTests(unittest.TestCase):
             self.assertTrue(len(mb["legs"]) <= 20)
             self.assertTrue(all(leg["odds"] <= 1.4 for leg in mb["legs"]))
 
+    def test_mega_can_use_up_to_thirty_selections_across_markets(self):
+        rng = random.Random(8)
+        markets = ("match_result", "btts", "over_under", "corners", "draw_no_bet", "double_chance")
+        options = [{"match_id": m, "market_type": markets[m % len(markets)], "label": f"sel{m}",
+                    "probability": rng.uniform(80, 88)} for m in range(120)]
+        result = assemble_targeted(options, 3, 200, 250, 222.64, 24, max_legs=30)
+        self.assertTrue(result)
+        sizes = [len(mb["legs"]) for mb in result]
+        self.assertTrue(max(sizes) <= 30, sizes)
+        self.assertTrue(max(sizes) > 20, sizes)       # genuinely uses more than the normal 20
+        for mb in result:
+            self.assertTrue(200 <= mb["combined_odds"] <= 250)
+            self.assertTrue(all(leg["odds"] <= 1.4 for leg in mb["legs"]))
+            self.assertGreater(len({leg["market_type"] for leg in mb["legs"]}), 1)  # combines markets
+
     def test_mega_is_empty_when_there_are_no_safe_legs(self):
         rng = random.Random(6)
         options = [{"match_id": m, "market_type": "match_result", "label": "Home Win",
