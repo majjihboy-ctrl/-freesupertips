@@ -168,3 +168,41 @@ class ConcurrentSaveTests(TestCase):
         built = [{"number": 1, "combined_odds": 4.2, "combined_probability": 20.0, "legs": []}]
         with mock.patch.object(Multibet.objects, "create", side_effect=IntegrityError("duplicate")):
             self.assertFalse(mbs._save(timezone.localdate(), "goals", built, "live"))
+
+
+class RebuildTodayTests(TestCase):
+    """Admin button: replace today's (possibly frozen, old-rule) multibets."""
+
+    def setUp(self):
+        from .test_accumulator_view import AccumulatorViewTests
+        AccumulatorViewTests.setUp(self)
+        self.today = timezone.localdate()
+        # an "old rules" snapshot: one multibet with a 1.80-priced leg
+        match = Match.objects.first()
+        old = Multibet.objects.create(day=self.today, tab="mix", number=1,
+                                      combined_odds=decimal.Decimal("4.30"),
+                                      combined_probability=decimal.Decimal("20.0"), source="live")
+        from .models import MultibetLeg
+        MultibetLeg.objects.create(multibet=old, match=match, market_type="match_result",
+                                   label="Home Win", probability=55, odds=decimal.Decimal("1.80"),
+                                   odds_source="market", position=0)
+
+    def _old_leg_present(self):
+        return Multibet.objects.filter(day=self.today, tab="mix", legs__odds__gt=decimal.Decimal("1.4")).exists()
+
+    def test_staff_post_replaces_todays_multibets_with_current_rules(self):
+        self.assertTrue(self._old_leg_present())
+        staff = get_user_model().objects.create_user("boss", password="pw", is_staff=True)
+        self.client.force_login(staff)
+        response = self.client.post(reverse("accumulator"), {"rebuild": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(self._old_leg_present())
+        rows = Multibet.objects.filter(day=self.today, tab="mix")
+        self.assertTrue(rows.exists())
+        for mb in rows:
+            self.assertTrue(all(leg.odds <= decimal.Decimal("1.40") for leg in mb.legs.all()))
+
+    def test_non_staff_post_changes_nothing(self):
+        response = self.client.post(reverse("accumulator"), {"rebuild": "1"})
+        self.assertEqual(response.status_code, 200)   # just renders the page, no redirect/rebuild
+        self.assertTrue(self._old_leg_present())

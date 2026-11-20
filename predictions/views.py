@@ -259,6 +259,14 @@ def accumulator(request):
     day = mbs.parse_day(request.GET.get("date")) if is_admin else today
     base = reverse("accumulator")
 
+    if request.method == "POST" and is_admin and request.POST.get("rebuild") == "1":
+        # Admin button: swap today's frozen multibets for ones built under the
+        # current rules (upcoming matches only).
+        counts = mbs.rebuild_today()
+        messages.success(request, "Rebuilt today's multibets: " + ", ".join(
+            f"{mbs.TAB_LABEL[t]} {n}" for t, n in counts.items()))
+        return redirect(base + ("?tab=" + tab if tab != "mix" else ""))
+
     def link(tab_slug, day_value):
         params = []
         if tab_slug != "mix":

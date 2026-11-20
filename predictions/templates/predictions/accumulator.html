@@ -12,6 +12,15 @@
     {% endif %}
 </div>
 <p class="acca-sub">Free daily multibets · combined odds {{ min_odds|floatformat:0 }}–{{ max_odds|floatformat:0 }} · no match repeated{% if active_tab == 'mega' %} · combines every market, up to 30 selections{% endif %}</p>
+{% if is_admin and is_today %}
+<form method="post" style="margin:.4rem 0 .8rem;">
+    {% csrf_token %}
+    <button type="submit" name="rebuild" value="1" class="btn-copy-selections"
+            onclick="return confirm('Rebuild today for every tab with the current rules? Matches that already kicked off are dropped.');">
+        <span>Rebuild today with current rules</span>
+    </button>
+</form>
+{% endif %}
 
 <div class="day-tabs-wrap">
     <div class="day-tabs" role="tablist" aria-label="Multibet type">

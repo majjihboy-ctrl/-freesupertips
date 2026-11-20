@@ -288,6 +288,20 @@ def _load(day, tab):
     )
 
 
+def rebuild_today():
+    """Admin tool: replace today's saved multibets, for every tab, with fresh
+    ones built under the CURRENT rules. Only matches that have not kicked off
+    are used (a slip is never rebuilt around games already played), so the
+    new multibets are smaller than a full-day build. Returns {tab: count}."""
+    today = timezone.localdate()
+    counts = {}
+    for slug, _label, market in TABS:
+        built = build_multibets(market, day=today, upcoming_only=True, tab=slug)
+        _save(today, slug, built, "live")
+        counts[slug] = len(_load(today, slug))
+    return counts
+
+
 def get_multibets(day, tab):
     """Saved multibets for (day, tab) as rows.
 
