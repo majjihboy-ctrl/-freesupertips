@@ -3,7 +3,7 @@ import random
 import unittest
 
 from .multibets import (
-    assemble_multibets, assemble_targeted, COUNT, MAX_LEGS, MAX_ODDS, MIN_LEGS, MIN_ODDS, PREFERRED_LEGS,
+    assemble_multibets, assemble_targeted, COUNT, MAX_LEGS, MAX_ODDS, MIN_LEGS, MIN_ODDS,
 )
 
 
@@ -60,16 +60,32 @@ class MultibetRulesTests(unittest.TestCase):
         seen = set()
         for mb in result:
             ids = [leg["match_id"] for leg in mb["legs"]]
-            self.assertGreater(len(ids), PREFERRED_LEGS)
+            self.assertGreater(len(ids), 5)
             self.assertEqual(len(ids), len(set(ids)))
             self.assertFalse(seen & set(ids))
             seen |= set(ids)
             self.assertTrue(MIN_ODDS <= mb["combined_odds"] <= MAX_ODDS)
 
-    def test_compact_multibets_are_preferred_when_possible(self):
-        result = assemble_multibets(_pool(1, 60))
-        self.assertEqual(len(result), COUNT)
-        self.assertTrue(all(len(mb["legs"]) <= PREFERRED_LEGS for mb in result))
+    def test_short_priced_tab_is_not_forced_into_risky_long_priced_legs(self):
+        # Double Chance style slate: plenty of safe ~1.2 legs plus a few
+        # long-priced, poor-value ones. With a "max legs per fold" cap the
+        # builder had to reach 4-5 combined odds with one of the long-priced
+        # legs; with no cap it simply stacks the safe ones.
+        rng = random.Random(11)
+        options = []
+        for i in range(60):
+            prob = rng.uniform(80, 86)
+            options.append({"match_id": i, "market_type": "double_chance", "label": f"dc-{i}",
+                            "probability": prob, "odds": round(100 / prob, 2)})
+        for i in range(60, 75):
+            options.append({"match_id": i, "market_type": "double_chance", "label": f"dc-{i}",
+                            "probability": 40.0, "odds": 2.2})
+        result = assemble_multibets(options, count=4)
+        self.assertEqual(len(result), 4)
+        for mb in result:
+            self.assertTrue(MIN_ODDS <= mb["combined_odds"] <= MAX_ODDS)
+            self.assertTrue(all(leg["odds"] <= 1.3 for leg in mb["legs"]), mb)
+        self.assertTrue(any(len(mb["legs"]) > 5 for mb in result))
 
     def test_explicit_cap_is_still_respected_when_asked_for(self):
         options = [{"match_id": i, "market_type": "dnb", "label": f"x{i}", "probability": 90.0}

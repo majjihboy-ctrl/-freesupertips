@@ -1,12 +1,12 @@
 """Builds several distinct multibets (accumulators) from a pool of legs.
 
 Rules enforced here:
-  * every multibet has at least MIN_LEGS selections and NO maximum: the only
-    thing that matters is that the combined odds fall inside
-    MIN_ODDS..MAX_ODDS (4.0..5.0). Compact multibets (up to PREFERRED_LEGS
-    selections) are searched exhaustively first; only when no such multibet
-    can reach the window -- e.g. a tab made of short-priced legs like Draw No
-    Bet -- does it add more selections, strongest legs first.
+  * a multibet has NO minimum and NO maximum number of selections (MIN_LEGS is
+    just 1, i.e. non-empty): the only thing that matters is that the combined odds fall inside
+    MIN_ODDS..MAX_ODDS (4.0..5.0). There is deliberately no "compact first"
+    preference: a short-priced tab (Double Chance, Draw No Bet) must be free to
+    stack as many safe legs as it needs, instead of being squeezed into a few
+    legs and forced to reach the window with risky long-priced ones.
   * a match is used at most ONCE in the whole set -- never twice in one
     multibet and never repeated across different multibets
   * multibets are built strongest-first: each one maximises combined model
@@ -22,16 +22,17 @@ import math
 
 MIN_ODDS = 4.0
 MAX_ODDS = 5.0
-MIN_LEGS = 2
+MIN_LEGS = 1             # no minimum number of selections (a multibet just can't be empty)
 MAX_LEGS = None          # no cap on selections; the odds window is the only limit
-PREFERRED_LEGS = 5      # compact multibets are tried first
 COUNT = 10
 _NODE_BUDGET = 150_000  # safety valve on the exhaustive search
 
 # Candidate pool per multibet, stratified by odds so the search always has
 # both short-priced "glue" legs and longer-priced legs to reach the window.
 # (upper odds bound of bucket, how many options to keep from that bucket)
-_BUCKETS = ((1.25, 6), (1.5, 9), (float("inf"), 9))
+# Short-priced buckets are generous so a low-odds market can stack enough
+# safe legs to reach the window without needing a long-priced one.
+_BUCKETS = ((1.25, 14), (1.5, 12), (float("inf"), 9))
 
 
 def _with_odds(options):
@@ -134,14 +135,12 @@ def _greedy_combo(available, min_odds, max_odds, min_legs):
 
 
 def _find_combo(available, target, min_odds, max_odds, min_legs, max_legs, prefer_short):
-    """Compact exhaustive search first (up to PREFERRED_LEGS selections, or
-    max_legs when a caller asks for an explicit cap), then -- only when there
-    is no cap -- the greedy fallback that may use as many selections as the
-    odds window needs."""
+    """Best-probability search over the pool with no limit on the number of
+    selections (unless a caller passes an explicit max_legs), then -- only when
+    there is no cap -- the greedy fallback over every available option."""
     pool = _pool(available)
-    compact = PREFERRED_LEGS if max_legs is None else max_legs
     for lo in (target, min_odds):
-        combo = _best_combo(pool, lo, max_odds, min_legs, compact, prefer_short)
+        combo = _best_combo(pool, lo, max_odds, min_legs, max_legs, prefer_short)
         if combo:
             return combo
     if max_legs is not None:
@@ -191,11 +190,11 @@ def assemble_multibets(options, count=COUNT, min_odds=MIN_ODDS, max_odds=MAX_ODD
                        min_legs=MIN_LEGS, max_legs=MAX_LEGS):
     """Return up to `count` multibets as a list of dicts:
         {"number", "legs", "combined_odds", "combined_probability"}
-    `max_legs=None` (the default) puts no cap on selections: the odds window
-    is the only limit. Tries the strongest-first strategy, and if that can't reach `count`
-    retries preferring shorter multibets (fewer matches each); the run that
-    yields more multibets wins. Fewer than `count` come back only when the
-    slate genuinely lacks enough distinct matches."""
+    `min_legs`/`max_legs` default to no limit on selections: the odds window
+    is the only constraint. Tries the strongest-first strategy, and if that
+    can't reach `count` retries preferring shorter multibets (fewer matches
+    each); the run that yields more multibets wins. Fewer than `count` come
+    back only when the slate genuinely lacks enough distinct matches."""
     best = _assemble(options, count, min_odds, max_odds, min_legs, max_legs, False)
     if len(best) < count:
         short = _assemble(options, count, min_odds, max_odds, min_legs, max_legs, True)
@@ -204,7 +203,6 @@ def assemble_multibets(options, count=COUNT, min_odds=MIN_ODDS, max_odds=MAX_ODD
     return best
 
 
-# --------------------------------------------------------------------------
 # Targeted "mega" multibets: a long accumulator aimed at a specific price
 # (e.g. ~222 on a 12-leg 1X2 slip) instead of the 4-5 window.
 # --------------------------------------------------------------------------
@@ -243,7 +241,7 @@ def _targeted_combo(available, min_odds, max_odds, target_odds, legs, min_legs):
     return None
 
 
-def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_legs=12, min_legs=3):
+def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_legs=12, min_legs=1):
     """Up to `count` distinct multibets whose combined odds fall in
     [min_odds, max_odds], built around `target_legs` selections each (the
     number of legs flexes when the slate can't give that many). No match is
@@ -254,7 +252,7 @@ def assemble_targeted(options, count, min_odds, max_odds, target_odds, target_le
     tries = [target_legs]
     for d in range(1, 10):
         tries += [target_legs + d, target_legs - d]
-    tries = [n for n in tries if n >= max(min_legs, 3)]
+    tries = [n for n in tries if n >= max(min_legs, 1)]
 
     while len(multibets) < count:
         available = [o for o in remaining if o["match_id"] not in used_matches]

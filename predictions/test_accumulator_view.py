@@ -52,7 +52,6 @@ class AccumulatorViewTests(TestCase):
             self.assertEqual(len(ids), len(set(ids)))
             self.assertFalse(seen & set(ids))
             seen |= set(ids)
-            self.assertLessEqual(len(ids), 5)
             self.assertTrue(4.0 <= mb["combined_odds"] <= 5.0)
         self.assertContains(response, "Multibet #10")
 
