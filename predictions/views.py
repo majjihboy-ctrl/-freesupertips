@@ -321,8 +321,13 @@ def home(request):
     today_start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
 
+    # Only matches that have actually kicked off recently: a stale or wrongly
+    # flagged "live" row must never be pinned to the top of the page.
+    now = timezone.now()
     data["live_matches"] = Match.objects.filter(
         status="live",
+        kickoff__lte=now,
+        kickoff__gte=now - timedelta(hours=4),
     ).select_related("home_team", "away_team").order_by("-kickoff")[:10]
 
     data["banker"] = (

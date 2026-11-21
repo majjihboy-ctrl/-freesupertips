@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -11,16 +12,52 @@ from django.utils.dateparse import parse_datetime
 from predictions.models import League, Team, Match, Prediction
 from predictions.market_picks import best_market_candidate
 
+logger = logging.getLogger(__name__)
+
 API_BASE = "https://sports.bzzoiro.com/api/v2"
 
 # Bzzoiro's event.status values -> our Match.STATUS_CHOICES.
+# Every status we know is listed explicitly. An unrecognised status must NEVER
+# be assumed live: that is what pinned not-yet-played fixtures to the top of
+# the home page. See map_status() for how unknown values are handled.
 STATUS_MAP = {
-    "notstarted": "scheduled",
-    "postponed": "postponed",
-    "cancelled": "postponed",
-    "finished": "finished",
+    # not started
+    "notstarted": "scheduled", "not_started": "scheduled", "upcoming": "scheduled",
+    "scheduled": "scheduled", "unresolved": "scheduled", "tbd": "scheduled", "delayed": "scheduled",
+    # in play
+    "live": "live", "inprogress": "live", "in_progress": "live", "1st_half": "live",
+    "2nd_half": "live", "halftime": "live", "half_time": "live", "extra_time": "live",
+    "extratime": "live", "penalties": "live", "penalty_shootout": "live", "break": "live",
+    # finished
+    "finished": "finished", "ended": "finished", "ft": "finished", "aet": "finished",
+    "after_extra_time": "finished", "after_penalties": "finished",
+    # called off / not a normal result: shown as postponed, never live, never graded
+    "postponed": "postponed", "cancelled": "postponed", "canceled": "postponed",
+    "abandoned": "postponed", "suspended": "postponed", "interrupted": "postponed",
+    "awarded": "postponed", "walkover": "postponed",
 }
-# Anything else (1st_half, 2nd_half, halftime, extra_time, etc.) is live.
+LIVE_WINDOW = timedelta(hours=4)
+
+
+def map_status(raw, kickoff, has_score=False, now=None):
+    """Map a Bzzoiro status to a Match status.
+
+    Known statuses use STATUS_MAP. An unknown one is resolved from the clock
+    instead of being assumed live: future kickoff -> scheduled, kicked off
+    within LIVE_WINDOW -> live, older with a score -> finished, else postponed.
+    The raw value is logged so STATUS_MAP can be extended.
+    """
+    key = str(raw or "").strip().lower()
+    if key in STATUS_MAP:
+        return STATUS_MAP[key]
+    logger.warning("Unknown Bzzoiro status %r (kickoff %s)", raw, kickoff)
+    now = now or timezone.now()
+    if kickoff is None or kickoff > now:
+        return "scheduled"
+    if now - kickoff <= LIVE_WINDOW:
+        return "live"
+    return "finished" if has_score else "postponed"
+
 
 # Called-off matches get no Prediction row. Finished matches DO keep theirs:
 # the Predictions page publishes its full hit/miss record, and a missed daily
@@ -239,7 +276,7 @@ class Command(BaseCommand):
                 continue
 
             kickoff = parse_datetime(event["event_date"])
-            status = STATUS_MAP.get(event.get("status"), "live")
+            status = map_status(event.get("status"), kickoff, event.get("home_score") is not None)
 
             existing = existing_matches.get(eid)
             if existing:
@@ -356,7 +393,7 @@ class Command(BaseCommand):
             if has_score:
                 match.home_score = event["home_score"]
                 match.away_score = event["away_score"]
-                match.status = STATUS_MAP.get(event.get("status"), "live")
+                match.status = map_status(event.get("status"), match.kickoff, True)
                 updated_scores += 1
             to_update_detail.append(match)
 
